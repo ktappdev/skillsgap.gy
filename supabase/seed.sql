@@ -43,7 +43,7 @@ on conflict (slug) do update set
   is_active = true;
 
 insert into public.qualification_aliases (qualification_id, alias)
-select qualification.id, alias.alias
+select qualification.id, alias_data.alias
 from (
   values
     ('bosiet', 'Basic Offshore Safety Induction and Emergency Training'),
