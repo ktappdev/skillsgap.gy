@@ -49,3 +49,10 @@ supabase db lint --linked --project-ref uljznzafpiamxmervxjb --schema public --f
 - Ground changes in the repository and verify assumptions before implementing them.
 - Keep `.env.local` populated locally but ignored by Git. Never expose service-role credentials to the browser.
 - Supabase schema changes live in `supabase/migrations`; seed records live in `supabase/seed.sql`. Use the dry-run commands above before any explicit deployment.
+
+## Local Qwen testing
+
+- The Thunder vLLM endpoint is configured only in the local, ignored `.env.local` file through `VLLM_URL`, `VLLM_MODEL`, and `VLLM_API_KEY`.
+- The currently verified served model is `qwen3.6-35b`. The API key is a bearer secret: never commit it, print it, paste it into issues, or include it in logs. Rotate it after testing or the hackathon.
+- Model discovery can be checked without exposing the key: `set -a; . ./.env.local; set +a; curl --fail --silent --show-error --max-time 30 "$VLLM_URL/models" -H "Authorization: Bearer $VLLM_API_KEY" | jq '{data: [.data[] | {id, object, owned_by}], object}'`.
+- Keep the text-first extraction path as the working fallback. Enable multimodal `vision_review` only after a non-sensitive image smoke test returns schema-valid JSON.
