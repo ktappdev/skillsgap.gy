@@ -50,6 +50,15 @@ supabase db lint --linked --project-ref uljznzafpiamxmervxjb --schema public --f
 - Keep `.env.local` populated locally but ignored by Git. Never expose service-role credentials to the browser.
 - Supabase schema changes live in `supabase/migrations`; seed records live in `supabase/seed.sql`. Use the dry-run commands above before any explicit deployment.
 
+## Commit checkpoints
+
+- Number each hackathon checkpoint sequentially with two digits and a colon: `NN: concise imperative description`.
+- Keep one product milestone per commit; do not mix unrelated features, infrastructure, or formatting changes.
+- Include the tests and documentation needed to explain or verify that milestone in the same checkpoint.
+- Use a judge-readable subject, such as `03: build the applicant pathway`.
+- Review the staged file list and run the relevant checks before pushing each checkpoint.
+- Never commit `.env.local`, credentials, or other secrets. If a corrective follow-up is required, continue the sequence and state the concrete fix.
+
 ## Local Qwen testing
 
 - The Thunder vLLM endpoint is configured only in the local, ignored `.env.local` file through `VLLM_URL`, `VLLM_MODEL`, and `VLLM_API_KEY`.
