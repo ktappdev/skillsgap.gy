@@ -214,8 +214,10 @@ func extractionSchema(taxonomy []taxonomyEntry) map[string]any {
 	qualification := map[string]any{
 		"type": "object", "additionalProperties": false,
 		"properties": map[string]any{
-			"original_term":    map[string]string{"type": "string"},
-			"candidate_slugs":  map[string]any{"type": "array", "items": map[string]any{"type": "string", "enum": slugs}, "minItems": 1, "maxItems": 2, "uniqueItems": true},
+			"original_term": map[string]string{"type": "string"},
+			// vLLM's grammar compiler does not implement uniqueItems. Duplicate
+			// slugs remain rejected by validateExtraction after decoding.
+			"candidate_slugs":  map[string]any{"type": "array", "items": map[string]any{"type": "string", "enum": slugs}, "minItems": 1, "maxItems": 2},
 			"years_experience": map[string]string{"type": "number"}, "evidence": map[string]string{"type": "string"}, "confidence": map[string]string{"type": "number"},
 			"evidence_page": map[string]string{"type": "integer"}, "evidence_method": map[string]any{"type": "string", "enum": []string{"vision"}},
 		}, "required": []string{"original_term", "candidate_slugs", "years_experience", "evidence", "evidence_page", "evidence_method", "confidence"},
