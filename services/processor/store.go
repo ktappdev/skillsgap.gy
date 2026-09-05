@@ -103,10 +103,10 @@ func (store *supabaseStore) downloadResume(ctx context.Context, job processingJo
 		return nil, fmt.Errorf("read resume: %w", err)
 	}
 	if len(contents) > 15*1024*1024 {
-		return nil, errors.New("resume exceeds 15 MB limit")
+		return nil, terminalProcessingError("This CV is larger than 15 MB. Upload a smaller PDF.")
 	}
 	if !looksLikePDF(contents) {
-		return nil, errors.New("resume is not a PDF")
+		return nil, terminalProcessingError("This file is not a valid PDF. Upload a PDF CV.")
 	}
 	return contents, nil
 }
@@ -151,11 +151,13 @@ func (store *supabaseStore) recalculate(ctx context.Context, job processingJob) 
 }
 
 func (store *supabaseStore) fail(ctx context.Context, job processingJob, cause error) error {
-	// Error text is deliberately generic: upstream errors can contain document or model data.
-	message := "We could not process this CV. Please try again."
+	// Only explicit processingError messages are applicant-safe. All upstream
+	// errors remain private because they may contain provider or document data.
+	message, terminal := processingFailureDetails(cause)
 	return store.postJSON(ctx, "/rest/v1/rpc/fail_processing_job", map[string]any{
 		"processing_job_id":  job.ID,
 		"safe_error_message": message,
+		"terminal_failure":   terminal,
 	}, nil)
 }
 

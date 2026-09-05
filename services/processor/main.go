@@ -18,7 +18,9 @@ func main() {
 	}
 
 	store := newSupabaseStore(config)
-	pipeline := newPipeline(config, store, execPDFTextExtractor{scratchDirectory: config.scratchDirectory}, newOCRClient(config), newLLMClient(config))
+	pdf := execPDFTextExtractor{scratchDirectory: config.scratchDirectory}
+	renderer := execPDFPageRenderer{scratchDirectory: config.scratchDirectory}
+	pipeline := newPipeline(store, pdf, newOCRClient(config), renderer, newLLMClient(config))
 	service := newService(config, store, pipeline)
 	service.start()
 	defer service.stop()
