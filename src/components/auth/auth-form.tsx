@@ -12,17 +12,19 @@ import { env } from "@/lib/env";
 type AuthMode = "login" | "signup";
 
 type AuthFormProps = {
+  audience?: "applicant" | "company";
   mode: AuthMode;
   next: string;
 };
 
 const initialState: AuthActionState = {};
 
-export function AuthForm({ mode, next }: AuthFormProps) {
+export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) {
   const isSignUp = mode === "signup";
+  const isCompany = audience === "company" || next.startsWith("/company");
   const action = isSignUp ? signUp : signIn;
   const [state, formAction] = useActionState(action, initialState);
-  const switchPath = isSignUp ? "/login" : "/signup";
+  const switchPath = isSignUp ? "/login" : isCompany ? "/signup/company" : "/signup";
   const switchLabel = isSignUp ? "Already have an account? Sign in" : "Need an account? Create one";
   const switchHref = next ? `${switchPath}?next=${encodeURIComponent(next)}` : switchPath;
   const showDemoLogin = !isSignUp && env.demoLoginEnabled;
@@ -30,12 +32,14 @@ export function AuthForm({ mode, next }: AuthFormProps) {
   return (
     <div className="space-y-7">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{isSignUp ? "Join the build" : "Welcome back"}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{isCompany ? "Company access" : isSignUp ? "Join the build" : "Welcome back"}</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-foreground">
-          {isSignUp ? "Start your pathway" : "Return to your pathway"}
+          {isCompany ? (isSignUp ? "Create your company account" : "Sign in to continue") : isSignUp ? "Start your pathway" : "Return to your pathway"}
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted">
-          {isSignUp
+          {isCompany
+            ? "Use your own account to request or join a verified company workspace."
+            : isSignUp
             ? "Create an applicant account and start with the experience you already have."
             : "Your latest skills, opportunities, and next steps are waiting."}
         </p>
@@ -57,7 +61,7 @@ export function AuthForm({ mode, next }: AuthFormProps) {
                 className="min-h-11 w-full rounded-xl border border-border bg-surface px-3.5 text-sm font-normal outline-none transition placeholder:text-muted focus:border-accent"
               />
             </label>
-            <label className="block space-y-2 text-sm font-semibold text-foreground" htmlFor="username">
+            {!isCompany ? <label className="block space-y-2 text-sm font-semibold text-foreground" htmlFor="username">
               Username <span className="font-normal text-muted">(optional)</span>
               <input
                 id="username"
@@ -67,7 +71,7 @@ export function AuthForm({ mode, next }: AuthFormProps) {
                 placeholder="your-handle"
                 className="min-h-11 w-full rounded-xl border border-border bg-surface px-3.5 text-sm font-normal outline-none transition placeholder:text-muted focus:border-accent"
               />
-            </label>
+            </label> : null}
           </>
         ) : null}
 

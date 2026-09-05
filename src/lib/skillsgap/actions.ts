@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { requireApprovedCompanyMember, requirePlatformAdmin, requireUser } from "@/lib/auth/queries";
 import { getDatabaseErrorMessage } from "@/lib/errors";
+import { isCompanyDescription, normalizeCompanyWebsite } from "@/lib/company/access-request";
 import { parseGuyanaDateTime } from "@/lib/guyana-time";
 import type { CareerActionType } from "@/lib/i-want-to-become/guidance";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -174,13 +175,13 @@ export async function removeApplicantQualification(qualificationId: string): Pro
 export async function requestCompanyAccess(formData: FormData): Promise<void> {
   const { supabase, user } = await requireUser();
   const name = String(formData.get("company") ?? "").trim();
-  const website = String(formData.get("website") ?? "").trim();
+  const website = normalizeCompanyWebsite(String(formData.get("website") ?? ""));
   const description = String(formData.get("description") ?? "").trim();
-  if (name.length < 2 || name.length > 160) redirect("/company/request-access?error=company");
+  if (name.length < 2 || name.length > 160 || !website.ok || !isCompanyDescription(description)) redirect("/company/request-access?error=company");
 
   const { error } = await supabase.from("companies").insert({
     name,
-    website_url: website || null,
+    website_url: website.value,
     description: description || null,
     requested_by: user.id,
     status: "pending",
