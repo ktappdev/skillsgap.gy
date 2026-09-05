@@ -8,8 +8,9 @@ from typing import Any
 
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 
+from validation import InvalidPageSelection, MAX_PDF_PAGES, parse_page_numbers
+
 MAX_PDF_BYTES = 15 * 1024 * 1024
-MAX_PDF_PAGES = 8
 
 app = FastAPI(title="SkillsGap OCR", docs_url=None, redoc_url=None)
 
@@ -78,7 +79,10 @@ def parse_resume(
     if not contents.startswith(b"%PDF-"):
         raise HTTPException(status_code=415, detail="PDF files only")
 
-    requested_pages = parse_page_numbers(pages)
+    try:
+        requested_pages = parse_page_numbers(pages)
+    except InvalidPageSelection as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
     temporary_path: Path | None = None
     try:
         with NamedTemporaryFile(dir=SCRATCH_DIR, suffix=".pdf", delete=False) as temporary_file:
@@ -101,15 +105,3 @@ def parse_resume(
     finally:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
-
-
-def parse_page_numbers(value: str) -> set[int]:
-    if not value.strip():
-        return set()
-    try:
-        page_numbers = {int(item.strip()) for item in value.split(",")}
-    except ValueError as error:
-        raise HTTPException(status_code=422, detail="Invalid page selection") from error
-    if any(page < 1 or page > MAX_PDF_PAGES for page in page_numbers):
-        raise HTTPException(status_code=422, detail="Invalid page selection")
-    return page_numbers

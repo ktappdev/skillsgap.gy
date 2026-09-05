@@ -29,6 +29,12 @@ Python syntax check (run from the repository root):
 python3 -c "from pathlib import Path; compile(Path('services/ocr/app.py').read_text(), 'services/ocr/app.py', 'exec')"
 ```
 
+OCR validation tests (run from the repository root):
+
+```bash
+python3 -m unittest services/ocr/test_validation.py
+```
+
 Supabase verification without changing the linked project:
 
 ```bash
