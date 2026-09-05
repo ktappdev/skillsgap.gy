@@ -50,6 +50,14 @@ supabase db lint --linked --project-ref uljznzafpiamxmervxjb --schema public --f
 - Keep `.env.local` populated locally but ignored by Git. Never expose service-role credentials to the browser.
 - Supabase schema changes live in `supabase/migrations`; seed records live in `supabase/seed.sql`. Use the dry-run commands above before any explicit deployment.
 
+## Hackathon deployment
+
+- The Next.js application deploys to Vercel from the repository root. It is not linked yet; the authenticated Vercel account is `ktad` under `ken-taylors-projects`.
+- The custom domain's DNS remains on Cloudflare. When deployment is explicitly approved: link/create the Vercel project, deploy a preview, verify it, add the chosen hostname in Vercel, then create exactly the DNS record Vercel reports in Cloudflare. Do not move nameservers or guess DNS targets.
+- Add the production Vercel URL and custom domain to Supabase Auth Redirect URLs and set `NEXT_PUBLIC_SITE_URL` to the final HTTPS hostname before testing login.
+- Keep the CV upload path direct from the browser to private Supabase Storage. Vercel serves the application; it must not proxy CV bytes, OCR, Qwen, or the Go processor.
+- Thunder Compute hosts the private processing stack: Go on `0.0.0.0:8080` via Thunder HTTPS forwarding, PP-Structure OCR on `127.0.0.1:8090`, and Qwen on `127.0.0.1:8000`. Do not add Caddy for this MVP and never forward ports `8000` or `8090`.
+
 ## Commit checkpoints
 
 - Number each hackathon checkpoint sequentially with two digits and a colon: `NN: concise imperative description`.
@@ -59,12 +67,12 @@ supabase db lint --linked --project-ref uljznzafpiamxmervxjb --schema public --f
 - Review the staged file list and run the relevant checks before pushing each checkpoint.
 - Never commit `.env.local`, credentials, or other secrets. If a corrective follow-up is required, continue the sequence and state the concrete fix.
 
-## Local gpt-oss-20b testing
+## Thunder Qwen3.6 hybrid extraction
 
-- The Thunder vLLM endpoint is configured only in the local, ignored `.env.local` file through `VLLM_URL`, `VLLM_MODEL`, and `VLLM_API_KEY`.
-- The configured served model is `gpt-oss-20b`. The API key is a bearer secret: never commit it, print it, paste it into issues, or include it in logs. Rotate it after testing or the hackathon.
+- The Thunder vLLM endpoint is configured only in the local, ignored `.env.local` file through `VLLM_URL`, `VLLM_MODEL`, and `VLLM_API_KEY`. The chosen model is Qwen3.6-35B-A3B with vision support.
+- The API key is a bearer secret: never commit it, print it, paste it into issues, or include it in logs. Rotate it after testing or the hackathon.
 - Model discovery can be checked without exposing the key: `set -a; . ./.env.local; set +a; curl --fail --silent --show-error --max-time 30 "$VLLM_URL/models" -H "Authorization: Bearer $VLLM_API_KEY" | jq '{data: [.data[] | {id, object, owned_by}], object}'`.
-- Keep the text-first extraction path as the working implementation. `gpt-oss-20b` does not enable a multimodal `vision_review` path in this MVP.
+- Keep native PDF text as the fast path. Use PP-Structure OCR for unreadable documents, then use Qwen vision only to verify uncertain OCR pages, tables, or difficult layouts. The model extracts evidence-backed facts only; PostgreSQL calculates matches and applicant confirmation remains the eligibility gate.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
