@@ -441,7 +441,8 @@ export async function updateOccupationPathwayAction(actionId: string, input: Occ
 export async function setOccupationPathwayActionVerified(actionId: string, isVerified: boolean): Promise<{ error?: string }> {
   const { supabase } = await requirePlatformAdmin();
   if (!actionId) return { error: "Choose a pathway action first." };
-  const { error } = await supabase.from("occupation_pathway_actions").update({ is_verified: isVerified, last_verified_at: isVerified ? new Date().toISOString().slice(0, 10) : undefined }).eq("id", actionId);
+  const values = isVerified ? { is_verified: true, last_verified_at: new Date().toISOString().slice(0, 10) } : { is_verified: false };
+  const { error } = await supabase.from("occupation_pathway_actions").update(values).eq("id", actionId);
   if (error) return { error: getDatabaseErrorMessage(error, "We could not update that verification state.") };
   revalidatePath("/admin/career-guidance");
   revalidatePath("/i-want-to-become");

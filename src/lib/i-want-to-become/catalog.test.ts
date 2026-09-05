@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { careerPathways, findCareerPathway, isValidCsecResult, normalizeSubjectName, supportingSubjects } from "@/lib/i-want-to-become/catalog";
 import { getAllOccupationGuidance } from "@/lib/i-want-to-become/guidance";
-import { getStaticOccupationPathway, isPublicOccupation, isPublicOccupationRpcRow, normalizePublicOccupation, occupationCatalog } from "@/lib/i-want-to-become/occupations";
+import { getStaticOccupationPathway, isPublicOccupation, isPublicOccupationPathway, isPublicOccupationRpcRow, normalizePublicOccupation, occupationCatalog } from "@/lib/i-want-to-become/occupations";
 
 describe("career pathway catalogue", () => {
   it("keeps every pathway identifiable", () => {
@@ -92,6 +92,7 @@ describe("career pathway catalogue", () => {
       expect(pathway?.industryTransferSummary).toBeTruthy();
       expect(pathway?.actions.length).toBeGreaterThanOrEqual(3);
       expect(pathway?.preparationSubjects.length).toBeGreaterThanOrEqual(3);
+      expect(isPublicOccupationPathway(pathway)).toBe(true);
     }
   });
 });

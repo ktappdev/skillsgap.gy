@@ -49,8 +49,8 @@ export function CareerGuidanceManager({ initialOccupations, initialSubjects, ini
   const [summary, setSummary] = useState(initialOccupations[0]?.industry_transfer_summary ?? "");
   const [subjectName, setSubjectName] = useState("");
   const [subjectNote, setSubjectNote] = useState("");
-  const [subjectUrl, setSubjectUrl] = useState("https://education.gov.gy/web2/index.php/students-resources/technical-vocational-education");
-  const [subjectLocator, setSubjectLocator] = useState("Technical and vocational education resources");
+  const [subjectUrl, setSubjectUrl] = useState("https://education.gov.gy/en/index.php/media2/news-events/8159-guyana-s-future-workforce");
+  const [subjectLocator, setSubjectLocator] = useState("National TVET Policy 2025–2035");
   const [actionDraft, setActionDraft] = useState<ActionDraft>({ actionType: "learn", title: "", instruction: "", whyItHelps: "", organizationName: "", location: "Guyana", url: "", sourceUrl: "", sourceLocator: "", sortOrder: 1, trainingProgramId: null });
   const [editingActionId, setEditingActionId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);

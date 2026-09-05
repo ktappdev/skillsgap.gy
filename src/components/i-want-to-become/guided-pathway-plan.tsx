@@ -9,7 +9,7 @@ type GuidedPathwayPlanProps = {
 };
 
 const providerLinks = [
-  ["Government Technical Institute", "https://www.gtigeorgetown.com/"],
+  ["Government Technical Institute", "https://www.education.gov.gy/en/index.php/moe-contacts/36-tertiary-institutions/253-government-technical-institute"],
   ["Board of Industrial Training", "https://srms.bit.gov.gy/"],
   ["3t Global Guyana", "https://www.3tglobal.com/about/our-locations/guyana/"],
 ] as const;

@@ -48,8 +48,8 @@ const officialSources = {
   gti: {
     organizationName: "Government Technical Institute",
     location: "Georgetown, Guyana",
-    url: "https://www.gtigeorgetown.com/",
-    sourceLocator: "Institute website",
+    url: "https://www.education.gov.gy/en/index.php/moe-contacts/36-tertiary-institutions/253-government-technical-institute",
+    sourceLocator: "Ministry of Education tertiary-institution contact",
   },
   threeT: {
     organizationName: "3t Global Guyana",
@@ -78,8 +78,8 @@ const officialSources = {
   tvet: {
     organizationName: "Ministry of Education TVET",
     location: "Guyana",
-    url: "https://education.gov.gy/web2/index.php/students-resources/technical-vocational-education",
-    sourceLocator: "Technical and vocational education resources",
+    url: "https://education.gov.gy/en/index.php/media2/news-events/8159-guyana-s-future-workforce",
+    sourceLocator: "National TVET Policy 2025–2035",
   },
 } as const;
 
