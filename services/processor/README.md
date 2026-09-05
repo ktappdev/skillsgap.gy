@@ -37,6 +37,11 @@ The document route is deterministic: `pdfinfo` validates the file and page count
 
 The webhook handler accepts either the configured compact body `{ "job_id": "…" }` or the standard Supabase Database Webhook envelope and reads only `record.id`. It never trusts or logs the rest of the event payload.
 
+Production uses the repository migration `20260905221437_wire_processor_webhook.sql`
+to notify `https://e2tpybmi-8080.thundercompute.net/webhooks/resume`. The trigger
+sends only the job identifier; the header secret is stored in Supabase Vault and
+the matching Thunder environment file.
+
 ## Local verification
 
 ```bash

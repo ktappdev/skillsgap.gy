@@ -72,6 +72,7 @@ node --env-file=.env.local scripts/check-demo-readiness.mjs
 - Keep `NEXT_PUBLIC_SITE_URL=https://skillsgap.gy` in Vercel Preview and Production. Keep local `.env.local` local-only; never run a command that overwrites it without a backup.
 - Keep the CV upload path direct from the browser to private Supabase Storage. Vercel serves the application; it must not proxy CV bytes, OCR, Qwen, or the Go processor.
 - Thunder Compute hosts the private processing stack: Go on `0.0.0.0:8080` via Thunder HTTPS forwarding and Qwen on `127.0.0.1:8000`. The active MVP does not require PP-Structure OCR; keep port `8090` unbound and never forward ports `8000` or `8090`. Do not add Caddy.
+- The current Thunder Go forwarding URL is `https://e2tpybmi-8080.thundercompute.net`; Supabase sends only `{ "job_id": "..." }` to `/webhooks/resume` through the Vault-backed trigger migration.
 
 ## Commit checkpoints
 

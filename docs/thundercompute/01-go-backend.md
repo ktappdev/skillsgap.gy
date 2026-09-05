@@ -10,6 +10,7 @@ Qwen3.6-35B via vLLM  127.0.0.1:8000 (internal only)
 ```
 
 Thunder supplies the NVIDIA driver and HTTPS port forwarding. Do not forward port `8000`; no OCR service is required for the active MVP path.
+The current Go forwarding URL is `https://e2tpybmi-8080.thundercompute.net`.
 
 ## 1. Install runtime dependencies
 
@@ -111,14 +112,40 @@ sudo systemctl status --no-pager skillsgap-processor
 curl --fail --silent http://127.0.0.1:8080/healthz
 ```
 
+### Thunder container launcher
+
+The current Thunder image uses `s6` as PID 1 and does not provide a running
+systemd bus. On that image, the deployed `/home/ubuntu/skillsgap/run_processor.sh`
+launcher starts the same binary with `nohup setsid`, a PID file, and a private
+log. Restart it after replacing the binary:
+
+```bash
+/home/ubuntu/skillsgap/run_processor.sh
+curl --fail --silent http://127.0.0.1:8080/healthz
+```
+
+The launcher is only a container-specific alternative; the systemd unit above
+remains suitable for a normal VM image.
+
 ## 5. Configure the Supabase webhook
 
-After the domain migration is applied, create one Supabase Database Webhook for `public.processing_jobs`, event `INSERT`, pointing to the forwarded Thunder URL:
+Migration `20260905221437_wire_processor_webhook.sql` enables `pg_net`, creates
+the Vault secret, and installs one trigger for `resume_analysis` inserts. It
+sends only the processing-job identifier to the Go endpoint:
+
+```json
+{ "job_id": "..." }
+```
+
+The production endpoint is:
 
 ```text
-URL: https://<forwarded-host>/webhooks/resume
-Header: X-Webhook-Secret: (the exact WEBHOOK_SECRET in processor.env)
+https://e2tpybmi-8080.thundercompute.net/webhooks/resume
 ```
+
+Do not create a second dashboard webhook for the same table. The migration
+keeps the secret in Supabase Vault and the matching value in Thunder's
+mode-0600 `/etc/skillsgap/processor.env`.
 
 The webhook body may be the standard Supabase envelope. The service reads only `record.id`, acknowledges quickly with `202`, and leaves durable recovery to its poller if delivery is delayed.
 
