@@ -10,7 +10,7 @@ import (
 )
 
 func TestDecodeExtractionRejectsUnsupportedQualificationKind(t *testing.T) {
-	_, err := decodeExtraction(`{"qualifications":[{"name":"BOSIET","kind":"instruction","years_experience":0,"evidence":"BOSIET certificate","confidence":0.9}],"employment":[],"unmapped_terms":[]}`)
+	_, err := decodeExtraction(`{"qualifications":[{"original_term":"BOSIET","canonical_candidate":"BOSIET","kind":"instruction","years_experience":0,"evidence":"BOSIET certificate","evidence_page":1,"evidence_method":"native","confidence":0.9}],"employment":[],"unmapped_terms":[]}`)
 	if err == nil {
 		t.Fatal("expected unsupported kind error")
 	}
@@ -24,17 +24,17 @@ func TestDecodeExtractionRejectsMultipleJSONValues(t *testing.T) {
 }
 
 func TestDecodeExtractionAcceptsStrictSchema(t *testing.T) {
-	result, err := decodeExtraction(`{"qualifications":[{"name":"Diesel mechanics","kind":"skill","years_experience":4,"evidence":"Four years repairing diesel engines","confidence":0.95}],"employment":[],"unmapped_terms":["minibus engines"]}`)
+	result, err := decodeExtraction(`{"qualifications":[{"original_term":"minibus diesel repair","canonical_candidate":"Mechanical Maintenance","kind":"skill","years_experience":4,"evidence":"Four years repairing diesel engines","evidence_page":2,"evidence_method":"ocr","confidence":0.95}],"employment":[],"unmapped_terms":["route scheduling"]}`)
 	if err != nil {
 		fatalf(t, "unexpected error: %v", err)
 	}
-	if len(result.Qualifications) != 1 {
+	if len(result.Qualifications) != 1 || result.Qualifications[0].OriginalTerm != "minibus diesel repair" || result.Qualifications[0].CanonicalCandidate != "Mechanical Maintenance" || result.Qualifications[0].EvidencePage != 2 || result.Qualifications[0].EvidenceMethod != methodOCR {
 		t.Fatalf("qualifications = %#v", result.Qualifications)
 	}
 }
 
 func TestDecodeExtractionRejectsImpossibleExperience(t *testing.T) {
-	_, err := decodeExtraction(`{"qualifications":[{"name":"Diesel mechanics","kind":"skill","years_experience":61,"evidence":"Worked as a mechanic","confidence":0.95}],"employment":[],"unmapped_terms":[]}`)
+	_, err := decodeExtraction(`{"qualifications":[{"original_term":"Diesel mechanics","canonical_candidate":"Diesel Mechanics","kind":"skill","years_experience":61,"evidence":"Worked as a mechanic","evidence_page":1,"evidence_method":"native","confidence":0.95}],"employment":[],"unmapped_terms":[]}`)
 	if err == nil {
 		t.Fatal("expected impossible experience to be rejected")
 	}

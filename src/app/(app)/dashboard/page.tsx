@@ -38,7 +38,7 @@ export default async function DashboardPage() {
         <div className="space-y-8">
           <CvUpload userId={user.id} />
           <ProcessingNotice status={progress.processingStatus} error={progress.processingError} />
-          <QualificationReview key={progress.qualifications.map((item) => `${item.id}-${item.updated_at}`).join(",")} applicantId={user.id} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} />
+          <QualificationReview key={progress.qualifications.map((item) => `${item.id}-${item.updated_at}`).join(",")} applicantId={user.id} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} unmappedTerms={progress.unmappedTerms} />
           <ExperienceReview key={progress.experience.map((item) => `${item.id}-${item.updated_at}`).join(",")} initialExperience={progress.experience} />
           <section aria-labelledby="matches-heading">
             <div className="flex flex-wrap items-end justify-between gap-3">

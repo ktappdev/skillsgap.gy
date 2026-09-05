@@ -20,11 +20,14 @@ type extraction struct {
 }
 
 type extractedQualification struct {
-	Name            string  `json:"name"`
-	Kind            string  `json:"kind"`
-	YearsExperience float64 `json:"years_experience"`
-	Evidence        string  `json:"evidence"`
-	Confidence      float64 `json:"confidence"`
+	OriginalTerm       string           `json:"original_term"`
+	CanonicalCandidate string           `json:"canonical_candidate"`
+	Kind               string           `json:"kind"`
+	YearsExperience    float64          `json:"years_experience"`
+	Evidence           string           `json:"evidence"`
+	EvidencePage       int              `json:"evidence_page"`
+	EvidenceMethod     extractionMethod `json:"evidence_method"`
+	Confidence         float64          `json:"confidence"`
 }
 
 type employmentRecord struct {

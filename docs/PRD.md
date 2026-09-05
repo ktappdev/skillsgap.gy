@@ -113,9 +113,9 @@ Qwen3.6-35B-A3B, served through vLLM, receives cleaned document text and, only w
 The model boundary is deliberately narrow:
 
 - PP-StructureV3 is responsible for OCR, reading order, and layout reconstruction; it does not decide what a person's experience means.
-- The LLM extracts the worker's original wording, work history, qualifications, certifications, education, page evidence, and confidence. PostgreSQL resolves those terms through the canonical qualification and alias taxonomy.
+- The LLM extracts the worker's original wording, work history, qualifications, certifications, education, page evidence, and confidence. For each possible qualification it preserves the original term (for example, `Minibus diesel repair`) beside a canonical candidate (for example, `Mechanical Maintenance`); PostgreSQL accepts it only when that candidate or an approved alias resolves through the taxonomy.
 - PostgreSQL is the single source of truth for canonical qualification mapping, weighted matching, mandatory gates, thresholds, and interview eligibility. Go only orchestrates extraction and submits validated facts.
-- Any CV text is untrusted data. The extraction prompt must instruct the LLM to ignore instructions found inside the document and to report missing evidence rather than infer a fact.
+- Any CV text is untrusted data. The extraction prompt must instruct the LLM to ignore instructions found inside the document and to report missing evidence rather than infer a fact. Terms that do not resolve safely are bounded, stored only in the applicant's processing summary, and never reach matching or company views.
 
 ### Model-selection gate
 
@@ -146,6 +146,7 @@ The applicant can edit or remove extracted records and add qualifications. Every
 - Only the three highest-ranked roles appear as primary recommendations.
 - A requirement has a canonical qualification, a weight from 1 through 5, an optional minimum experience value, and a `mandatory` flag.
 - A requirement is satisfied only when the applicant has the required qualification and meets any minimum years. The MVP gives no partial credit.
+- Extracted qualifications stay `pending_review`; only applicant-confirmed records can satisfy a requirement, contribute score weight, or create interview eligibility.
 - The score is `round(100 × satisfied requirement weight ÷ total requirement weight)`.
 - Missing mandatory requirements do not prevent a score from being shown, but they prevent interview eligibility.
 - An applicant is interview-eligible only when the score meets the role threshold and all mandatory requirements are satisfied.

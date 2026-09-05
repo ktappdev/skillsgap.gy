@@ -50,6 +50,9 @@ from (
     ('bosiet', 'Offshore Safety Training'),
     ('hydraulic-maintenance', 'Hydraulics Maintenance'),
     ('diesel-mechanics', 'Diesel Mechanic'),
+    ('mechanical-maintenance', 'Minibus diesel repair'),
+    ('mechanical-maintenance', 'Minibus engine repair'),
+    ('mechanical-maintenance', 'Generator repair'),
     ('automotive-mechanics', 'Minibus Mechanic'),
     ('certified-electrician', 'Licensed Electrician'),
     ('heavy-equipment-operations', 'Heavy Equipment Operator'),
@@ -57,7 +60,9 @@ from (
     ('first-aid-cpr', 'CPR and First Aid'),
     ('hse-awareness', 'Health and Safety Awareness'),
     ('welding-fabrication', 'Welder Fabricator'),
-    ('warehouse-operations', 'Storekeeper')
+    ('warehouse-operations', 'Storekeeper'),
+    ('warehouse-operations', 'Storekeeping and inventory control'),
+    ('hse-awareness', 'Workshop health and safety')
 ) as alias_data(slug, alias)
 join public.qualifications qualification on qualification.slug = alias_data.slug
 on conflict (normalized_alias) do nothing;

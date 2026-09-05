@@ -115,7 +115,7 @@ func TestPipelineUsesVisionForRiskyLayout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("process: %v", err)
 	}
-	if !renderer.called || llm.visionCalls != 1 || result.Qualifications[0].Name != "Hydraulics maintenance" {
+	if !renderer.called || llm.visionCalls != 1 || result.Qualifications[0].OriginalTerm != "Hydraulics maintenance" {
 		t.Fatalf("vision route failed: render=%v vision=%d result=%#v", renderer.called, llm.visionCalls, result)
 	}
 }
@@ -129,7 +129,7 @@ func TestPipelineKeepsValidTextResultWhenOptionalVisionFails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("process: %v", err)
 	}
-	if result.Qualifications[0].Name != "Diesel mechanics" || llm.visionCalls != 1 {
+	if result.Qualifications[0].OriginalTerm != "Diesel mechanics" || llm.visionCalls != 1 {
 		t.Fatalf("fallback result = %#v", result)
 	}
 }
@@ -173,7 +173,7 @@ func supportedExtraction(name string) extraction {
 }
 
 func supportedExtractionWithConfidence(name string, confidence float64) extraction {
-	return extraction{Qualifications: []extractedQualification{{Name: name, Kind: "skill", Evidence: "Four years repairing diesel engines", Confidence: confidence}}}
+	return extraction{Qualifications: []extractedQualification{{OriginalTerm: name, CanonicalCandidate: "Mechanical Maintenance", Kind: "skill", Evidence: "Four years repairing diesel engines", EvidencePage: 1, EvidenceMethod: methodNative, Confidence: confidence}}}
 }
 
 func cleanResumeText() string {
