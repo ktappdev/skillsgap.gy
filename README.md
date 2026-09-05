@@ -1,5 +1,5 @@
 # SkillsGap.gy matches the skills you already have against real opportunities in Guyana, shows you where you fall short,and connects you with the training needed to close the gap.
-The main framework has two components. 
+This platform is not just another job site. It guides you from your search to your success. The main framework has two components. 
 ## Component 1
 
 **EMPLOYERS**: tell SkillsGap what they need 
