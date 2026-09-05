@@ -12,11 +12,15 @@ export type ApplicantProgress = {
   unmappedTerms: string[];
   experience: Tables<"applicant_experience">[];
   matches: Match[];
+  findings: ApplicantExtractionFindingView[];
   qualifications: ApplicantQualificationView[];
   availableQualifications: Tables<"qualifications">[];
 };
 
 export type ApplicantQualificationView = Tables<"applicant_qualifications"> & { qualificationName: string };
+export type ApplicantExtractionFindingView = Tables<"resume_extraction_findings"> & {
+  candidates: Array<Tables<"resume_extraction_finding_candidates"> & { qualificationName: string; category: Tables<"qualifications">["category"] }>;
+};
 
 export async function getApplicantProgress(client: Client, applicantId: string): Promise<ApplicantProgress> {
   const [resumeResult, jobResult, matchesResult, experienceResult] = await Promise.all([
@@ -41,7 +45,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const activeRoleIds = new Set(activeRoles.filter((role) => approvedCompanyIds.has(role.company_id)).map((role) => role.id));
   const rows = currentMatches.filter((row) => activeRoleIds.has(row.job_role_id)).slice(0, 3);
   if (rows.length === 0) {
-    return { latestResume: resumeResult.data, processingStatus: jobResult.data?.status ?? null, processingError: jobResult.data?.error_message ?? null, unmappedTerms, experience: experienceResult.data ?? [], matches: [], qualifications: await getApplicantQualifications(client, applicantId), availableQualifications: await getAvailableQualifications(client) };
+    return { latestResume: resumeResult.data, processingStatus: jobResult.data?.status ?? null, processingError: jobResult.data?.error_message ?? null, unmappedTerms, experience: experienceResult.data ?? [], matches: [], findings: await getApplicantFindings(client, applicantId), qualifications: await getApplicantQualifications(client, applicantId), availableQualifications: await getAvailableQualifications(client) };
   }
 
   const roleIds = rows.map((row) => row.job_role_id);
@@ -72,6 +76,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
     processingError: jobResult.data?.error_message ?? null,
     unmappedTerms,
     experience: experienceResult.data ?? [],
+    findings: await getApplicantFindings(client, applicantId),
     qualifications: await getApplicantQualifications(client, applicantId),
     availableQualifications: await getAvailableQualifications(client),
     matches: rows.flatMap((row) => {
@@ -117,11 +122,43 @@ function getUnmappedTerms(summary: Json | undefined): string[] {
 }
 
 export async function getApplicantQualifications(client: Client, applicantId: string): Promise<ApplicantQualificationView[]> {
-  const { data: rows } = await client.from("applicant_qualifications").select("*").eq("applicant_id", applicantId).order("created_at");
+  const { data: rows } = await client.from("applicant_qualifications").select("*").eq("applicant_id", applicantId).eq("review_status", "confirmed").order("created_at");
   if (!rows || rows.length === 0) return [];
   const { data: qualifications } = await client.from("qualifications").select("id,name").in("id", rows.map((row) => row.qualification_id));
   const names = new Map((qualifications ?? []).map((qualification) => [qualification.id, qualification.name]));
   return rows.map((row) => ({ ...row, qualificationName: names.get(row.qualification_id) ?? "Qualification to verify" }));
+}
+
+export async function getApplicantFindings(client: Client, applicantId: string): Promise<ApplicantExtractionFindingView[]> {
+  const { data: findings } = await client
+    .from("resume_extraction_findings")
+    .select("*")
+    .eq("applicant_id", applicantId)
+    .eq("status", "pending")
+    .order("created_at");
+  if (!findings || findings.length === 0) return [];
+
+  const { data: candidates } = await client
+    .from("resume_extraction_finding_candidates")
+    .select("*")
+    .in("finding_id", findings.map((finding) => finding.id))
+    .order("rank");
+  const candidateRows = candidates ?? [];
+  const qualificationIds = [...new Set(candidateRows.map((candidate) => candidate.qualification_id))];
+  const { data: qualifications } = qualificationIds.length > 0
+    ? await client.from("qualifications").select("id,name,category").in("id", qualificationIds).eq("is_active", true)
+    : { data: [] };
+  const qualificationById = new Map((qualifications ?? []).map((qualification) => [qualification.id, qualification]));
+
+  return findings.map((finding) => ({
+    ...finding,
+    candidates: candidateRows
+      .filter((candidate) => candidate.finding_id === finding.id)
+      .flatMap((candidate) => {
+        const qualification = qualificationById.get(candidate.qualification_id);
+        return qualification ? [{ ...candidate, qualificationName: qualification.name, category: qualification.category }] : [];
+      }),
+  }));
 }
 
 async function getAvailableQualifications(client: Client): Promise<Tables<"qualifications">[]> {

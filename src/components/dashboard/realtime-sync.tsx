@@ -16,6 +16,7 @@ export function RealtimeSync({ userId }: { userId: string }) {
     const channel = supabase
       .channel("skillsgap-progress-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "processing_jobs", filter: `applicant_id=eq.${userId}` }, () => router.refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "resume_extraction_findings", filter: `applicant_id=eq.${userId}` }, () => router.refresh())
       .on("postgres_changes", { event: "*", schema: "public", table: "job_matches", filter: `applicant_id=eq.${userId}` }, () => router.refresh())
       .on("postgres_changes", { event: "*", schema: "public", table: "interview_invitations", filter: `applicant_id=eq.${userId}` }, () => router.refresh())
       .subscribe((status) => {

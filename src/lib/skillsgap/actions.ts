@@ -91,6 +91,25 @@ export async function confirmApplicantQualification(qualificationId: string): Pr
   return {};
 }
 
+export async function confirmExtractionFinding(findingId: string, qualificationId: string): Promise<{ error?: string }> {
+  const { supabase } = await requireApplicant();
+  const { error } = await supabase.rpc("confirm_extraction_finding", {
+    target_finding_id: findingId,
+    target_qualification_id: qualificationId,
+  });
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not confirm that translation.") };
+  revalidatePath("/dashboard");
+  return {};
+}
+
+export async function rejectExtractionFinding(findingId: string): Promise<{ error?: string }> {
+  const { supabase } = await requireApplicant();
+  const { error } = await supabase.rpc("reject_extraction_finding", { target_finding_id: findingId });
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not remove that finding.") };
+  revalidatePath("/dashboard");
+  return {};
+}
+
 export async function updateApplicantQualificationYears(qualificationId: string, yearsValue: string): Promise<{ error?: string }> {
   const { supabase, user } = await requireApplicant();
   const trimmed = yearsValue.trim();
@@ -289,6 +308,31 @@ export async function createQualification(name: string, slug: string, category: 
   if (cleanName.length < 2 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(cleanSlug)) return { error: "Use a name and a lowercase slug such as hydraulic-maintenance." };
   const { data, error } = await supabase.from("qualifications").insert({ name: cleanName, slug: cleanSlug, category, description: null, is_active: true }).select("*").single();
   if (error) return { error: getDatabaseErrorMessage(error, "We could not create that qualification.") };
+  revalidatePath("/admin/qualifications");
+  return { qualification: data };
+}
+
+export async function updateQualification(
+  qualificationId: string,
+  name: string,
+  category: Tables<"qualifications">["category"],
+  description: string,
+  isActive: boolean,
+): Promise<{ error?: string; qualification?: Tables<"qualifications"> }> {
+  const { supabase } = await requirePlatformAdmin();
+  const cleanName = name.trim();
+  const cleanDescription = description.trim();
+  const allowedCategories: Tables<"qualifications">["category"][] = ["technical_skill", "certification", "compliance", "experience"];
+  if (!qualificationId || cleanName.length < 2 || cleanName.length > 160 || !allowedCategories.includes(category) || cleanDescription.length > 500) {
+    return { error: "Use a valid qualification name, category, and description." };
+  }
+  const { data, error } = await supabase
+    .from("qualifications")
+    .update({ name: cleanName, category, description: cleanDescription || null, is_active: isActive })
+    .eq("id", qualificationId)
+    .select("*")
+    .single();
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not update that qualification.") };
   revalidatePath("/admin/qualifications");
   return { qualification: data };
 }
