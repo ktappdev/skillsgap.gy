@@ -41,3 +41,9 @@ go test ./...
 go vet ./...
 go build ./...
 ```
+
+## Public CSEC/CXC result-slip reader
+
+When `CSEC_SLIP_PROCESSOR_SECRET` is configured, the processor exposes `POST /public/csec-result-slip`. It is called only by the Next.js server using `X-CSEC-Slip-Secret`; browsers do not receive the Thunder URL or secret.
+
+The endpoint accepts one JPEG, PNG, or WebP image up to 8 MB and returns only bounded `{subject, grade, confidence}` pairs. It never writes the slip to Supabase, does not create a processing job, and must not log image bytes, extracted text, identifiers, prompts, or model responses. The configured vLLM model must support image input and strict JSON schema output before this endpoint is enabled. The public manual-entry flow remains available when it is not enabled.

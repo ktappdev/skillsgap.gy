@@ -14,16 +14,17 @@ import (
 )
 
 type service struct {
-	config   config
-	store    jobStore
-	pipeline resumePipeline
-	jobs     chan string
-	stopPoll context.CancelFunc
-	workers  sync.WaitGroup
+	config     config
+	store      jobStore
+	pipeline   resumePipeline
+	slipReader csecSlipReader
+	jobs       chan string
+	stopPoll   context.CancelFunc
+	workers    sync.WaitGroup
 }
 
 func newService(config config, store jobStore, pipeline resumePipeline) *service {
-	return &service{config: config, store: store, pipeline: pipeline, jobs: make(chan string, 20)}
+	return &service{config: config, store: store, pipeline: pipeline, slipReader: newLLMClient(config), jobs: make(chan string, 20)}
 }
 
 func (service *service) start() {
@@ -45,6 +46,9 @@ func (service *service) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", service.healthz)
 	mux.Handle("POST /webhooks/resume", service.requireWebhookSecret(http.HandlerFunc(service.resumeWebhook)))
+	if service.config.csecSlipSecret != "" {
+		mux.Handle("POST /public/csec-result-slip", service.requireCSECSlipSecret(http.HandlerFunc(service.csecResultSlip)))
+	}
 	return requestLogger(mux)
 }
 

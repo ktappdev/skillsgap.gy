@@ -19,6 +19,7 @@ type config struct {
 	modelName          string
 	scratchDirectory   string
 	pollInterval       time.Duration
+	csecSlipSecret     string
 }
 
 func loadConfig() (config, error) {
@@ -34,6 +35,7 @@ func loadConfig() (config, error) {
 		modelName:          envOrDefault("VLLM_MODEL", "gpt-oss-20b"),
 		scratchDirectory:   envOrDefault("PROCESSOR_SCRATCH_DIR", "/ephemeral/skillsgap-processor"),
 		pollInterval:       20 * time.Second,
+		csecSlipSecret:     strings.TrimSpace(os.Getenv("CSEC_SLIP_PROCESSOR_SECRET")),
 	}
 	if value.webhookSecret == "" {
 		return config{}, errors.New("WEBHOOK_SECRET must be set")
