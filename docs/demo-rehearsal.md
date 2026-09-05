@@ -29,6 +29,21 @@ Before uploading the fixture, confirm:
 - A synthetic page image is accepted with strict JSON output.
 - The active processor environment does not require `OCR_SERVICE_SECRET`.
 
+Run the automated private-stack gate (it never prints the API key):
+
+```bash
+node --env-file=.env.local scripts/check-vision-only-readiness.mjs
+```
+
+The local page-rendering rehearsal is deterministic and does not call Thunder:
+
+```bash
+cd services/processor
+go test -run 'TestVisionOnlyPipelineRehearsesRepresentativeFixtures|TestRenderedPagesCleanUpAfterRenderFailure' ./...
+```
+
+It proves that clean, scanned, mixed, two-column, and table-heavy PDFs all render every page, preserve page order, invoke the vision boundary once, and remove temporary files after a render failure.
+
 ## Quick recovery
 
 - Reset a booked fallback slot by rerunning `scripts/prepare-demo-fallback.mjs`; it removes that fallback applicant’s bookings indirectly through the invitation reset, recreates current matches, and recreates the pending invitation.
