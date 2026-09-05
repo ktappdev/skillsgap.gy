@@ -7,14 +7,14 @@ import { MatchCard } from "@/components/skillsgap/match-card";
 import { MilestonePath, StatusPill } from "@/components/skillsgap/milestone-path";
 import { QualificationReview } from "@/components/skillsgap/qualification-review";
 import { RealtimeSync } from "@/components/dashboard/realtime-sync";
-import { requireUser } from "@/lib/auth/queries";
+import { requireApplicant } from "@/lib/auth/queries";
 import { getApplicantProgress } from "@/lib/skillsgap/queries";
 import { demoMatches } from "@/lib/skillsgap-demo";
 
 export const metadata: Metadata = { title: "My pathway" };
 
 export default async function DashboardPage() {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   const progress = await getApplicantProgress(supabase, user.id);
   const usingDemoMatches = progress.matches.length === 0 && !progress.latestResume;
   const matches = progress.matches.length > 0 ? progress.matches : usingDemoMatches ? demoMatches : [];

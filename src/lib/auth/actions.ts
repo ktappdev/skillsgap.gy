@@ -8,6 +8,7 @@ import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { getFormString, getSafeRedirectPath, getTrimmedFormString } from "@/lib/validation";
 import { DEMO_REDIRECTS, getDemoCredentials, parseDemoRole, type DemoRole } from "@/lib/auth/demo";
+import { resolveUserHome } from "@/lib/auth/queries";
 
 export type AuthActionState = {
   error?: string;
@@ -39,13 +40,14 @@ export async function signIn(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     return { error: getAuthErrorMessage(error) };
   }
 
-  const next = getSafeRedirectPath(getTrimmedFormString(formData, "next"));
+  const accountHome = await resolveUserHome(supabase, data.user.id);
+  const next = getSafeRedirectPath(getTrimmedFormString(formData, "next"), accountHome);
   revalidatePath("/", "layout");
   redirect(next);
 }
@@ -76,12 +78,15 @@ export async function signUp(
     return { error: "Your username must be between 3 and 40 characters." };
   }
 
+  const next = getSafeRedirectPath(getTrimmedFormString(formData, "next"));
+  const callbackUrl = new URL("/auth/callback", env.siteUrl);
+  callbackUrl.searchParams.set("next", next);
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${env.siteUrl}/auth/callback`,
+      emailRedirectTo: callbackUrl.toString(),
       data: {
         ...(fullName ? { full_name: fullName } : {}),
         ...(username ? { username } : {}),
@@ -92,8 +97,6 @@ export async function signUp(
   if (error) {
     return { error: getAuthErrorMessage(error) };
   }
-
-  const next = getSafeRedirectPath(getTrimmedFormString(formData, "next"));
 
   if (data.session) {
     revalidatePath("/", "layout");

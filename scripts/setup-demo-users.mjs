@@ -148,7 +148,7 @@ for (const entry of roles) {
   // Provision role-table rows for owner, recruiter, and admin.
   if (entry.role) {
     const { error: memberError } = await admin.from("company_members").upsert(
-      { company_id: DEMO_COMPANY_ID, user_id: userId, role: entry.role },
+      { company_id: DEMO_COMPANY_ID, user_id: userId, role: entry.role, invited_email: email.toLowerCase() },
       { onConflict: "company_id,user_id" },
     );
 

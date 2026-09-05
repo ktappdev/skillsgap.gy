@@ -22,7 +22,7 @@ export function OAuthButtons({ next }: { next: string }) {
 
     const supabase = createClient();
     const callbackUrl = new URL("/auth/callback", window.location.origin);
-    callbackUrl.searchParams.set("next", next);
+    if (next) callbackUrl.searchParams.set("next", next);
     const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
       options: {

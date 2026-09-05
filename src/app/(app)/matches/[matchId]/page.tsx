@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { requireUser } from "@/lib/auth/queries";
+import { requireApplicant } from "@/lib/auth/queries";
 import { demoMatches } from "@/lib/skillsgap-demo";
 import { getApplicantMatch } from "@/lib/skillsgap/queries";
 import { StatusPill } from "@/components/skillsgap/milestone-path";
@@ -10,7 +10,7 @@ import { TrainingPlanButton } from "@/components/skillsgap/training-plan-button"
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ matchId: string }> }) {
   const { matchId } = await params;
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   const liveMatch = await getApplicantMatch(supabase, user.id, matchId);
   const match = liveMatch ?? demoMatches.find((item) => item.id === matchId);
   if (!match) notFound();

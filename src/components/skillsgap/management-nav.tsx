@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-const companyLinks = [["/company", "Overview"], ["/company/jobs", "Roles"], ["/company/candidates", "Candidates"], ["/company/job-fairs", "Job fairs"]] as const;
+const companyLinks = [["/company", "Overview"], ["/company/jobs", "Roles"], ["/company/candidates", "Candidates"], ["/company/job-fairs", "Job fairs"], ["/company/team", "Team"]] as const;
 const adminLinks = [["/admin", "Overview"], ["/admin/companies", "Companies"], ["/admin/qualifications", "Qualifications"], ["/admin/training", "Training"], ["/admin/career-guidance", "Career guidance"]] as const;
 
 export function ManagementNav({ area }: { area: "company" | "admin" }) {

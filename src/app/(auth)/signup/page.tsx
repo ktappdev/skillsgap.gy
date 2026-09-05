@@ -14,7 +14,7 @@ type SignupPageProps = {
 export default async function SignupPage({ searchParams }: SignupPageProps) {
   const params = await searchParams;
   const nextValue = params.next;
-  const next = getSafeRedirectPath(typeof nextValue === "string" ? nextValue : null);
+  const next = getSafeRedirectPath(typeof nextValue === "string" ? nextValue : null, "");
 
   return <AuthForm mode="signup" next={next} />;
 }

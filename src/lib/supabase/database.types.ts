@@ -44,7 +44,8 @@ type Profile = {
   username: string | null;
 };
 type Company = Timestamps & { description: string | null; id: string; name: string; requested_by: string | null; reviewed_at: string | null; reviewed_by: string | null; status: CompanyStatus; website_url: string | null };
-type CompanyMember = Timestamps & { company_id: string; role: CompanyMemberRole; user_id: string };
+type CompanyMember = { company_id: string; created_at: string; invited_email: string | null; role: CompanyMemberRole; user_id: string };
+type CompanyRecruiterInvitation = Timestamps & { accepted_at: string | null; accepted_by: string | null; company_id: string; email: string; expires_at: string; id: string; invited_by: string; revoked_at: string | null; token_hash: string };
 type PlatformAdmin = { created_at: string; user_id: string };
 type Qualification = Timestamps & { category: RequirementKind; description: string | null; id: string; is_active: boolean; name: string; slug: string };
 type QualificationAlias = { alias: string; created_at: string; id: string; normalized_alias: string; qualification_id: string };
@@ -80,6 +81,7 @@ export type Database = {
       platform_admins: Table<PlatformAdmin, InsertOf<PlatformAdmin> & Pick<PlatformAdmin, "user_id">, Partial<PlatformAdmin>>;
       companies: Table<Company, InsertOf<Company> & Pick<Company, "name">, Partial<Company>>;
       company_members: Table<CompanyMember, InsertOf<CompanyMember> & Pick<CompanyMember, "company_id" | "user_id">, Partial<CompanyMember>>;
+      company_recruiter_invitations: Table<CompanyRecruiterInvitation, InsertOf<CompanyRecruiterInvitation> & Pick<CompanyRecruiterInvitation, "company_id" | "email" | "token_hash" | "invited_by" | "expires_at">, Partial<CompanyRecruiterInvitation>>;
       qualifications: Table<Qualification, InsertOf<Qualification> & Pick<Qualification, "name" | "slug" | "category">, Partial<Qualification>>;
       qualification_aliases: Table<QualificationAlias, InsertOf<QualificationAlias> & Pick<QualificationAlias, "qualification_id" | "alias">, Partial<QualificationAlias>>;
       occupations: Table<Occupation, InsertOf<Occupation> & Pick<Occupation, "slug" | "title" | "isco08_code" | "isco08_level" | "role_family" | "source_summary" | "source_url">, Partial<Occupation>>;
@@ -113,6 +115,7 @@ export type Database = {
       get_consented_resume_path: { Args: { target_job_role_id: string; target_resume_id: string }; Returns: string };
       get_consented_candidate_resume_path: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: string };
       get_consented_candidate_profile: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: Array<{ full_name: string | null; phone_number: string | null }> };
+      accept_company_recruiter_invitation: { Args: { target_token_hash: string }; Returns: string };
       fail_processing_job: {
         Args: { processing_job_id: string; safe_error_message: string; terminal_failure?: boolean };
         Returns: undefined;

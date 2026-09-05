@@ -51,6 +51,7 @@ next-env.d.ts
 .pi
 .codex
 .claude
+.lavish
 services/processor/testdata/generated/oversized.pdf
 services/ocr/__pycache__/
 .env*.local

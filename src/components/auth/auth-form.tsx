@@ -24,7 +24,7 @@ export function AuthForm({ mode, next }: AuthFormProps) {
   const [state, formAction] = useActionState(action, initialState);
   const switchPath = isSignUp ? "/login" : "/signup";
   const switchLabel = isSignUp ? "Already have an account? Sign in" : "Need an account? Create one";
-  const switchHref = next === "/dashboard" ? switchPath : `${switchPath}?next=${encodeURIComponent(next)}`;
+  const switchHref = next ? `${switchPath}?next=${encodeURIComponent(next)}` : switchPath;
   const showDemoLogin = !isSignUp && env.demoLoginEnabled;
 
   return (
