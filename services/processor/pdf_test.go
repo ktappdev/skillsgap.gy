@@ -29,12 +29,24 @@ func TestInspectPDFRecognizesCleanFixture(t *testing.T) {
 }
 
 func TestPrivatePDFRejectsOversizedAndNonPDFContent(t *testing.T) {
-	extractor := execPDFTextExtractor{scratchDirectory: t.TempDir()}
-	if _, _, err := extractor.privatePDF([]byte("not a PDF")); err == nil {
+	document := execPDFDocument{scratchDirectory: t.TempDir()}
+	if _, _, err := document.privatePDF([]byte("not a PDF")); err == nil {
 		t.Fatal("expected non-PDF failure")
 	}
-	if _, _, err := extractor.privatePDF(make([]byte, maxPDFBytes+1)); err == nil {
+	if _, _, err := document.privatePDF(make([]byte, maxPDFBytes+1)); err == nil {
 		t.Fatal("expected oversized failure")
+	}
+}
+
+func TestPDFDocumentCountsPagesWithoutTextExtraction(t *testing.T) {
+	document := execPDFDocument{scratchDirectory: t.TempDir()}
+	contents, err := os.ReadFile(fixturePath("clean-text.pdf"))
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	pages, err := document.pageCount(context.Background(), contents)
+	if err != nil || pages != 1 {
+		t.Fatalf("pages=%d err=%v", pages, err)
 	}
 }
 

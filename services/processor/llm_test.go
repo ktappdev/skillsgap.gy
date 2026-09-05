@@ -60,7 +60,7 @@ func TestVisionExtractionUsesPrivateDataURLAndStrictSchema(t *testing.T) {
 			t.Fatalf("payload = %#v", payload)
 		}
 		content := string(payload.Messages[1].Content)
-		if !strings.Contains(content, `"type":"image_url"`) || !strings.Contains(content, "data:image/jpeg;base64,aW1hZ2U=") {
+		if !strings.Contains(content, `"type":"image_url"`) || !strings.Contains(content, "data:image/jpeg;base64,aW1hZ2U=") || strings.Contains(content, "Page 1 text") {
 			t.Fatalf("vision content = %s", content)
 		}
 		writer.Header().Set("Content-Type", "application/json")
@@ -69,9 +69,37 @@ func TestVisionExtractionUsesPrivateDataURLAndStrictSchema(t *testing.T) {
 	defer server.Close()
 
 	client := newLLMClient(config{vllmURL: server.URL, vllmAPIKey: "secret", modelName: "qwen"})
-	_, err := client.extractWithVision(context.Background(), "Page 1 text", []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("image")}})
+	_, err := client.extractWithVision(context.Background(), []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("image")}})
 	if err != nil {
 		t.Fatalf("extract vision: %v", err)
+	}
+}
+
+func TestVisionExtractionRejectsNonVisionEvidence(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(writer).Encode(map[string]any{"choices": []map[string]any{{"message": map[string]string{"content": `{"qualifications":[{"original_term":"mechanic","canonical_candidate":"Mechanical Maintenance","kind":"skill","years_experience":4,"evidence":"mechanic","evidence_page":1,"evidence_method":"native","confidence":0.9}],"employment":[],"unmapped_terms":[]}`}}}})
+	}))
+	defer server.Close()
+
+	client := newLLMClient(config{vllmURL: server.URL, vllmAPIKey: "secret", modelName: "qwen"})
+	_, err := client.extractWithVision(context.Background(), []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("image")}})
+	if err == nil {
+		t.Fatal("expected non-vision evidence to be rejected")
+	}
+}
+
+func TestVisionExtractionRejectsOutOfRangeEvidencePage(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(writer).Encode(map[string]any{"choices": []map[string]any{{"message": map[string]string{"content": `{"qualifications":[{"original_term":"mechanic","canonical_candidate":"Mechanical Maintenance","kind":"skill","years_experience":4,"evidence":"mechanic","evidence_page":2,"evidence_method":"vision","confidence":0.9}],"employment":[],"unmapped_terms":[]}`}}}})
+	}))
+	defer server.Close()
+
+	client := newLLMClient(config{vllmURL: server.URL, vllmAPIKey: "secret", modelName: "qwen"})
+	_, err := client.extractWithVision(context.Background(), []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("image")}})
+	if err == nil {
+		t.Fatal("expected out-of-range evidence page to be rejected")
 	}
 }
 

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"strings"
 	"testing"
 )
 
@@ -20,26 +19,15 @@ func (fakeStore) complete(context.Context, processingJob, extraction) error { re
 func (fakeStore) recalculate(context.Context, processingJob) error          { return nil }
 func (fakeStore) fail(context.Context, processingJob, error) error          { return nil }
 
-type fakeTextExtractor struct {
-	document parsedDocument
-	err      error
+type fakePDF struct {
+	pages  int
+	err    error
+	called bool
 }
 
-func (extractor fakeTextExtractor) extract(context.Context, []byte) (parsedDocument, error) {
-	return extractor.document, extractor.err
-}
-
-type fakeOCR struct {
-	document parsedDocument
-	err      error
-	called   bool
-	pages    []int
-}
-
-func (ocr *fakeOCR) parse(_ context.Context, _ []byte, pages []int) (parsedDocument, error) {
-	ocr.called = true
-	ocr.pages = pages
-	return ocr.document, ocr.err
+func (pdf *fakePDF) pageCount(context.Context, []byte) (int, error) {
+	pdf.called = true
+	return pdf.pages, pdf.err
 }
 
 type fakeRenderer struct {
@@ -51,135 +39,124 @@ type fakeRenderer struct {
 
 func (renderer *fakeRenderer) render(_ context.Context, _ []byte, pages []int) ([]pageImage, error) {
 	renderer.called = true
-	renderer.pages = pages
+	renderer.pages = append([]int(nil), pages...)
 	return renderer.images, renderer.err
 }
 
 type fakeLLM struct {
-	textResult   extraction
-	textErr      error
 	visionResult extraction
 	visionErr    error
-	textCalls    int
 	visionCalls  int
+	images       []pageImage
 }
 
-func (llm *fakeLLM) extract(context.Context, string) (extraction, error) {
-	llm.textCalls++
-	return llm.textResult, llm.textErr
-}
-
-func (llm *fakeLLM) extractWithVision(context.Context, string, []pageImage) (extraction, error) {
+func (llm *fakeLLM) extractWithVision(_ context.Context, images []pageImage) (extraction, error) {
 	llm.visionCalls++
+	llm.images = append([]pageImage(nil), images...)
 	return llm.visionResult, llm.visionErr
 }
 
-func TestPipelineKeepsCleanResumeOnTextFastPath(t *testing.T) {
-	ocr := &fakeOCR{}
-	renderer := &fakeRenderer{}
-	llm := &fakeLLM{textResult: supportedExtraction("Diesel mechanics")}
-	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, fakeTextDocument(cleanResumeText()), ocr, renderer, llm)
-
-	if _, err := pipeline.process(context.Background(), processingJob{}); err != nil {
-		t.Fatalf("process: %v", err)
-	}
-	if ocr.called || renderer.called || llm.visionCalls != 0 || llm.textCalls != 1 {
-		t.Fatalf("unexpected route: ocr=%v render=%v text=%d vision=%d", ocr.called, renderer.called, llm.textCalls, llm.visionCalls)
-	}
-}
-
-func TestPipelineReplacesUnreadablePageWithOCR(t *testing.T) {
-	ocr := &fakeOCR{document: parsedDocument{Pages: []documentPage{{Number: 1, Text: cleanResumeText(), Method: methodOCR}}}}
-	renderer := &fakeRenderer{}
-	llm := &fakeLLM{textResult: supportedExtraction("Mechanical maintenance")}
-	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, fakeTextDocument("short"), ocr, renderer, llm)
-
-	if _, err := pipeline.process(context.Background(), processingJob{}); err != nil {
-		t.Fatalf("process: %v", err)
-	}
-	if !ocr.called || len(ocr.pages) != 1 || ocr.pages[0] != 1 {
-		t.Fatalf("OCR pages = %#v", ocr.pages)
-	}
-	if renderer.called || llm.visionCalls != 0 {
-		t.Fatal("good OCR should not require vision")
-	}
-}
-
-func TestPipelineUsesVisionForRiskyLayout(t *testing.T) {
-	columns := repeatLines("Diesel mechanic        Hydraulics maintenance", 12)
-	renderer := &fakeRenderer{images: []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("image")}}}
-	llm := &fakeLLM{textResult: supportedExtraction("Diesel mechanics"), visionResult: supportedExtraction("Hydraulics maintenance")}
-	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, fakeTextDocument(columns), &fakeOCR{}, renderer, llm)
+func TestPipelineRendersEveryPageAndUsesVisionOnly(t *testing.T) {
+	pdf := &fakePDF{pages: 3}
+	renderer := &fakeRenderer{images: []pageImage{
+		{Page: 1, MediaType: "image/jpeg", Data: []byte("page-1")},
+		{Page: 2, MediaType: "image/jpeg", Data: []byte("page-2")},
+		{Page: 3, MediaType: "image/jpeg", Data: []byte("page-3")},
+	}}
+	llm := &fakeLLM{visionResult: supportedExtraction("Diesel mechanics")}
+	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, pdf, renderer, llm)
 
 	result, err := pipeline.process(context.Background(), processingJob{})
 	if err != nil {
 		t.Fatalf("process: %v", err)
 	}
-	if !renderer.called || llm.visionCalls != 1 || result.Qualifications[0].OriginalTerm != "Hydraulics maintenance" {
-		t.Fatalf("vision route failed: render=%v vision=%d result=%#v", renderer.called, llm.visionCalls, result)
+	if !pdf.called || !renderer.called || llm.visionCalls != 1 {
+		t.Fatalf("unexpected route: pdf=%v render=%v vision=%d", pdf.called, renderer.called, llm.visionCalls)
+	}
+	if len(renderer.pages) != 3 || renderer.pages[0] != 1 || renderer.pages[1] != 2 || renderer.pages[2] != 3 {
+		t.Fatalf("rendered pages = %#v", renderer.pages)
+	}
+	if len(llm.images) != 3 || string(llm.images[1].Data) != "page-2" {
+		t.Fatalf("vision images = %#v", llm.images)
+	}
+	if result.Qualifications[0].EvidenceMethod != methodVision {
+		t.Fatalf("evidence method = %q", result.Qualifications[0].EvidenceMethod)
 	}
 }
 
-func TestPipelineKeepsValidTextResultWhenOptionalVisionFails(t *testing.T) {
-	renderer := &fakeRenderer{images: []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("image")}}}
-	llm := &fakeLLM{textResult: supportedExtractionWithConfidence("Diesel mechanics", 0.4), visionErr: errors.New("vision unavailable")}
-	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, fakeTextDocument(cleanResumeText()), &fakeOCR{}, renderer, llm)
+func TestPipelineRejectsUnsupportedPageCount(t *testing.T) {
+	pdf := &fakePDF{pages: maxResumePages + 1}
+	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, pdf, &fakeRenderer{}, &fakeLLM{})
 
-	result, err := pipeline.process(context.Background(), processingJob{})
-	if err != nil {
-		t.Fatalf("process: %v", err)
+	_, err := pipeline.process(context.Background(), processingJob{})
+	if err == nil {
+		t.Fatal("expected page-count failure")
 	}
-	if result.Qualifications[0].OriginalTerm != "Diesel mechanics" || llm.visionCalls != 1 {
-		t.Fatalf("fallback result = %#v", result)
+	var failure processingError
+	if !errors.As(err, &failure) || !failure.terminal {
+		t.Fatalf("error = %v", err)
 	}
 }
 
-func TestPipelineFailsWhenTextAndVisionCannotBeRead(t *testing.T) {
-	renderer := &fakeRenderer{images: []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("image")}}}
-	llm := &fakeLLM{textErr: errors.New("text unavailable"), visionErr: errors.New("vision unavailable")}
-	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, fakeTextDocument("short"), &fakeOCR{err: errors.New("OCR unavailable")}, renderer, llm)
+func TestPipelineStopsWhenRenderingFails(t *testing.T) {
+	pdf := &fakePDF{pages: 1}
+	renderer := &fakeRenderer{err: errors.New("render failed")}
+	llm := &fakeLLM{}
+	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, pdf, renderer, llm)
 
 	if _, err := pipeline.process(context.Background(), processingJob{}); err == nil {
-		t.Fatal("expected unreadable document error")
+		t.Fatal("expected render failure")
+	}
+	if llm.visionCalls != 0 {
+		t.Fatal("vision should not run after render failure")
 	}
 }
 
-func TestPipelineRejectsOversizedExtractedText(t *testing.T) {
-	text := strings.Repeat("a", maxResumeTextCharacters+1) + " " + cleanResumeText()
-	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, fakeTextDocument(text), &fakeOCR{}, &fakeRenderer{}, &fakeLLM{})
+func TestPipelineRejectsIncompleteRenderedPageSet(t *testing.T) {
+	pdf := &fakePDF{pages: 2}
+	renderer := &fakeRenderer{images: []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("page-1")}}}
+	llm := &fakeLLM{}
+	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, pdf, renderer, llm)
+
 	if _, err := pipeline.process(context.Background(), processingJob{}); err == nil {
-		t.Fatal("expected oversized extracted text to be rejected")
+		t.Fatal("expected incomplete page set failure")
+	}
+	if llm.visionCalls != 0 {
+		t.Fatal("vision should not run with an incomplete page set")
 	}
 }
 
-func TestTextQualityRejectsGarbledAndRepeatedContent(t *testing.T) {
-	if usablePageText("123 456 789 012 345 678 901 234") {
-		t.Fatal("expected low-alphabetic-ratio content to fail")
+func TestPipelineRejectsOutOfOrderRenderedPages(t *testing.T) {
+	pdf := &fakePDF{pages: 2}
+	renderer := &fakeRenderer{images: []pageImage{
+		{Page: 2, MediaType: "image/jpeg", Data: []byte("page-2")},
+		{Page: 1, MediaType: "image/jpeg", Data: []byte("page-1")},
+	}}
+	llm := &fakeLLM{}
+	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, pdf, renderer, llm)
+
+	if _, err := pipeline.process(context.Background(), processingJob{}); err == nil {
+		t.Fatal("expected out-of-order page failure")
 	}
-	if usablePageText(strings.Repeat("A", 30) + " mechanic mechanic mechanic mechanic mechanic mechanic mechanic mechanic") {
-		t.Fatal("expected repeated content to fail")
-	}
-	if !usablePageText(cleanResumeText()) {
-		t.Fatal("expected normal resume text to pass")
+	if llm.visionCalls != 0 {
+		t.Fatal("vision should not run with out-of-order pages")
 	}
 }
 
-func fakeTextDocument(text string) fakeTextExtractor {
-	return fakeTextExtractor{document: parsedDocument{Pages: []documentPage{{Number: 1, Text: text, Method: methodNative}}}}
+func TestPipelineReturnsVisionFailureWithoutOCRFallback(t *testing.T) {
+	pdf := &fakePDF{pages: 1}
+	renderer := &fakeRenderer{images: []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("page-1")}}}
+	llm := &fakeLLM{visionErr: errors.New("vision unavailable")}
+	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, pdf, renderer, llm)
+
+	if _, err := pipeline.process(context.Background(), processingJob{}); err == nil {
+		t.Fatal("expected vision failure")
+	}
+	if llm.visionCalls != 1 {
+		t.Fatalf("vision calls = %d", llm.visionCalls)
+	}
 }
 
 func supportedExtraction(name string) extraction {
-	return supportedExtractionWithConfidence(name, 0.9)
-}
-
-func supportedExtractionWithConfidence(name string, confidence float64) extraction {
-	return extraction{Qualifications: []extractedQualification{{OriginalTerm: name, CanonicalCandidate: "Mechanical Maintenance", Kind: "skill", Evidence: "Four years repairing diesel engines", EvidencePage: 1, EvidenceMethod: methodNative, Confidence: confidence}}}
-}
-
-func cleanResumeText() string {
-	return repeatLines("Experienced diesel mechanic maintained buses engines hydraulic systems and workshop safety procedures for local transport operations", 4)
-}
-
-func repeatLines(value string, count int) string {
-	return strings.TrimSpace(strings.Repeat(value+"\n", count))
+	return extraction{Qualifications: []extractedQualification{{OriginalTerm: name, CanonicalCandidate: "Mechanical Maintenance", Kind: "skill", Evidence: "Four years repairing diesel engines", EvidencePage: 1, EvidenceMethod: methodVision, Confidence: 0.9}}}
 }

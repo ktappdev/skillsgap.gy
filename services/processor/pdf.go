@@ -11,36 +11,18 @@ import (
 	"strings"
 )
 
-type execPDFTextExtractor struct {
+type execPDFDocument struct {
 	scratchDirectory string
 }
 
-func (extractor execPDFTextExtractor) extract(ctx context.Context, contents []byte) (parsedDocument, error) {
-	directory, pdfPath, err := extractor.privatePDF(contents)
+func (document execPDFDocument) pageCount(ctx context.Context, contents []byte) (int, error) {
+	directory, pdfPath, err := document.privatePDF(contents)
 	if err != nil {
-		return parsedDocument{}, err
+		return 0, err
 	}
 	defer os.RemoveAll(directory)
 
-	pageCount, err := inspectPDF(ctx, pdfPath)
-	if err != nil {
-		return parsedDocument{}, err
-	}
-	output, err := exec.CommandContext(ctx, "pdftotext", "-layout", pdfPath, "-").Output()
-	if err != nil {
-		return parsedDocument{}, terminalProcessingError("This PDF is locked or damaged. Upload an unlocked PDF or add your qualifications manually.")
-	}
-
-	pageText := strings.Split(strings.ReplaceAll(string(output), "\r\n", "\n"), "\f")
-	pages := make([]documentPage, 0, pageCount)
-	for page := 1; page <= pageCount; page++ {
-		text := ""
-		if page <= len(pageText) {
-			text = strings.TrimSpace(pageText[page-1])
-		}
-		pages = append(pages, documentPage{Number: page, Text: text, Method: methodNative})
-	}
-	return parsedDocument{Pages: pages}, nil
+	return inspectPDF(ctx, pdfPath)
 }
 
 type execPDFPageRenderer struct {
@@ -52,8 +34,8 @@ func (renderer execPDFPageRenderer) render(ctx context.Context, contents []byte,
 	if len(pageNumbers) == 0 {
 		return nil, nil
 	}
-	extractor := execPDFTextExtractor{scratchDirectory: renderer.scratchDirectory}
-	directory, pdfPath, err := extractor.privatePDF(contents)
+	document := execPDFDocument{scratchDirectory: renderer.scratchDirectory}
+	directory, pdfPath, err := document.privatePDF(contents)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +62,7 @@ func (renderer execPDFPageRenderer) render(ctx context.Context, contents []byte,
 	return images, nil
 }
 
-func (extractor execPDFTextExtractor) privatePDF(contents []byte) (string, string, error) {
+func (document execPDFDocument) privatePDF(contents []byte) (string, string, error) {
 	if len(contents) == 0 {
 		return "", "", terminalProcessingError("This CV is empty. Upload a PDF that contains your work history.")
 	}
@@ -90,7 +72,7 @@ func (extractor execPDFTextExtractor) privatePDF(contents []byte) (string, strin
 	if !looksLikePDF(contents) {
 		return "", "", terminalProcessingError("This file is not a valid PDF. Upload a PDF CV.")
 	}
-	scratchDirectory := extractor.scratchDirectory
+	scratchDirectory := document.scratchDirectory
 	if scratchDirectory == "" {
 		scratchDirectory = os.TempDir()
 	}

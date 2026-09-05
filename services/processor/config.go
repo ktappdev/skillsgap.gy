@@ -43,8 +43,8 @@ func loadConfig() (config, error) {
 	if value.supabaseURL == "" || value.supabaseServiceKey == "" {
 		return config{}, errors.New("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
 	}
-	if value.ocrSecret == "" || value.vllmAPIKey == "" {
-		return config{}, errors.New("OCR_SERVICE_SECRET and VLLM_API_KEY must be set")
+	if value.vllmAPIKey == "" {
+		return config{}, errors.New("VLLM_API_KEY must be set")
 	}
 	return value, nil
 }
