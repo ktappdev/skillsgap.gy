@@ -90,6 +90,7 @@ Use plain progress language such as `You are closer to Offshore Mechanical Techn
 - A super admin approves a company before its members can publish roles. Approval assigns the requester as its owner.
 - An approved owner invites and removes recruiter accounts. Recruiters can manage company operations but cannot manage the team or platform administration.
 - Each account has one primary space, resolved in the order platform admin, company, then applicant. An account can belong to only one company in the MVP.
+- The hackathon demo uses email and password without a confirmation-email step; signup returns an authenticated session immediately. Password recovery remains email-dependent for future production use.
 - Do not use editable Auth `user_metadata` for authorization. Platform-admin and company membership records are server-managed database records.
 - The existing starter's publicly readable `profiles` policy must be removed. Profiles are private to their owners unless an applicant has granted consent for a specific company and role.
 

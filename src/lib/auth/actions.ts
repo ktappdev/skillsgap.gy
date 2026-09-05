@@ -103,7 +103,7 @@ export async function signUp(
     redirect(next);
   }
 
-  return { message: "Check your email to confirm your account, then come back to sign in." };
+  return { message: "Account created. Sign in with your email and password to continue." };
 }
 
 export async function signOut() {

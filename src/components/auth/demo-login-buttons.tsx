@@ -58,7 +58,7 @@ export function DemoLoginButtons({ next }: DemoLoginButtonsProps) {
       ) : null}
 
       <p className="text-center text-xs leading-5 text-muted">
-        Testing accounts for the hackathon preview. Do not use in production.
+        Testing accounts use email and password behind the scenes. Do not use in production.
       </p>
     </div>
   );

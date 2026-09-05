@@ -101,6 +101,12 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
           />
         </label>
 
+        {isSignUp ? (
+          <p className="text-xs leading-5 text-muted">
+            This demo signs you in immediately. No confirmation email is required.
+          </p>
+        ) : null}
+
         {state.error ? (
           <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-danger" role="alert">
             {state.error}

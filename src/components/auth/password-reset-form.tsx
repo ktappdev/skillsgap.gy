@@ -17,7 +17,7 @@ export function PasswordResetForm({ mode }: { mode: "request" | "update" }) {
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Account security</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-foreground">{isUpdate ? "Choose a new password" : "Reset your password"}</h1>
-        <p className="mt-3 text-sm leading-6 text-muted">{isUpdate ? "Use at least eight characters and keep it unique to SkillsGap.gy." : "Enter your account email and we will send a secure reset link."}</p>
+        <p className="mt-3 text-sm leading-6 text-muted">{isUpdate ? "Use at least eight characters and keep it unique to SkillsGap.gy." : "Password recovery is the one auth action that still uses email. Enter your account email and we will send a secure reset link."}</p>
       </div>
       <form action={formAction} className="space-y-4">
         {isUpdate ? (
