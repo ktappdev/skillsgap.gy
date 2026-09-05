@@ -83,11 +83,6 @@ const officialSources = {
   },
 } as const;
 
-const iloSource = {
-  url: "https://www.ilo.org/media/92446/download",
-  sourceLocator: "ILO Guyana skills study, Table 2 and executive summary",
-};
-
 function preparationSubject(subjectName: string, guidanceNote: string, sourceUrl = officialSources.tvet.url, sourceLocator = officialSources.tvet.sourceLocator): CareerPreparationSubject {
   return {
     subjectName,
@@ -375,6 +370,5 @@ export function getOccupationGuidance(slug: string): OccupationGuidance | null {
 }
 
 export function getAllOccupationGuidance(): Array<{ slug: string; guidance: OccupationGuidance }> {
-  return Object.entries(guidanceBySlug).map(([slug, guidance]) => ({ slug, guidance: getOccupationGuidance(slug)! }));
+  return Object.keys(guidanceBySlug).map((slug) => ({ slug, guidance: getOccupationGuidance(slug)! }));
 }
-
