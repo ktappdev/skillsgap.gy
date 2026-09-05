@@ -1,3 +1,10 @@
+import {
+  getOccupationGuidance,
+  type CareerActionType,
+  type CareerPreparationSubject,
+  type OccupationPathwayAction,
+} from "@/lib/i-want-to-become/guidance";
+
 export type PublicOccupationLevel = "unit" | "minor" | "sub_major" | "major";
 
 export type PublicOccupation = {
@@ -13,6 +20,12 @@ export type PublicOccupation = {
   sourceLocator: string | null;
   localContentCategories: string[];
   exampleTitles: string[];
+  industryTransferSummary: string;
+};
+
+export type PublicOccupationPathway = PublicOccupation & {
+  preparationSubjects: CareerPreparationSubject[];
+  actions: OccupationPathwayAction[];
 };
 
 export type PublicOccupationRpcRow = {
@@ -28,6 +41,12 @@ export type PublicOccupationRpcRow = {
   source_locator: string | null;
   local_content_categories?: string[];
   example_titles?: string[];
+  industry_transfer_summary?: string;
+};
+
+export type PublicOccupationPathwayRpcRow = PublicOccupationRpcRow & {
+  preparation_subjects?: unknown;
+  actions?: unknown;
 };
 
 /**
@@ -69,8 +88,9 @@ export const occupationCatalog: PublicOccupation[] = occupationSeeds.map(([slug,
   sourceSummary: "ILO Guyana skills study",
   sourceUrl: "https://www.ilo.org/media/92446/download",
   sourceLocator: slug === "environmental-and-occupational-health-professionals" ? "Executive summary" : "Table 2",
-  localContentCategories: [],
-  exampleTitles: [],
+  localContentCategories: getOccupationGuidance(slug)?.localContentCategories ?? [],
+  exampleTitles: getOccupationGuidance(slug)?.exampleTitles ?? [],
+  industryTransferSummary: getOccupationGuidance(slug)?.industryTransferSummary ?? "Explore the transferable foundations, supervised practice, and verified local routes connected to this occupation.",
 }));
 
 const occupationLevels: PublicOccupationLevel[] = ["unit", "minor", "sub_major", "major"];
@@ -88,6 +108,43 @@ function isHttpsUrl(value: unknown): value is string {
   }
 }
 
+function isCareerActionType(value: unknown): value is CareerActionType {
+  return value === "learn" || value === "practice" || value === "register" || value === "find_work" || value === "guidance";
+}
+
+function isPreparationSubject(value: unknown): value is CareerPreparationSubject {
+  if (typeof value !== "object" || value === null) return false;
+  const subject = value as Record<string, unknown>;
+  return typeof subject.subjectName === "string"
+    && subject.subjectName.trim().length > 1
+    && typeof subject.guidanceNote === "string"
+    && (subject.minimumGrade === null || typeof subject.minimumGrade === "string")
+    && isHttpsUrl(subject.sourceUrl)
+    && typeof subject.sourceLocator === "string"
+    && typeof subject.lastVerifiedAt === "string"
+    && typeof subject.isActive === "boolean";
+}
+
+function isPathwayAction(value: unknown): value is OccupationPathwayAction {
+  if (typeof value !== "object" || value === null) return false;
+  const action = value as Record<string, unknown>;
+  return typeof action.id === "string"
+    && isCareerActionType(action.actionType)
+    && typeof action.title === "string"
+    && typeof action.instruction === "string"
+    && typeof action.whyItHelps === "string"
+    && typeof action.organizationName === "string"
+    && (action.location === null || typeof action.location === "string")
+    && (action.contactText === null || typeof action.contactText === "string")
+    && isHttpsUrl(action.url)
+    && isHttpsUrl(action.sourceUrl)
+    && typeof action.sourceLocator === "string"
+    && typeof action.lastVerifiedAt === "string"
+    && typeof action.isVerified === "boolean"
+    && typeof action.isActive === "boolean"
+    && typeof action.sortOrder === "number";
+}
+
 export function isPublicOccupationRpcRow(value: unknown): value is PublicOccupationRpcRow {
   if (typeof value !== "object" || value === null) return false;
   const row = value as Record<string, unknown>;
@@ -103,7 +160,8 @@ export function isPublicOccupationRpcRow(value: unknown): value is PublicOccupat
     && isHttpsUrl(row.source_url)
     && (row.source_locator === null || typeof row.source_locator === "string")
     && hasOptionalArray("local_content_categories")
-    && hasOptionalArray("example_titles");
+    && hasOptionalArray("example_titles")
+    && (row.industry_transfer_summary === undefined || typeof row.industry_transfer_summary === "string");
 }
 
 export function isPublicOccupation(value: unknown): value is PublicOccupation {
@@ -120,7 +178,8 @@ export function isPublicOccupation(value: unknown): value is PublicOccupation {
     && isHttpsUrl(occupation.sourceUrl)
     && (occupation.sourceLocator === null || typeof occupation.sourceLocator === "string")
     && isStringArray(occupation.localContentCategories)
-    && isStringArray(occupation.exampleTitles);
+    && isStringArray(occupation.exampleTitles)
+    && typeof occupation.industryTransferSummary === "string";
 }
 
 export function normalizePublicOccupation(value: PublicOccupationRpcRow): PublicOccupation {
@@ -137,5 +196,37 @@ export function normalizePublicOccupation(value: PublicOccupationRpcRow): Public
     sourceLocator: value.source_locator,
     localContentCategories: [...(value.local_content_categories ?? [])],
     exampleTitles: [...(value.example_titles ?? [])],
+    industryTransferSummary: value.industry_transfer_summary ?? getOccupationGuidance(value.slug)?.industryTransferSummary ?? "Explore the transferable foundations, supervised practice, and verified local routes connected to this occupation.",
+  };
+}
+
+export function isPublicOccupationPathwayRpcRow(value: unknown): value is PublicOccupationPathwayRpcRow {
+  if (!isPublicOccupationRpcRow(value)) return false;
+  const row = value as PublicOccupationPathwayRpcRow;
+  return Array.isArray(row.preparation_subjects)
+    && row.preparation_subjects.every(isPreparationSubject)
+    && Array.isArray(row.actions)
+    && row.actions.every(isPathwayAction);
+}
+
+export function normalizePublicOccupationPathway(value: PublicOccupationPathwayRpcRow): PublicOccupationPathway {
+  const summary = normalizePublicOccupation(value);
+  const preparationSubjects: unknown[] = Array.isArray(value.preparation_subjects) ? value.preparation_subjects : [];
+  const actions: unknown[] = Array.isArray(value.actions) ? value.actions : [];
+  return {
+    ...summary,
+    preparationSubjects: preparationSubjects.filter(isPreparationSubject).map((subject) => ({ ...subject })),
+    actions: actions.filter(isPathwayAction).map((item) => ({ ...item })),
+  };
+}
+
+export function getStaticOccupationPathway(slug: string): PublicOccupationPathway | null {
+  const occupation = occupationCatalog.find((item) => item.slug === slug);
+  const guidance = getOccupationGuidance(slug);
+  if (!occupation || !guidance) return null;
+  return {
+    ...occupation,
+    preparationSubjects: guidance.preparationSubjects.map((subject) => ({ ...subject })),
+    actions: guidance.actions.map((item) => ({ ...item })),
   };
 }

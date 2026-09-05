@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { careerPathways, findCareerPathway, isValidCsecResult, supportingSubjects } from "@/lib/i-want-to-become/catalog";
-import { isPublicOccupation, isPublicOccupationRpcRow, normalizePublicOccupation, occupationCatalog } from "@/lib/i-want-to-become/occupations";
+import { getAllOccupationGuidance } from "@/lib/i-want-to-become/guidance";
+import { getStaticOccupationPathway, isPublicOccupation, isPublicOccupationRpcRow, normalizePublicOccupation, occupationCatalog } from "@/lib/i-want-to-become/occupations";
 
 describe("career pathway catalogue", () => {
   it("keeps every pathway identifiable", () => {
@@ -71,5 +72,24 @@ describe("career pathway catalogue", () => {
     expect(isValidCsecResult({ subject: "English A", grade: "II" })).toBe(true);
     expect(isValidCsecResult({ subject: "", grade: "II" })).toBe(false);
     expect(isValidCsecResult({ subject: "English A", grade: "" })).toBe(false);
+  });
+
+  it("gives every occupation an evidence-backed starting route", () => {
+    const guidance = getAllOccupationGuidance();
+
+    expect(guidance).toHaveLength(18);
+    expect(guidance.every(({ guidance: item }) => item.industryTransferSummary.length > 40)).toBe(true);
+    expect(guidance.every(({ guidance: item }) => item.preparationSubjects.length >= 3)).toBe(true);
+    expect(guidance.every(({ guidance: item }) => item.actions.length >= 3)).toBe(true);
+    expect(guidance.every(({ guidance: item }) => item.actions.every((action) => action.isVerified && action.isActive && action.url.startsWith("https://")))).toBe(true);
+  });
+
+  it("keeps the static pathway fallback complete for every occupation", () => {
+    for (const occupation of occupationCatalog) {
+      const pathway = getStaticOccupationPathway(occupation.slug);
+      expect(pathway?.industryTransferSummary).toBeTruthy();
+      expect(pathway?.actions.length).toBeGreaterThanOrEqual(3);
+      expect(pathway?.preparationSubjects.length).toBeGreaterThanOrEqual(3);
+    }
   });
 });
