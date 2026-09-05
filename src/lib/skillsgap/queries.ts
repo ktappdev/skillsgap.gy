@@ -21,11 +21,23 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const [resumeResult, jobResult, matchesResult, experienceResult] = await Promise.all([
     client.from("resumes").select("*").eq("applicant_id", applicantId).is("deleted_at", null).order("uploaded_at", { ascending: false }).limit(1).maybeSingle(),
     client.from("processing_jobs").select("*").eq("applicant_id", applicantId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-    client.from("job_matches").select("*").eq("applicant_id", applicantId).eq("status", "current").order("score", { ascending: false }).limit(3),
+    client.from("job_matches").select("*").eq("applicant_id", applicantId).eq("status", "current").order("score", { ascending: false }),
     client.from("applicant_experience").select("*").eq("applicant_id", applicantId).order("created_at", { ascending: false }),
   ]);
 
-  const rows = matchesResult.data ?? [];
+  const currentMatches = matchesResult.data ?? [];
+  const currentRoleIds = currentMatches.map((row) => row.job_role_id);
+  const activeRoleResult = currentRoleIds.length > 0
+    ? await client.from("job_roles").select("id,company_id").in("id", currentRoleIds).eq("status", "active")
+    : { data: [] };
+  const activeRoles = activeRoleResult.data ?? [];
+  const activeCompanyIds = [...new Set(activeRoles.map((role) => role.company_id))];
+  const approvedCompaniesResult = activeCompanyIds.length > 0
+    ? await client.from("companies").select("id").in("id", activeCompanyIds).eq("status", "approved")
+    : { data: [] };
+  const approvedCompanyIds = new Set((approvedCompaniesResult.data ?? []).map((company) => company.id));
+  const activeRoleIds = new Set(activeRoles.filter((role) => approvedCompanyIds.has(role.company_id)).map((role) => role.id));
+  const rows = currentMatches.filter((row) => activeRoleIds.has(row.job_role_id)).slice(0, 3);
   if (rows.length === 0) {
     return { latestResume: resumeResult.data, processingStatus: jobResult.data?.status ?? null, processingError: jobResult.data?.error_message ?? null, experience: experienceResult.data ?? [], matches: [], qualifications: await getApplicantQualifications(client, applicantId), availableQualifications: await getAvailableQualifications(client) };
   }
@@ -37,7 +49,6 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const companyResult = companyIds.length > 0 ? await client.from("companies").select("id,name").in("id", companyIds).eq("status", "approved") : { data: [] };
   const companies = companyResult.data ?? [];
   const companyNames = new Map(companies.map((company) => [company.id, company.name]));
-  const approvedCompanyIds = new Set(companies.map((company) => company.id));
 
   const gapResult = await client.from("match_gaps").select("*").in("match_id", rows.map((row) => row.id));
   const gaps = gapResult.data ?? [];
@@ -50,7 +61,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const qualifications = qualificationResult.data ?? [];
   const qualificationNames = new Map(qualifications.map((qualification) => [qualification.id, qualification.name]));
   const requirementById = new Map(requirements.map((requirement) => [requirement.id, requirement]));
-  const applicantQualificationResult = await client.from("applicant_qualifications").select("qualification_id").eq("applicant_id", applicantId).neq("review_status", "rejected");
+  const applicantQualificationResult = await client.from("applicant_qualifications").select("qualification_id").eq("applicant_id", applicantId).eq("review_status", "confirmed");
   const applicantQualificationIds = new Set((applicantQualificationResult.data ?? []).map((item) => item.qualification_id));
 
   return {
@@ -72,6 +83,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
           name: qualificationNames.get(requirement.qualification_id) ?? "Qualification to verify",
           type: requirement.kind === "certification" ? "Certification" as const : requirement.kind === "experience" ? "Experience" as const : "Technical skill" as const,
           training: null,
+          status: gap.status,
         }];
       });
       const strengths = allRequirements
@@ -117,7 +129,7 @@ export async function getApplicantMatch(client: Client, applicantId: string, mat
     client.from("companies").select("id,name").eq("id", role.company_id).eq("status", "approved").maybeSingle(),
     client.from("match_gaps").select("*").eq("match_id", match.id),
     client.from("job_requirements").select("*").eq("job_role_id", role.id),
-    client.from("applicant_qualifications").select("qualification_id").eq("applicant_id", applicantId).neq("review_status", "rejected"),
+    client.from("applicant_qualifications").select("qualification_id").eq("applicant_id", applicantId).eq("review_status", "confirmed"),
   ]);
   const { data: consent } = await client.from("candidate_consents").select("id").eq("applicant_id", applicantId).eq("job_role_id", role.id).eq("status", "active").maybeSingle();
   const roleRequirements = requirements ?? [];
@@ -160,6 +172,7 @@ export async function getApplicantMatch(client: Client, applicantId: string, mat
       name: names.get(requirement.qualification_id) ?? "Qualification to verify",
       type: requirement.kind === "certification" ? "Certification" as const : requirement.kind === "experience" ? "Experience" as const : "Technical skill" as const,
       training: trainingByQualification.get(requirement.qualification_id) ?? null,
+      status: (gaps ?? []).find((gap) => gap.job_requirement_id === requirement.id)?.status,
     })),
   };
 }
@@ -178,14 +191,22 @@ export async function getApplicantInterviews(client: Client, applicantId: string
   const [{ data: roles }, { data: fairs }, { data: bookings }] = await Promise.all([
     client.from("job_roles").select("*").in("id", invitations.map((item) => item.job_role_id)),
     client.from("job_fairs").select("*").in("id", invitations.map((item) => item.job_fair_id)),
-    client.from("interview_bookings").select("*").in("invitation_id", invitations.map((item) => item.id)),
+    client.from("interview_bookings").select("*").in("invitation_id", invitations.map((item) => item.id)).eq("status", "confirmed"),
   ]);
-  const fairIds = (fairs ?? []).map((fair) => fair.id);
+  const now = new Date();
+  const activeInvitations = invitations.filter((invitation) => {
+    const fair = (fairs ?? []).find((item) => item.id === invitation.job_fair_id);
+    const booking = (bookings ?? []).find((item) => item.invitation_id === invitation.id);
+    return Boolean(booking) || Boolean(fair && fair.status === "open" && new Date(fair.ends_at) > now && (!invitation.expires_at || new Date(invitation.expires_at) > now));
+  });
+  const fairIds = [...new Set(activeInvitations.map((invitation) => invitation.job_fair_id))];
   const { data: slots } = fairIds.length > 0 ? await client.from("interview_slots").select("*").in("job_fair_id", fairIds).order("starts_at") : { data: [] };
-  return invitations.flatMap((invitation) => {
+  return activeInvitations.flatMap((invitation) => {
     const role = (roles ?? []).find((item) => item.id === invitation.job_role_id);
     const fair = (fairs ?? []).find((item) => item.id === invitation.job_fair_id);
     if (!role || !fair) return [];
-    return [{ invitation, role, fair, slots: (slots ?? []).filter((slot) => slot.job_fair_id === fair.id), booking: (bookings ?? []).find((booking) => booking.invitation_id === invitation.id) ?? null }];
+    const booking = (bookings ?? []).find((item) => item.invitation_id === invitation.id) ?? null;
+    const availableSlots = (slots ?? []).filter((slot) => slot.job_fair_id === fair.id && new Date(slot.starts_at) > now);
+    return [{ invitation, role, fair, slots: booking ? (slots ?? []).filter((slot) => slot.id === booking.interview_slot_id) : availableSlots, booking }];
   });
 }

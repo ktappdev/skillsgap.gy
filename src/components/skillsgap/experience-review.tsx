@@ -15,18 +15,20 @@ type ExperienceReviewProps = {
   initialExperience: Tables<"applicant_experience">[];
 };
 
+function toDrafts(experience: Tables<"applicant_experience">[]) {
+  const values: Record<string, ExperienceDraft> = {};
+  for (const item of experience) {
+    values[item.id] = {
+      title: item.title,
+      employer: item.employer ?? "",
+      years: String(item.years),
+    };
+  }
+  return values;
+}
+
 export function ExperienceReview({ initialExperience }: ExperienceReviewProps) {
-  const [drafts, setDrafts] = useState<Record<string, ExperienceDraft>>(() => {
-    const values: Record<string, ExperienceDraft> = {};
-    for (const item of initialExperience) {
-      values[item.id] = {
-        title: item.title,
-        employer: item.employer ?? "",
-        years: String(item.years),
-      };
-    }
-    return values;
-  });
+  const [drafts, setDrafts] = useState<Record<string, ExperienceDraft>>(() => toDrafts(initialExperience));
   const [savingId, setSavingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 

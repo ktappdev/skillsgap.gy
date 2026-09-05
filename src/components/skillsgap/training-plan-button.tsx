@@ -4,9 +4,10 @@ import { useState } from "react";
 
 import { startTrainingPlan } from "@/lib/skillsgap/actions";
 
-export function TrainingPlanButton({ qualification, gapId }: { qualification: string; gapId?: string }) {
-  const [started, setStarted] = useState(false);
+export function TrainingPlanButton({ qualification, gapId, initialStatus }: { qualification: string; gapId?: string; initialStatus?: "unresolved" | "plan_started" | "completed" | "resolved" }) {
+  const [started, setStarted] = useState(initialStatus === "plan_started");
   const [error, setError] = useState<string | null>(null);
+
   async function start() {
     if (!gapId) { setStarted(true); return; }
     const result = await startTrainingPlan(gapId);
