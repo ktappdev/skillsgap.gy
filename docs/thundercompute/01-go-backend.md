@@ -5,9 +5,9 @@ The Go processor is the only public Thunder service. It accepts an authenticated
 ## Target layout
 
 ```text
-Go API                 0.0.0.0:8080  (forward this port)
-PP-StructureV3 OCR     127.0.0.1:8090 (internal only)
-gpt-oss-20b via vLLM   127.0.0.1:8000 (internal only)
+Go API                  0.0.0.0:8080  (forward this port)
+PP-StructureV3 OCR      127.0.0.1:8090 (internal only, CPU initially)
+Qwen3.6-35B via vLLM   127.0.0.1:8000 (internal only)
 ```
 
 Thunder supplies the NVIDIA driver and HTTPS port forwarding. Do not forward ports `8000` or `8090`.
@@ -18,9 +18,10 @@ Run on the Thunder instance (Ubuntu example):
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y golang-go poppler-utils curl ca-certificates openssl
+sudo apt-get install -y golang-go poppler-utils curl ca-certificates openssl jq
 go version
 pdftotext -v
+pdftoppm -v
 ```
 
 Do not reinstall CUDA. The OCR and vLLM runbooks install their own isolated Python environments.
@@ -40,7 +41,7 @@ go test ./...
 go build -o "$HOME/skillsgap/bin/skillsgap-processor" ./...
 ```
 
-The binary requires `WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OCR_SERVICE_SECRET`, and `VLLM_API_KEY`. Optional values are `PORT` (default `8080`), `OCR_URL`, `VLLM_URL`, `VLLM_MODEL`, and `PROCESSOR_SCRATCH_DIR` (default `/ephemeral/skillsgap-processor`). Keep secrets in a mode-0600 environment file.
+The binary requires `WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OCR_SERVICE_SECRET`, and `VLLM_API_KEY`. Optional values are `PORT` (default `8080`), `OCR_URL`, `VLLM_URL`, `VLLM_MODEL`, and `PROCESSOR_SCRATCH_DIR` (default `/ephemeral/skillsgap-processor`). Set `VLLM_MODEL` to the exact identifier returned by `GET /v1/models`. Keep secrets in a mode-0600 environment file.
 
 ## 3. Smoke-test the binary
 

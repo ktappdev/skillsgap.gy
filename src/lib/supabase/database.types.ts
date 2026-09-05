@@ -24,6 +24,7 @@ export type ProcessingStatus = "queued" | "processing" | "completed" | "failed";
 export type ProcessingKind = "resume_analysis" | "recalculate_matches";
 export type QualificationSource = "extracted" | "applicant_confirmed" | "admin_verified";
 export type ReviewStatus = "pending_review" | "confirmed" | "rejected";
+export type ExtractionMethod = "native" | "ocr" | "vision";
 export type MatchStatus = "current" | "stale";
 export type GapStatus = "unresolved" | "plan_started" | "completed";
 export type ConsentStatus = "active" | "revoked";
@@ -54,7 +55,7 @@ type TrainingProgram = Timestamps & { description: string | null; duration_text:
 type TrainingProgramOutcome = { created_at: string; qualification_id: string; training_program_id: string };
 type Resume = { applicant_id: string; byte_size: number; deleted_at: string | null; id: string; mime_type: string; original_filename: string; processed_at: string | null; status: ResumeStatus; storage_path: string; uploaded_at: string };
 type ProcessingJob = Timestamps & { applicant_id: string; attempts: number; completed_at: string | null; error_message: string | null; id: string; kind: ProcessingKind; result_summary: Json; resume_id: string | null; started_at: string | null; status: ProcessingStatus };
-type ApplicantQualification = Timestamps & { applicant_id: string; confidence: number | null; evidence: string | null; id: string; qualification_id: string; resume_id: string | null; review_status: ReviewStatus; source: QualificationSource; years_experience: number | null };
+type ApplicantQualification = Timestamps & { applicant_id: string; confidence: number | null; evidence: string | null; evidence_method: ExtractionMethod | null; evidence_page: number | null; id: string; original_term: string | null; qualification_id: string; resume_id: string | null; review_status: ReviewStatus; source: QualificationSource; years_experience: number | null };
 type ApplicantExperience = Timestamps & { applicant_id: string; confidence: number | null; created_at: string; employer: string | null; evidence: string | null; id: string; resume_id: string | null; title: string; updated_at: string; years: number };
 type JobMatch = Timestamps & { applicant_id: string; calculated_at: string; id: string; interview_eligible: boolean; job_role_id: string; mandatory_requirements_met: boolean; score: number; status: MatchStatus };
 type MatchGap = Timestamps & { id: string; job_requirement_id: string; match_id: string; status: GapStatus };
@@ -99,7 +100,11 @@ export type Database = {
       apply_match_recalculation: { Args: { job_id: string }; Returns: undefined };
       get_consented_resume_path: { Args: { target_job_role_id: string; target_resume_id: string }; Returns: string };
       get_consented_candidate_resume_path: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: string };
-      fail_processing_job: { Args: { processing_job_id: string; safe_error_message: string }; Returns: undefined };
+      get_consented_candidate_profile: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: Array<{ full_name: string | null; phone_number: string | null }> };
+      fail_processing_job: {
+        Args: { processing_job_id: string; safe_error_message: string; terminal_failure?: boolean };
+        Returns: undefined;
+      };
     };
     Enums: {
       company_status: CompanyStatus;
@@ -117,6 +122,7 @@ export type Database = {
       fair_status: FairStatus;
       invitation_status: InvitationStatus;
       booking_status: BookingStatus;
+      extraction_method: ExtractionMethod;
     };
     CompositeTypes: { [_ in never]: never };
   };

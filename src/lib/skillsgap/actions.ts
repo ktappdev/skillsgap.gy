@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 
 import { requireApprovedCompanyMember, requirePlatformAdmin, requireUser } from "@/lib/auth/queries";
 import { getDatabaseErrorMessage } from "@/lib/errors";
+import { parseGuyanaDateTime } from "@/lib/guyana-time";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/database.types";
 
 const maxResumeBytes = 15 * 1024 * 1024;
@@ -94,6 +96,19 @@ export async function updateApplicantQualificationYears(qualificationId: string,
   if (years !== null && (!Number.isFinite(years) || years < 0 || years > 60)) return { error: "Use experience from 0 to 60 years." };
   const { error } = await supabase.from("applicant_qualifications").update({ years_experience: years, source: "applicant_confirmed", review_status: "confirmed" }).eq("applicant_id", user.id).eq("qualification_id", qualificationId);
   if (error) return { error: getDatabaseErrorMessage(error, "We could not update that experience.") };
+  revalidatePath("/dashboard");
+  return {};
+}
+
+export async function correctApplicantQualification(qualificationId: string, correctedQualificationId: string): Promise<{ error?: string }> {
+  const { supabase, user } = await requireUser();
+  if (!qualificationId || !correctedQualificationId) return { error: "Choose the correct transferable skill." };
+  const { error } = await supabase
+    .from("applicant_qualifications")
+    .update({ qualification_id: correctedQualificationId, source: "applicant_confirmed", review_status: "confirmed" })
+    .eq("applicant_id", user.id)
+    .eq("qualification_id", qualificationId);
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not correct that translation.") };
   revalidatePath("/dashboard");
   return {};
 }
@@ -229,9 +244,9 @@ export async function addJobRequirement(
 
 export async function createJobFair(name: string, location: string, startsAt: string, endsAt: string): Promise<{ error?: string; fair?: Tables<"job_fairs"> }> {
   const { supabase, companyId } = await requireApprovedCompanyMember();
-  const start = new Date(startsAt);
-  const end = new Date(endsAt);
-  if (!name.trim() || name.trim().length > 160 || !location.trim() || !startsAt || !endsAt || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start || start <= new Date()) return { error: "Add a name, location, and future time range." };
+  const start = parseGuyanaDateTime(startsAt);
+  const end = parseGuyanaDateTime(endsAt);
+  if (!name.trim() || name.trim().length > 160 || !location.trim() || !start || !end || end <= start || start <= new Date()) return { error: "Add a name, location, and future Guyana time range." };
   const { data, error } = await supabase.from("job_fairs").insert({ company_id: companyId, name: name.trim(), location: location.trim(), starts_at: start.toISOString(), ends_at: end.toISOString(), status: "draft" }).select("*").single();
   if (error) return { error: getDatabaseErrorMessage(error, "We could not create that job fair.") };
   revalidatePath("/company/job-fairs");
@@ -240,9 +255,10 @@ export async function createJobFair(name: string, location: string, startsAt: st
 
 export async function addInterviewSlot(fairId: string, startsAt: string): Promise<{ error?: string; slot?: Tables<"interview_slots"> }> {
   const { supabase } = await requireApprovedCompanyMember();
-  const start = new Date(startsAt);
+  const start = parseGuyanaDateTime(startsAt);
+  if (!start) return { error: "Choose a valid future Guyana slot time." };
   const end = new Date(start.getTime() + 15 * 60 * 1000);
-  if (Number.isNaN(start.getTime()) || start <= new Date()) return { error: "Choose a future slot time." };
+  if (start <= new Date()) return { error: "Choose a future Guyana slot time." };
   const { data: fair, error: fairError } = await supabase.from("job_fairs").select("starts_at,ends_at").eq("id", fairId).maybeSingle();
   if (fairError || !fair || start < new Date(fair.starts_at) || end > new Date(fair.ends_at)) return { error: "The slot must fit inside the job fair time." };
   const { data, error } = await supabase.from("interview_slots").insert({ job_fair_id: fairId, starts_at: start.toISOString(), ends_at: end.toISOString() }).select("*").single();
@@ -327,7 +343,13 @@ export async function getConsentedResumeUrl(resumeId: string, roleId: string): P
   const { supabase } = await requireUser();
   const { data: storagePath, error: pathError } = await supabase.rpc("get_consented_resume_path", { target_resume_id: resumeId, target_job_role_id: roleId });
   if (pathError || !storagePath) return { error: "Applicant consent is required before viewing this CV." };
-  const { data, error } = await supabase.storage.from("resumes").createSignedUrl(storagePath, 10 * 60);
+  let adminClient;
+  try {
+    adminClient = createAdminClient();
+  } catch {
+    return { error: "The secure CV link service is not configured." };
+  }
+  const { data, error } = await adminClient.storage.from("resumes").createSignedUrl(storagePath, 10 * 60);
   if (error || !data.signedUrl) return { error: "We could not create a temporary CV link." };
   return { url: data.signedUrl };
 }
@@ -365,7 +387,13 @@ export async function getConsentedCandidateResumeUrl(applicantId: string, roleId
   const { supabase } = await requireUser();
   const { data: storagePath, error: pathError } = await supabase.rpc("get_consented_candidate_resume_path", { target_applicant_id: applicantId, target_job_role_id: roleId });
   if (pathError || !storagePath) return { error: "Applicant consent is required before viewing this CV." };
-  const { data, error } = await supabase.storage.from("resumes").createSignedUrl(storagePath, 10 * 60);
+  let adminClient;
+  try {
+    adminClient = createAdminClient();
+  } catch {
+    return { error: "The secure CV link service is not configured." };
+  }
+  const { data, error } = await adminClient.storage.from("resumes").createSignedUrl(storagePath, 10 * 60);
   if (error || !data.signedUrl) return { error: "We could not create a temporary CV link." };
   return { url: data.signedUrl };
 }

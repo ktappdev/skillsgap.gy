@@ -9,7 +9,7 @@ export type Match = {
   threshold: number;
   eligible: boolean;
   strengths: string[];
-  gaps: Array<{ id?: string; name: string; type: "Certification" | "Technical skill" | "Experience"; training: string | null }>;
+  gaps: Array<{ id?: string; name: string; type: "Certification" | "Technical skill" | "Experience"; training: string | null; status?: "unresolved" | "plan_started" | "completed" | "resolved" }>;
 };
 
 export const demoMatches: Match[] = [

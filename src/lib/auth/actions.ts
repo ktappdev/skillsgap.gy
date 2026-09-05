@@ -7,6 +7,7 @@ import { getAuthErrorMessage } from "@/lib/errors";
 import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { getFormString, getSafeRedirectPath, getTrimmedFormString } from "@/lib/validation";
+import { DEMO_REDIRECTS, getDemoCredentials, parseDemoRole, type DemoRole } from "@/lib/auth/demo";
 
 export type AuthActionState = {
   error?: string;
@@ -108,3 +109,51 @@ export async function signOut() {
   revalidatePath("/", "layout");
   redirect("/");
 }
+
+/**
+ * One-click demo login for the testing phase. The browser sends only a role
+ * label; credentials are resolved server-side and never returned to the client.
+ * Hard-gated by the demoLoginEnabled flag so it is inert in production builds.
+ *
+ * Each role lands on its own home page (applicant → /dashboard, company roles →
+ * /company, admin → /admin). A safe `next` param from the query string still
+ * wins when present, so demo users can be deep-linked to a guarded page.
+ */
+export async function signInAsDemo(
+  _previousState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  if (!env.demoLoginEnabled) {
+    return { error: "Demo login is not available." };
+  }
+
+  const role = parseDemoRole(getFormString(formData, "role"));
+
+  if (!role) {
+    return { error: "Choose a valid demo role." };
+  }
+
+  const credentials = getDemoCredentials(role);
+
+  if (!credentials) {
+    // Deliberately generic: do not reveal which credential is missing.
+    return { error: "Demo login is not configured. Ask your operator to run the setup script." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: credentials.email,
+    password: credentials.password,
+  });
+
+  if (error) {
+    return { error: getAuthErrorMessage(error) };
+  }
+
+  const requestedNext = getTrimmedFormString(formData, "next");
+  const next = getSafeRedirectPath(requestedNext || DEMO_REDIRECTS[role]);
+  revalidatePath("/", "layout");
+  redirect(next);
+}
+
+export type { DemoRole };

@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
+import { DemoLoginButtons } from "@/components/auth/demo-login-buttons";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { signIn, signUp, type AuthActionState } from "@/lib/auth/actions";
+import { env } from "@/lib/env";
 
 type AuthMode = "login" | "signup";
 
@@ -23,6 +25,7 @@ export function AuthForm({ mode, next }: AuthFormProps) {
   const switchPath = isSignUp ? "/login" : "/signup";
   const switchLabel = isSignUp ? "Already have an account? Sign in" : "Need an account? Create one";
   const switchHref = next === "/dashboard" ? switchPath : `${switchPath}?next=${encodeURIComponent(next)}`;
+  const showDemoLogin = !isSignUp && env.demoLoginEnabled;
 
   return (
     <div className="space-y-7">
@@ -114,6 +117,8 @@ export function AuthForm({ mode, next }: AuthFormProps) {
       </form>
 
       <OAuthButtons next={next} />
+
+      {showDemoLogin ? <DemoLoginButtons next={next} /> : null}
 
       <p className="text-center text-sm text-muted">
         <Link href={switchHref} className="font-semibold text-accent underline-offset-4 hover:underline">

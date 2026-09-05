@@ -6,7 +6,7 @@ revoke all on schema private from public, anon, authenticated;
 grant usage on schema private to authenticated;
 
 -- The starter's generic experiment is replaced by the product domain.
-alter publication supabase_realtime drop table if exists public.content_items;
+alter publication supabase_realtime drop table public.content_items;
 drop table if exists public.content_items cascade;
 
 drop policy if exists "Profiles are publicly readable" on public.profiles;
