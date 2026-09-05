@@ -6,12 +6,23 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { careerPathways, findCareerPathway, isValidCsecResult, supportingSubjects, type CsecResult } from "@/lib/i-want-to-become/catalog";
+import { isPublicOccupation, occupationCatalog, type PublicOccupation } from "@/lib/i-want-to-become/occupations";
 
 type SlipResponse = { results: Array<CsecResult & { confidence?: number }> };
 
 const emptyResult = (): CsecResult => ({ subject: "", grade: "" });
 
-export function CareerExplorer() {
+function parseOccupationResponse(value: unknown): PublicOccupation[] | null {
+  if (typeof value !== "object" || value === null) return null;
+  const payload = value as Record<string, unknown>;
+  const occupations = payload.occupations;
+  if (!Array.isArray(occupations) || !occupations.every(isPublicOccupation)) return null;
+  return occupations;
+}
+
+type CareerExplorerProps = { initialOccupations?: PublicOccupation[] };
+
+export function CareerExplorer({ initialOccupations = occupationCatalog }: CareerExplorerProps) {
   const [careerId, setCareerId] = useState("");
   const [interests, setInterests] = useState("");
   const [results, setResults] = useState<CsecResult[]>([emptyResult(), emptyResult(), emptyResult()]);
@@ -19,13 +30,31 @@ export function CareerExplorer() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoState, setPhotoState] = useState<"idle" | "reading" | "manual">("idle");
   const [showPlan, setShowPlan] = useState(false);
+  const [occupations, setOccupations] = useState(initialOccupations);
   const fileInput = useRef<HTMLInputElement>(null);
   const pathway = useMemo(() => findCareerPathway(careerId), [careerId]);
+  const selectedOccupation = useMemo(() => occupations.find((occupation) => occupation.slug === careerId) ?? null, [occupations, careerId]);
   const completedResults = results.filter(isValidCsecResult);
 
   useEffect(() => () => {
     if (photoPreview) URL.revokeObjectURL(photoPreview);
   }, [photoPreview]);
+
+  useEffect(() => {
+    let mounted = true;
+    void fetch("/api/i-want-to-become/occupations")
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return parseOccupationResponse(await response.json() as unknown);
+      })
+      .then((fetchedOccupations) => {
+        if (mounted && fetchedOccupations && fetchedOccupations.length > 0) setOccupations(fetchedOccupations);
+      })
+      .catch(() => undefined);
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   function updateResult(index: number, field: keyof CsecResult, value: string) {
     setResults((current) => current.map((result, resultIndex) => resultIndex === index ? { ...result, [field]: value } : result));
@@ -54,8 +83,12 @@ export function CareerExplorer() {
   }
 
   function showResults() {
-    if (!pathway) return;
+    if (!pathway && !selectedOccupation) return;
     setShowPlan(true);
+  }
+
+  if (showPlan && !pathway && selectedOccupation) {
+    return <OccupationPlan occupation={selectedOccupation} interests={interests} results={completedResults} onEdit={() => setShowPlan(false)} />;
   }
 
   if (showPlan && pathway) {
@@ -96,7 +129,7 @@ export function CareerExplorer() {
     <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Tell us the direction you are interested in. We will show the real skills, certificates, and training steps to explore—not a pass or fail result.</p>
 
     <div className="mt-8 space-y-8">
-      <fieldset><legend className="text-lg font-semibold tracking-tight">1. What would you like to become?</legend><label htmlFor="career" className="mt-3 block text-sm font-medium text-foreground">Career direction <span aria-hidden="true">*</span></label><select id="career" value={careerId} onChange={(event) => setCareerId(event.target.value)} className="mt-2 min-h-12 w-full border border-border bg-white px-3 text-foreground" required><option value="">Choose a career direction</option>{careerPathways.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.location}</option>)}</select>{pathway ? <p className="mt-2 text-sm leading-6 text-muted">{pathway.description}</p> : null}</fieldset>
+      <fieldset><legend className="text-lg font-semibold tracking-tight">1. What would you like to become?</legend><label htmlFor="career" className="mt-3 block text-sm font-medium text-foreground">Career direction <span aria-hidden="true">*</span></label><select id="career" value={careerId} onChange={(event) => setCareerId(event.target.value)} className="mt-2 min-h-12 w-full border border-border bg-white px-3 text-foreground" required><option value="">Choose a career direction</option><optgroup label="Guided pathways">{careerPathways.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.location}</option>)}</optgroup><optgroup label={`Possible petroleum occupations (${occupations.length})`}>{occupations.map((item) => <option key={item.id} value={item.slug}>{item.title} · ISCO-08 {item.isco08Code}</option>)}</optgroup></select>{pathway ? <p className="mt-2 text-sm leading-6 text-muted">{pathway.description}</p> : null}{selectedOccupation && !pathway ? <p className="mt-2 text-sm leading-6 text-muted">Catalogue profile in the {selectedOccupation.roleFamily.toLowerCase()} family, across {selectedOccupation.valueChainStages.join(", ")} operations. This is a possible role profile, not a live vacancy.</p> : null}</fieldset>
 
       <fieldset><legend className="text-lg font-semibold tracking-tight">2. What interests you about it?</legend><label htmlFor="interests" className="mt-3 block text-sm font-medium text-foreground">Interests or strengths <span className="text-muted">(optional)</span></label><textarea id="interests" value={interests} onChange={(event) => setInterests(event.target.value)} rows={3} className="mt-2 w-full border border-border bg-white p-3 text-foreground" placeholder="For example: I enjoy fixing things, science, safety, or organising stock." /><p className="mt-2 text-sm text-muted">This helps you reflect on your direction. It does not count as a qualification.</p></fieldset>
 
@@ -104,6 +137,40 @@ export function CareerExplorer() {
         <div className="mt-5 space-y-3">{results.map((result, index) => <div key={index} className="grid gap-3 sm:grid-cols-[1fr_10rem_auto]"><div><label htmlFor={`subject-${index}`} className="sr-only">Subject {index + 1}</label><input id={`subject-${index}`} value={result.subject} onChange={(event) => updateResult(index, "subject", event.target.value)} className="min-h-11 w-full border border-border bg-white px-3" placeholder="Subject, e.g. Mathematics" /></div><div><label htmlFor={`grade-${index}`} className="sr-only">Grade for subject {index + 1}</label><input id={`grade-${index}`} value={result.grade} onChange={(event) => updateResult(index, "grade", event.target.value)} className="min-h-11 w-full border border-border bg-white px-3" placeholder="Grade, e.g. I" /></div><button type="button" onClick={() => setResults((current) => current.length > 1 ? current.filter((_, itemIndex) => itemIndex !== index) : current)} className="min-h-11 text-sm font-semibold text-muted underline-offset-4 hover:text-danger hover:underline">Remove</button></div>)}</div><button type="button" onClick={() => setResults((current) => [...current, emptyResult()])} className="mt-3 text-sm font-semibold text-accent underline-offset-4 hover:underline">+ Add another subject</button></fieldset>
     </div>
 
-    <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-border pt-6"><button type="button" onClick={showResults} disabled={!pathway} aria-describedby={!pathway ? "career-required" : undefined} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-accent px-5 font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">Show my starting plan</button>{!pathway ? <p id="career-required" className="text-sm text-muted">Choose a career direction first.</p> : <p className="text-sm text-muted">Your entries stay in this browser until you choose to create an account.</p>}</div>
+    <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-border pt-6"><button type="button" onClick={showResults} disabled={!pathway && !selectedOccupation} aria-describedby={!pathway && !selectedOccupation ? "career-required" : undefined} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-accent px-5 font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">Show my starting plan</button>{!pathway && !selectedOccupation ? <p id="career-required" className="text-sm text-muted">Choose a career direction first.</p> : <p className="text-sm text-muted">Your entries stay in this browser until you choose to create an account.</p>}</div>
+  </section>;
+}
+
+function OccupationPlan({ occupation, interests, results, onEdit }: { occupation: PublicOccupation; interests: string; results: CsecResult[]; onEdit: () => void }) {
+  return <section className="border border-border bg-surface p-5 shadow-sm sm:p-8" aria-labelledby="occupation-plan-title">
+    <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Possible petroleum occupation</p>
+    <h2 id="occupation-plan-title" className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-foreground">Explore a route toward {occupation.title}</h2>
+    <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">This catalogue profile helps you explore where a career can fit in Guyana&apos;s petroleum value chain. It is not a live vacancy, a job-match score, or a promise of employment.</p>
+
+    <section className="mt-8 grid gap-3 sm:grid-cols-3" aria-label="Occupation details">
+      <div className="border border-border bg-surface-muted p-4"><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">ISCO-08</p><p className="mt-2 text-lg font-semibold text-foreground">{occupation.isco08Code}</p><p className="text-sm text-muted">{occupation.isco08Level} group</p></div>
+      <div className="border border-border bg-surface-muted p-4"><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Role family</p><p className="mt-2 text-lg font-semibold text-foreground">{occupation.roleFamily}</p><p className="text-sm text-muted">Possible work family</p></div>
+      <div className="border border-border bg-surface-muted p-4"><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Value chain</p><p className="mt-2 text-lg font-semibold capitalize text-foreground">{occupation.valueChainStages.join(" · ")}</p><p className="text-sm text-muted">Where this work can support operations</p></div>
+    </section>
+
+    <section className="mt-8" aria-labelledby="occupation-next-steps-title">
+      <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted">A practical starting point</p>
+      <h3 id="occupation-next-steps-title" className="mt-2 text-xl font-semibold tracking-tight">Build toward the work, one step at a time</h3>
+      <ol className="mt-5 space-y-3">
+        <li className="border border-border p-4"><div className="flex gap-3"><span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-muted text-sm font-bold text-accent">1</span><div><h4 className="font-semibold text-foreground">Learn the foundations</h4><p className="mt-1 text-sm leading-6 text-muted">Use your school subjects and a recognised technical, vocational, or higher-education route to build the knowledge this work uses.</p></div></div></li>
+        <li className="border border-border p-4"><div className="flex gap-3"><span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-muted text-sm font-bold text-accent">2</span><div><h4 className="font-semibold text-foreground">Get supervised practice</h4><p className="mt-1 text-sm leading-6 text-muted">Look for practical projects, traineeships, or entry-level experience where you can safely practise the work and collect evidence of what you can do.</p></div></div></li>
+        <li className="border border-border p-4"><div className="flex gap-3"><span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-muted text-sm font-bold text-accent">3</span><div><h4 className="font-semibold text-foreground">Check the exact role requirements</h4><p className="mt-1 text-sm leading-6 text-muted">Employers set their own requirements. Confirm current certificates, experience, medical, offshore, and safety requirements with the employer or training provider before enrolling.</p></div></div></li>
+      </ol>
+    </section>
+
+    <section className="mt-8 border-l-4 border-accent bg-surface-muted p-5" aria-labelledby="occupation-results-title">
+      <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Your starting point</p>
+      <h3 id="occupation-results-title" className="mt-2 text-xl font-semibold tracking-tight">CSEC/CXC results to carry forward</h3>
+      {results.length > 0 ? <ul className="mt-4 flex flex-wrap gap-2">{results.map((result) => <li key={`${result.subject}-${result.grade}`} className="rounded-full border border-border bg-surface px-3 py-1.5 text-sm font-medium text-foreground">{result.subject}: Grade {result.grade}</li>)}</ul> : <p className="mt-3 text-sm leading-6 text-muted">You have not added results yet. You can still explore this direction and add them later.</p>}
+      <p className="mt-4 text-sm leading-6 text-muted">This catalogue does not make a formal subject-to-job claim for this occupation yet. Speak with a guidance counsellor or training provider about the best preparation route.</p>
+      {interests.trim() ? <p className="mt-3 text-sm leading-6 text-muted"><span className="font-semibold text-foreground">Your interest:</span> {interests.trim()}</p> : null}
+    </section>
+
+    <div className="mt-8 border-t border-border pt-6"><p className="text-sm leading-6 text-muted">Source: {occupation.sourceSummary}, {occupation.sourceLocator ?? "occupation classification"}. Verify current requirements before making education or training decisions.</p><div className="mt-4 flex flex-wrap gap-3"><a href={occupation.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent">Read the source</a><button type="button" onClick={onEdit} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">Edit my starting point</button></div></div>
   </section>;
 }

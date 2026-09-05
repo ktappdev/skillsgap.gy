@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { careerPathways, findCareerPathway, isValidCsecResult, supportingSubjects } from "@/lib/i-want-to-become/catalog";
+import { isPublicOccupation, isPublicOccupationRpcRow, normalizePublicOccupation, occupationCatalog } from "@/lib/i-want-to-become/occupations";
 
 describe("career pathway catalogue", () => {
   it("keeps every pathway identifiable", () => {
@@ -13,6 +14,50 @@ describe("career pathway catalogue", () => {
     const pathway = findCareerPathway("offshore-electrical-trainee");
     expect(pathway).not.toBeNull();
     expect(supportingSubjects(pathway!, [{ subject: " mathematics ", grade: "I" }])).toContainEqual({ subject: "Mathematics", confirmed: true });
+  });
+
+  it("keeps the reviewed occupation fallback aligned with the seeded catalogue", () => {
+    expect(occupationCatalog).toHaveLength(18);
+    expect(occupationCatalog.find((item) => item.slug === "ships-deck-crews")?.isco08Code).toBe("8350");
+    expect(occupationCatalog.find((item) => item.slug === "environmental-and-occupational-health-professionals")?.sourceLocator).toBe("Executive summary");
+    expect(normalizePublicOccupation({
+      id: "1",
+      slug: "cooks",
+      title: "Cooks",
+      isco08_code: "5120",
+      isco08_level: "unit",
+      role_family: "Catering and hospitality",
+      value_chain_stages: ["upstream"],
+      source_summary: "ILO Guyana skills study",
+      source_url: "https://www.ilo.org/media/92446/download",
+      source_locator: "Table 2",
+    }).roleFamily).toBe("Catering and hospitality");
+    expect(isPublicOccupationRpcRow({
+      id: "1",
+      slug: "cooks",
+      title: "Cooks",
+      isco08_code: "5120",
+      isco08_level: "unit",
+      role_family: "Catering and hospitality",
+      value_chain_stages: ["upstream"],
+      source_summary: "ILO Guyana skills study",
+      source_url: "https://www.ilo.org/media/92446/download",
+      source_locator: "Table 2",
+    })).toBe(true);
+    expect(isPublicOccupationRpcRow({
+      id: "1",
+      slug: "unsafe",
+      title: "Unsafe",
+      isco08_code: "5120",
+      isco08_level: "unit",
+      role_family: "Unknown",
+      value_chain_stages: [],
+      source_summary: "Unknown",
+      source_url: "javascript:alert(1)",
+      source_locator: null,
+    })).toBe(false);
+    expect(isPublicOccupation(occupationCatalog[0])).toBe(true);
+    expect(isPublicOccupation({ ...occupationCatalog[0], roleFamily: 42 })).toBe(false);
   });
 
   it("preserves seeded requirement categories and experience thresholds", () => {

@@ -49,6 +49,8 @@ type Qualification = Timestamps & { category: RequirementKind; description: stri
 type QualificationAlias = { alias: string; created_at: string; id: string; normalized_alias: string; qualification_id: string };
 type Occupation = Timestamps & { id: string; is_active: boolean; isco08_code: string; isco08_level: "unit" | "minor" | "sub_major" | "major"; role_family: string; slug: string; source_locator: string | null; source_summary: string; source_url: string; title: string; value_chain_stages: string[] };
 type OccupationAlias = { alias: string; created_at: string; id: string; normalized_alias: string; occupation_id: string; source_locator: string | null; source_url: string };
+type LocalContentCategory = Timestamps & { id: string; is_active: boolean; name: string; slug: string; source_locator: string; source_url: string; target_percentage: number | null };
+type OccupationLocalContentCategory = { created_at: string; local_content_category_id: string; occupation_id: string; relevance_note: string };
 type JobRole = Timestamps & { company_id: string; created_by: string | null; description: string; eligibility_threshold: number; employment_type: string | null; id: string; location: string; occupation_id: string | null; published_at: string | null; status: JobStatus; title: string };
 type JobRequirement = Timestamps & { id: string; job_role_id: string; kind: RequirementKind; mandatory: boolean; minimum_years: number | null; qualification_id: string; weight: number };
 type TrainingProvider = Timestamps & { contact_phone: string | null; contact_url: string | null; description: string | null; id: string; is_verified: boolean; location: string; name: string };
@@ -79,6 +81,8 @@ export type Database = {
       qualification_aliases: Table<QualificationAlias, InsertOf<QualificationAlias> & Pick<QualificationAlias, "qualification_id" | "alias">, Partial<QualificationAlias>>;
       occupations: Table<Occupation, InsertOf<Occupation> & Pick<Occupation, "slug" | "title" | "isco08_code" | "isco08_level" | "role_family" | "source_summary" | "source_url">, Partial<Occupation>>;
       occupation_aliases: Table<OccupationAlias, InsertOf<OccupationAlias> & Pick<OccupationAlias, "occupation_id" | "alias" | "source_url">, Partial<OccupationAlias>>;
+      local_content_categories: Table<LocalContentCategory, InsertOf<LocalContentCategory> & Pick<LocalContentCategory, "slug" | "name" | "source_url" | "source_locator">, Partial<LocalContentCategory>>;
+      occupation_local_content_categories: Table<OccupationLocalContentCategory, InsertOf<OccupationLocalContentCategory> & Pick<OccupationLocalContentCategory, "occupation_id" | "local_content_category_id" | "relevance_note">, Partial<OccupationLocalContentCategory>>;
       job_roles: Table<JobRole, InsertOf<JobRole> & Pick<JobRole, "company_id" | "title">, Partial<JobRole>>;
       job_requirements: Table<JobRequirement, InsertOf<JobRequirement> & Pick<JobRequirement, "job_role_id" | "qualification_id" | "kind">, Partial<JobRequirement>>;
       training_providers: Table<TrainingProvider, InsertOf<TrainingProvider> & Pick<TrainingProvider, "name" | "location">, Partial<TrainingProvider>>;
@@ -105,6 +109,7 @@ export type Database = {
       get_consented_candidate_resume_path: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: string };
       get_consented_candidate_profile: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: Array<{ full_name: string | null; phone_number: string | null }> };
       fail_processing_job: { Args: { processing_job_id: string; safe_error_message: string }; Returns: undefined };
+      get_public_occupations: { Args: Record<string, never>; Returns: Array<{ id: string; slug: string; title: string; isco08_code: string; isco08_level: "unit" | "minor" | "sub_major" | "major"; role_family: string; value_chain_stages: string[]; source_summary: string; source_url: string; source_locator: string | null; local_content_categories: string[]; example_titles: string[] }> };
     };
     Enums: {
       company_status: CompanyStatus;

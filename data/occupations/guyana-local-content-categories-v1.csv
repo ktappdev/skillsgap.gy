@@ -1,0 +1,42 @@
+slug,name,target_percentage,source_locator
+rental-of-office-space,Rental of Office Space,90,First Schedule
+accommodation-services,Accommodation Services (apartments and houses),90,First Schedule
+equipment-rental,Equipment Rental (crane and other heavy-duty machinery),50,First Schedule
+surveying,Surveying,75,First Schedule
+pipe-welding-onshore,Pipe Welding - onshore,25,First Schedule
+pipe-sandblasting-and-coating-onshore,Pipe Sand Blasting and Coating - onshore,30,First Schedule
+construction-work-for-buildings-onshore,Construction Work for Buildings - onshore,50,First Schedule
+structural-fabrication-onshore,Structural Fabrication - onshore,30,First Schedule
+waste-management-non-hazardous,Waste Management - non-hazardous waste,75,First Schedule
+waste-management-hazardous,Waste Management - hazardous waste,25,First Schedule
+storage-services,Storage Services (warehousing),60,First Schedule
+janitorial-and-laundry-services,Janitorial and Laundry Services,90,First Schedule
+catering-services,Catering Services,90,First Schedule
+food-supply,Food Supply,75,First Schedule
+administrative-support-and-facilities-management,Administrative Support and Facilities Management Services,75,First Schedule
+immigration-support-services,Immigration Support Services,100,First Schedule
+work-permit-and-activity-permit-support,Work Permit Visa and Activity Permit Support,100,First Schedule
+lay-down-yard-facility,Lay Down Yard Facility,90,First Schedule
+customs-brokerage-services,Customs Brokerage Services,100,First Schedule
+export-packaging-and-inspection,Export Packaging Crating Preservation and Inspection,50,First Schedule
+pest-control-exterminator-services,Pest Control Exterminator Services,95,First Schedule
+cargo-management-and-monitoring,Cargo Management and Monitoring,75,First Schedule
+ship-and-rig-chandlery-services,Ship and Rig Chandlery Services,25,First Schedule
+borehole-testing-services,Borehole Testing Services,20,First Schedule
+environmental-services-and-studies,Environmental Services and Studies,25,First Schedule
+trucking,Transportation Services - Trucking,75,First Schedule
+ground-transportation-personnel,Ground Transportation - movement of personnel,100,First Schedule
+metrology-services,Metrology Services,10,First Schedule
+ventilation-services,Ventilation (private commercial industrial),70,First Schedule
+industrial-cleaning-onshore,Industrial Cleaning Services - onshore,75,First Schedule
+security-services,Security Services,95,First Schedule
+ict-network-installation-and-support,ICT - network installation and support services,20,First Schedule
+manpower-and-crewing-services,Manpower and Crewing Services,50,First Schedule
+dredging-services,Dredging Services,10,First Schedule
+local-insurance-services,Local Insurance Services,100,First Schedule
+local-accounting-services,Local Accounting Services,90,First Schedule
+local-legal-services,Local Legal Services,90,First Schedule
+medical-services,Medical Services,25,First Schedule
+aviation-support-services,Aviation Support Services,20,First Schedule
+engineering-and-machining,Engineering and Machining,5,First Schedule
+local-marketing-and-advertising,Local Marketing and Advertising Services (public relations),75,First Schedule

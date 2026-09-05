@@ -1,0 +1,41 @@
+occupation_slug,category_slug,relevance_note
+engineering-professionals,engineering-and-machining,Engineering design and technical services support petroleum operations.
+engineering-professionals,surveying,Engineering projects commonly use surveying services.
+engineering-professionals,environmental-services-and-studies,Environmental work is part of regulated petroleum activity.
+mineral-processing-plant-operators,equipment-rental,Plant and heavy equipment support operations.
+mineral-processing-plant-operators,industrial-cleaning-onshore,Industrial cleaning supports facilities and equipment.
+sheet-structural-metal-workers-and-welders,pipe-welding-onshore,Pipe welding is a named local-content service.
+sheet-structural-metal-workers-and-welders,structural-fabrication-onshore,Structural fabrication is a named local-content service.
+sheet-structural-metal-workers-and-welders,engineering-and-machining,Fabrication and machining support technical work.
+ships-deck-crews,ship-and-rig-chandlery-services,Marine crews support vessels and offshore logistics.
+ships-deck-crews,manpower-and-crewing-services,Crewing is a named local-content service.
+ships-deck-crews,cargo-management-and-monitoring,Cargo movement supports marine operations.
+machinery-mechanics-and-repairers,equipment-rental,Equipment maintenance supports rented heavy machinery.
+machinery-mechanics-and-repairers,engineering-and-machining,Repair and machining support equipment reliability.
+heavy-truck-and-bus-drivers,trucking,Trucking is a named local-content service.
+heavy-truck-and-bus-drivers,ground-transportation-personnel,Personnel movement supports the value chain.
+ship-and-aircraft-controllers-and-technicians,aviation-support-services,Aviation support is a named local-content service.
+ship-and-aircraft-controllers-and-technicians,engineering-and-machining,Technical maintenance supports transport assets.
+finance-professionals,local-accounting-services,Accounting is a named local-content service.
+finance-professionals,local-insurance-services,Insurance is a named local-content service.
+physical-and-engineering-science-technicians,engineering-and-machining,Technical services support petroleum equipment and facilities.
+physical-and-engineering-science-technicians,metrology-services,Measurement and calibration support operations.
+process-control-technicians,engineering-and-machining,Controls and instrumentation support facilities.
+process-control-technicians,ict-network-installation-and-support,ICT infrastructure supports control systems where applicable.
+administration-professionals,administrative-support-and-facilities-management,Administrative support is a named local-content service.
+administration-professionals,storage-services,Materials administration connects to warehousing.
+other-health-professionals,medical-services,Medical services are a named local-content service.
+architects-planners-surveyors-and-designers,surveying,Surveying is a named local-content service.
+architects-planners-surveyors-and-designers,engineering-and-machining,Design and technical services support projects.
+mining-and-construction-labourers,construction-work-for-buildings-onshore,Construction work is a named local-content service.
+mining-and-construction-labourers,structural-fabrication-onshore,Construction projects use structural fabrication.
+mining-and-construction-labourers,equipment-rental,Construction uses cranes and heavy machinery.
+painters-and-building-cleaners,pipe-sandblasting-and-coating-onshore,Surface preparation and coating are named services.
+painters-and-building-cleaners,industrial-cleaning-onshore,Industrial cleaning is a named local-content service.
+shop-salespersons,local-marketing-and-advertising,Commercial support can connect to local marketing services.
+cooks,catering-services,Catering is a named local-content service.
+cooks,food-supply,Food supply supports catering operations.
+cooks,accommodation-services,Hospitality services support worksite operations.
+environmental-and-occupational-health-professionals,environmental-services-and-studies,Environmental services support HSE work.
+environmental-and-occupational-health-professionals,medical-services,Occupational health support can use medical services.
+environmental-and-occupational-health-professionals,security-services,Security and HSE coordination can overlap at worksites.
