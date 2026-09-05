@@ -1,7 +1,5 @@
 package main
 
-import "time"
-
 type processingJob struct {
 	ID          string `json:"id"`
 	ResumeID    string `json:"resume_id"`
@@ -35,24 +33,4 @@ type employmentRecord struct {
 	Years      float64 `json:"years"`
 	Evidence   string  `json:"evidence"`
 	Confidence float64 `json:"confidence"`
-}
-
-type jobRequirement struct {
-	QualificationID        string
-	Weight                 int
-	Mandatory              bool
-	MinimumExperienceYears float64
-}
-
-type applicantQualification struct {
-	QualificationID string
-	YearsExperience float64
-}
-
-type roleMatch struct {
-	Score        int
-	Eligible     bool
-	Satisfied    []jobRequirement
-	Missing      []jobRequirement
-	CalculatedAt time.Time
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -70,6 +71,14 @@ func TestPipelineUsesOCRWhenNativeExtractionFails(t *testing.T) {
 	}
 	if !ocr.called {
 		t.Fatal("expected OCR fallback")
+	}
+}
+
+func TestPipelineRejectsOversizedExtractedText(t *testing.T) {
+	text := strings.Repeat("a", maxResumeTextCharacters+1)
+	pipeline := newPipeline(config{}, fakeStore{document: []byte("PDF")}, fakeTextExtractor{text: text}, &fakeOCR{}, fakeLLM{})
+	if _, err := pipeline.process(context.Background(), processingJob{}); err == nil {
+		t.Fatal("expected oversized extracted text to be rejected")
 	}
 }
 

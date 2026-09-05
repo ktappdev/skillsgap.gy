@@ -10,6 +10,13 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
+)
+
+const (
+	maxExtractionItems = 50
+	maxFieldCharacters = 1_000
+	maxExperienceYears = 60
 )
 
 type llmClient struct {
@@ -124,8 +131,11 @@ func decodeExtraction(value string) (extraction, error) {
 }
 
 func validateExtraction(result extraction) error {
+	if len(result.Qualifications) > maxExtractionItems || len(result.Employment) > maxExtractionItems || len(result.UnmappedTerms) > maxExtractionItems {
+		return errors.New("LLM output contains too many extracted items")
+	}
 	for _, qualification := range result.Qualifications {
-		if qualification.Name == "" || qualification.Evidence == "" || qualification.YearsExperience < 0 || qualification.Confidence < 0 || qualification.Confidence > 1 {
+		if invalidText(qualification.Name) || invalidText(qualification.Evidence) || qualification.YearsExperience < 0 || qualification.YearsExperience > maxExperienceYears || qualification.Confidence < 0 || qualification.Confidence > 1 {
 			return errors.New("LLM output contains an invalid qualification")
 		}
 		switch qualification.Kind {
@@ -135,9 +145,18 @@ func validateExtraction(result extraction) error {
 		}
 	}
 	for _, employment := range result.Employment {
-		if employment.Title == "" || employment.Evidence == "" || employment.Years < 0 || employment.Confidence < 0 || employment.Confidence > 1 {
+		if invalidText(employment.Title) || (employment.Employer != "" && invalidText(employment.Employer)) || invalidText(employment.Evidence) || employment.Years < 0 || employment.Years > maxExperienceYears || employment.Confidence < 0 || employment.Confidence > 1 {
 			return errors.New("LLM output contains invalid employment")
 		}
 	}
+	for _, term := range result.UnmappedTerms {
+		if invalidText(term) {
+			return errors.New("LLM output contains an invalid unmapped term")
+		}
+	}
 	return nil
+}
+
+func invalidText(value string) bool {
+	return strings.TrimSpace(value) == "" || utf8.RuneCountInString(value) > maxFieldCharacters
 }

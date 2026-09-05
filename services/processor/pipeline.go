@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+// maxResumeTextCharacters keeps a single request safely below the 32k-token
+// vLLM context configured for the hackathon. We reject rather than truncate so
+// an applicant never receives a score based on only part of their CV.
+const maxResumeTextCharacters = 100_000
+
 type resumePipeline interface {
 	process(context.Context, processingJob) (extraction, error)
 }
@@ -51,6 +56,9 @@ func (pipeline *pipeline) process(ctx context.Context, job processingJob) (extra
 	}
 	if !usableText(text) {
 		return extraction{}, errors.New("document contains insufficient readable text")
+	}
+	if len([]rune(text)) > maxResumeTextCharacters {
+		return extraction{}, errors.New("document contains too much text to process safely; upload a shorter CV")
 	}
 	return pipeline.llm.extract(ctx, text)
 }

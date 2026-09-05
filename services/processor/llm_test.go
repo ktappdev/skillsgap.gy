@@ -26,6 +26,13 @@ func TestDecodeExtractionAcceptsStrictSchema(t *testing.T) {
 	}
 }
 
+func TestDecodeExtractionRejectsImpossibleExperience(t *testing.T) {
+	_, err := decodeExtraction(`{"qualifications":[{"name":"Diesel mechanics","kind":"skill","years_experience":61,"evidence":"Worked as a mechanic","confidence":0.95}],"employment":[],"unmapped_terms":[]}`)
+	if err == nil {
+		t.Fatal("expected impossible experience to be rejected")
+	}
+}
+
 func fatalf(t *testing.T, format string, arguments ...any) {
 	t.Helper()
 	t.Fatalf(format, arguments...)

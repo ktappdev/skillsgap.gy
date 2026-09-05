@@ -3,7 +3,7 @@
 **Version:** 1.1
 **Build target:** 72-hour hackathon MVP
 **Product loop:** skills → opportunities → gaps → training → interview
-**Extraction decision:** Qwen 3.6 35B Vision for semantic extraction, with PP-StructureV3 as the OCR/layout fallback
+**Extraction decision:** `gpt-oss-20b` for text-only semantic extraction, with PP-StructureV3 as the OCR/layout fallback
 
 ## 1. Product Summary
 
@@ -23,7 +23,7 @@ The MVP must demonstrate one complete outcome: a worker uploads a CV, receives t
 
 - Applicant, company, and super-admin workflows.
 - Private PDF CV uploads and asynchronous processing.
-- Native PDF text extraction, PP-StructureV3 OCR/layout fallback, local vision-LLM extraction, and deterministic matching.
+- Native PDF text extraction, PP-StructureV3 OCR/layout fallback, local text-LLM extraction, and deterministic matching.
 - Curated Guyana-focused demonstration data plus admin CRUD.
 - In-app interview invitations and 15-minute slot booking.
 
@@ -101,33 +101,32 @@ Use plain progress language such as `You are closer to Offshore Mechanical Techn
 - A claim older than 15 minutes is recoverable by the poller, which prevents a crashed worker from leaving a job stuck forever; the worker itself times out after 10 minutes.
 - The worker attempts native PDF text extraction first and runs a quality gate for empty, very short, or garbled output.
 - When native text is unusable, the worker calls PP-StructureV3 to OCR the PDF and preserve page order, columns, tables, and layout blocks as clean Markdown/page text.
-- The default semantic extraction input is text: native text when it passes the quality gate, otherwise PP-StructureV3 output. The worker sends this text to Qwen 3.6 35B Vision through the local vLLM API.
-- Qwen vision page-image input is an optional `vision_review` path for pages whose text remains unusable or whose layout needs semantic interpretation. It is not required for every CV and is enabled only after the vLLM multimodal request has passed the compatibility check in the verification plan.
+- The semantic extraction input is text: native text when it passes the quality gate, otherwise ordered PP-StructureV3 output. The worker sends this text to `gpt-oss-20b` through the local vLLM API.
+- `gpt-oss-20b` is text-only in this MVP. A CV with insufficient OCR output fails safely for applicant review; there is no vision fallback.
 - OCR and raw CV text never appear in application logs. Temporary CV files are stored on the Thunder instance's ephemeral scratch path and deleted immediately after processing.
 
 ### Profile extraction and correction
 
-Qwen 3.6 35B Vision, served through vLLM, receives cleaned document text and—only for the optional `vision_review` path—rendered page images. It returns strict JSON. Its job is semantic extraction only. It must not calculate scores, decide eligibility, or invent qualifications.
+`gpt-oss-20b`, served through vLLM, receives cleaned document text and returns strict JSON. Its job is semantic extraction only. It must not calculate scores, decide eligibility, or invent qualifications.
 
 The model boundary is deliberately narrow:
 
 - PP-StructureV3 is responsible for OCR, reading order, and layout reconstruction; it does not decide what a person's experience means.
-- Qwen is responsible for classifying and normalizing explicitly stated work history, qualifications, certifications, education, and evidence.
-- Go and PostgreSQL are responsible for canonical qualification mapping, weighted matching, mandatory gates, thresholds, and interview eligibility.
-- Any text or image from a CV is untrusted data. The extraction prompt must instruct Qwen to ignore instructions found inside the document and to report missing evidence rather than infer a fact.
+- The LLM is responsible for classifying and normalizing explicitly stated work history, qualifications, certifications, education, and evidence.
+- PostgreSQL is the single source of truth for canonical qualification mapping, weighted matching, mandatory gates, thresholds, and interview eligibility. Go only orchestrates extraction and submits validated facts.
+- Any CV text is untrusted data. The extraction prompt must instruct the LLM to ignore instructions found inside the document and to report missing evidence rather than infer a fact.
 
 ### Model-selection gate
 
-The processor keeps the model name configurable through `VLLM_MODEL`. Set it to the exact Qwen served-model name only after these checks pass:
+The processor keeps the model name configurable through `VLLM_MODEL`; its standard Thunder value is `gpt-oss-20b`. Verify it before live processing:
 
 | Gate | Pass condition | If it fails |
 | --- | --- | --- |
-| Model discovery | `GET /v1/models` reports the intended Qwen model. | Keep the currently compatible text model configured and continue with text extraction. |
+| Model discovery | `GET /v1/models` reports `gpt-oss-20b`. | Do not process live CVs until `VLLM_MODEL` agrees with the served model. |
 | Structured text smoke test | A non-sensitive text prompt returns schema-valid extraction JSON. | Do not process live CVs; inspect the vLLM request and response format. |
-| Multimodal smoke test | One rendered CV page returns schema-valid JSON with evidence tied to that page. | Leave `vision_review` disabled; use native text or PP-StructureV3 Markdown as Qwen input. |
-| Representative CV benchmark | Clean, scanned, two-column, and table-heavy fixtures meet the demo latency and accuracy bar without unsafe GPU memory pressure. | Ship the text-first path and keep vision as a follow-up enhancement. |
+| Representative CV benchmark | Clean, scanned, two-column, and table-heavy fixtures meet the demo latency and accuracy bar without unsafe GPU memory pressure. | Ship the text-first path and keep vision as a post-hackathon enhancement. |
 
-The working hackathon path does not depend on multimodal input: native text or PP-StructureV3 output can always be sent to Qwen as text while the vision endpoint is being verified.
+The working hackathon path is text-only: native text or PP-StructureV3 output is sent to `gpt-oss-20b`.
 
 The extraction response contains:
 
@@ -175,7 +174,7 @@ Next.js on Vercel
   └─ Supabase Auth, PostgreSQL, private Storage, Realtime
        └─ Database webhook → Thunder Go API :8080
             ├─ OCR service :8090 (localhost only)
-            ├─ vLLM / Qwen 3.6 35B Vision :8000 (localhost only)
+            ├─ vLLM / gpt-oss-20b :8000 (localhost only)
             └─ Supabase service APIs
 ```
 
@@ -199,9 +198,9 @@ The webhook never contains CV bytes. The Go worker retrieves the job and CV from
 | Service | Address | Contract |
 | --- | --- | --- |
 | PP-StructureV3 | `http://127.0.0.1:8090/parse` | Authenticated PDF input; returns ordered page text. |
-| vLLM | `http://127.0.0.1:8000/v1/chat/completions` | Local API-key-protected structured-output request using the configured Qwen 3.6 35B Vision model. Text messages are the default; multimodal messages are used only by the verified `vision_review` path. |
+| vLLM | `http://127.0.0.1:8000/v1/chat/completions` | Local API-key-protected structured-output request using `gpt-oss-20b`. Text messages only. |
 
-Run one resume at a time until Qwen latency, page-image latency, and GPU memory use are measured. The single RTX 6000-class GPU is shared by vLLM and any GPU OCR work; do not assume the two services can run concurrently. Start with OCR sequentially and set `OCR_DEVICE=cpu` if loading or invoking PP-StructureV3 alongside Qwen creates memory pressure. If Qwen multimodal requests are unsupported or too expensive, keep the text-first native-text/PP-StructureV3 path as the working extraction path.
+Run one resume at a time until `gpt-oss-20b` latency and GPU memory use are measured. The single RTX 6000-class GPU is shared by vLLM and any GPU OCR work; do not assume the two services can run concurrently. Start with OCR sequentially and set `OCR_DEVICE=cpu` if loading or invoking PP-StructureV3 alongside vLLM creates memory pressure.
 
 ### Frontend routes
 
@@ -265,7 +264,7 @@ Seed data is for demonstration and must be visibly labeled as curated demo data 
 
 - Implement the Go worker, job claiming, native PDF extraction, OCR fallback, structured LLM extraction, and validation.
 - Build applicant upload, processing state, editable profile, matching, gaps, and training roadmap views.
-- Exercise four representative fixtures through the full pipeline: a clean single-column PDF, a scanned PDF, a two-column PDF, and a table-heavy PDF. Record whether each uses native text, OCR text, or `vision_review`, along with latency and peak GPU memory.
+- Exercise four representative fixtures through the full pipeline: a clean single-column PDF, a scanned PDF, a two-column PDF, and a table-heavy PDF. Record whether each uses native text or OCR text, along with latency and peak GPU memory.
 
 ### Day 3 — company, interview, and demo readiness
 
@@ -278,7 +277,7 @@ Seed data is for demonstration and must be visibly labeled as curated demo data 
 ### Automated and integration checks
 
 - Unit-test matching weights, mandatory gates, top-three ordering, taxonomy aliasing, gap creation, training mappings, and slot-booking conflicts.
-- Test JSON-schema validation for malformed LLM outputs, unsupported qualifications, missing evidence, prompt-like instructions embedded in CV text, and multimodal responses that omit or misorder page evidence.
+- Test JSON-schema validation for malformed LLM outputs, unsupported qualifications, missing evidence, prompt-like instructions embedded in CV text, and oversized extraction output.
 - Test PDF-only and 15 MB validation, OCR fallback selection, retry behavior, duplicate webhooks, failed workers, unavailable OCR/vLLM, and temporary-file cleanup.
 - Test RLS as anonymous, applicant, company, admin, and service roles. Confirm a company cannot read another company's roles, any unconsented applicant PII, or arbitrary Storage objects.
 - Add end-to-end coverage for applicant upload-to-booking, company approval-to-candidate-view, and admin management flows.
@@ -286,7 +285,7 @@ Seed data is for demonstration and must be visibly labeled as curated demo data 
 ### Manual acceptance checklist
 
 - Applicant: sign up, upload CV, see progress update, correct extracted data, receive three matches, inspect gaps and training, and book a valid slot.
-- Extraction routing: confirm a clean PDF uses native text, a scan invokes PP-StructureV3, and a deliberately difficult page uses `vision_review` only when the Qwen multimodal health check has passed.
+- Extraction routing: confirm a clean PDF uses native text and a scan invokes PP-StructureV3.
 - Progression: confirm that upload, extraction, qualification confirmation, training-plan selection, and interview eligibility each produce a clear next-step message.
 - Company: request approval, become approved, publish a role, define mandatory and weighted requirements, create slots, and see only anonymized candidates before consent.
 - Admin: approve a company, create a qualification and training outcome, and confirm that a changed role recalculates matches.
@@ -307,8 +306,8 @@ Seed data is for demonstration and must be visibly labeled as curated demo data 
 
 ### Health checklist before presentation
 
-- Thunder vLLM (Qwen 3.6 35B Vision), OCR, and Go systemd services are active.
-- `GET /healthz`, OCR health, and vLLM model discovery succeed locally; send one non-sensitive multimodal smoke request before enabling `vision_review`.
+- Thunder vLLM (`gpt-oss-20b`), OCR, and Go systemd services are active.
+- `GET /healthz`, OCR health, and vLLM model discovery succeed locally.
 - Thunder HTTPS forwarding reaches only the Go health endpoint.
 - Supabase Realtime is enabled for processing jobs and match/invitation updates.
 - The fallback applicant account has completed matches and an available slot.
@@ -319,8 +318,8 @@ Seed data is for demonstration and must be visibly labeled as curated demo data 
 | Risk | Mitigation |
 | --- | --- |
 | OCR or vLLM fails during demo | Use the prepared processed applicant account; show health status and continue with live product data. |
-| Qwen multimodal endpoint is unsupported or unstable | Keep text-first extraction as the default, gate `vision_review` behind a smoke test, and use PP-StructureV3 Markdown plus Qwen text input for the demo. |
-| GPU memory pressure | Keep one-worker concurrency, invoke OCR sequentially, and use CPU OCR when Qwen is resident on the RTX 6000-class GPU. |
+| LLM endpoint is unavailable or unstable | Use the prepared processed applicant account; resume processing records a safe failure state. |
+| GPU memory pressure | Keep one-worker concurrency, invoke OCR sequentially, and use CPU OCR when `gpt-oss-20b` is resident on the RTX 6000-class GPU. |
 | Webhook delivery fails | Poll queued jobs as a recovery mechanism; jobs remain durable in Supabase. |
 | Model extracts an incorrect fact | Require evidence and confidence, allow applicant correction, and keep scoring deterministic. |
 | PII exposure | Private Storage, owner-scoped RLS, consent-gated company access, short-lived signed URLs, and redacted logs. |

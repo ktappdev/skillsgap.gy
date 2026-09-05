@@ -59,9 +59,19 @@ supabase db lint --linked --project-ref uljznzafpiamxmervxjb --schema public --f
 - Review the staged file list and run the relevant checks before pushing each checkpoint.
 - Never commit `.env.local`, credentials, or other secrets. If a corrective follow-up is required, continue the sequence and state the concrete fix.
 
-## Local Qwen testing
+## Local gpt-oss-20b testing
 
 - The Thunder vLLM endpoint is configured only in the local, ignored `.env.local` file through `VLLM_URL`, `VLLM_MODEL`, and `VLLM_API_KEY`.
-- The currently verified served model is `qwen3.6-35b`. The API key is a bearer secret: never commit it, print it, paste it into issues, or include it in logs. Rotate it after testing or the hackathon.
+- The configured served model is `gpt-oss-20b`. The API key is a bearer secret: never commit it, print it, paste it into issues, or include it in logs. Rotate it after testing or the hackathon.
 - Model discovery can be checked without exposing the key: `set -a; . ./.env.local; set +a; curl --fail --silent --show-error --max-time 30 "$VLLM_URL/models" -H "Authorization: Bearer $VLLM_API_KEY" | jq '{data: [.data[] | {id, object, owned_by}], object}'`.
-- Keep the text-first extraction path as the working fallback. Enable multimodal `vision_review` only after a non-sensitive image smoke test returns schema-valid JSON.
+- Keep the text-first extraction path as the working implementation. `gpt-oss-20b` does not enable a multimodal `vision_review` path in this MVP.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
