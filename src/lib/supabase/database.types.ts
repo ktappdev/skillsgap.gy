@@ -115,6 +115,7 @@ export type Database = {
       get_consented_resume_path: { Args: { target_job_role_id: string; target_resume_id: string }; Returns: string };
       get_consented_candidate_resume_path: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: string };
       get_consented_candidate_profile: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: Array<{ full_name: string | null; phone_number: string | null }> };
+      get_active_extraction_taxonomy: { Args: Record<string, never>; Returns: Array<{ id: string; slug: string; name: string; category: RequirementKind; description: string | null; aliases: string[] }> };
       accept_company_recruiter_invitation: { Args: { target_token_hash: string }; Returns: string };
       fail_processing_job: {
         Args: { processing_job_id: string; safe_error_message: string; terminal_failure?: boolean };

@@ -39,6 +39,42 @@ func TestQueuedIncludesStaleProcessingJobs(t *testing.T) {
 	}
 }
 
+func TestLoadTaxonomyUsesPrivateRPCAndReturnsAliases(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/rest/v1/rpc/get_active_extraction_taxonomy" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		if request.Header.Get("Authorization") != "Bearer service-key" || request.Header.Get("apikey") != "service-key" {
+			t.Fatal("expected service-role headers")
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`[{"id":"qualification-1","slug":"manual-handling-and-lifting","name":"Manual Handling and Safe Lifting","category":"technical_skill","description":"Moves materials safely.","aliases":["heavy lifting","porter"]}]`))
+	}))
+	defer server.Close()
+
+	store := &supabaseStore{baseURL: server.URL, apiKey: "service-key", client: server.Client()}
+	entries, err := store.loadTaxonomy(context.Background())
+	if err != nil {
+		t.Fatalf("load taxonomy: %v", err)
+	}
+	if len(entries) != 1 || entries[0].Slug != "manual-handling-and-lifting" || len(entries[0].Aliases) != 2 {
+		t.Fatalf("taxonomy = %#v", entries)
+	}
+}
+
+func TestLoadTaxonomyRejectsDuplicateSlugs(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`[{"id":"one","slug":"same","name":"One"},{"id":"two","slug":"same","name":"Two"}]`))
+	}))
+	defer server.Close()
+
+	store := &supabaseStore{baseURL: server.URL, apiKey: "service-key", client: server.Client()}
+	if _, err := store.loadTaxonomy(context.Background()); err == nil {
+		t.Fatal("expected duplicate taxonomy slug to be rejected")
+	}
+}
+
 func TestPermanentFailureIsMarkedTerminalWithoutLeakingCause(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if request.URL.Path != "/rest/v1/rpc/fail_processing_job" {

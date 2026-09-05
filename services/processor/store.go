@@ -30,6 +30,17 @@ type supabaseStore struct {
 	client  *http.Client
 }
 
+func (store *supabaseStore) loadTaxonomy(ctx context.Context) ([]taxonomyEntry, error) {
+	var entries []taxonomyEntry
+	if err := store.postJSON(ctx, "/rest/v1/rpc/get_active_extraction_taxonomy", map[string]any{}, &entries); err != nil {
+		return nil, err
+	}
+	if err := validateTaxonomy(entries); err != nil {
+		return nil, err
+	}
+	return entries, nil
+}
+
 func newSupabaseStore(config config) *supabaseStore {
 	return &supabaseStore{
 		baseURL: config.supabaseURL,

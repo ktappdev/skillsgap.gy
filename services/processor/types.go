@@ -8,6 +8,15 @@ type processingJob struct {
 	Attempts    int    `json:"attempts"`
 }
 
+type taxonomyEntry struct {
+	ID          string   `json:"id"`
+	Slug        string   `json:"slug"`
+	Name        string   `json:"name"`
+	Category    string   `json:"category"`
+	Description string   `json:"description"`
+	Aliases     []string `json:"aliases"`
+}
+
 type resumeRecord struct {
 	ID          string `json:"id"`
 	StoragePath string `json:"storage_path"`
