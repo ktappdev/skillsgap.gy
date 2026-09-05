@@ -7,7 +7,7 @@ The processor is the private Thunder Compute coordinator. It accepts a lightweig
 - Go 1.22+
 - Poppler `pdftotext` for native PDF text extraction
 - PP-StructureV3 OCR at `127.0.0.1:8090`
-- vLLM serving `gpt-oss-20b` at `127.0.0.1:8000/v1`
+- vLLM serving Qwen3.6-35B-A3B at `127.0.0.1:8000/v1`
 
 Required environment variables:
 
@@ -19,7 +19,7 @@ OCR_SERVICE_SECRET=
 VLLM_API_KEY=
 ```
 
-Optional settings are `PORT` (default `8080`), `OCR_URL`, `VLLM_URL`, `VLLM_MODEL`, and `PROCESSOR_SCRATCH_DIR` (default `/ephemeral/skillsgap-processor`).
+Optional settings are `PORT` (default `8080`), `OCR_URL`, `VLLM_URL`, `VLLM_MODEL`, and `PROCESSOR_SCRATCH_DIR` (default `/ephemeral/skillsgap-processor`). `VLLM_MODEL` must match the identifier returned by the local model-discovery endpoint.
 
 ## Supabase RPC contract
 
