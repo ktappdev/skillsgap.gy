@@ -25,6 +25,8 @@ export type ProcessingKind = "resume_analysis" | "recalculate_matches";
 export type QualificationSource = "extracted" | "applicant_confirmed" | "admin_verified";
 export type ReviewStatus = "pending_review" | "confirmed" | "rejected";
 export type ExtractionMethod = "native" | "ocr" | "vision";
+export type ExtractionFindingStatus = "pending" | "confirmed" | "rejected" | "superseded";
+export type FindingSelectionSource = "model_option" | "applicant_correction";
 export type MatchStatus = "current" | "stale";
 export type GapStatus = "unresolved" | "plan_started" | "completed";
 export type ConsentStatus = "active" | "revoked";
@@ -63,6 +65,8 @@ type TrainingProgramOutcome = { created_at: string; qualification_id: string; tr
 type Resume = { applicant_id: string; byte_size: number; deleted_at: string | null; id: string; mime_type: string; original_filename: string; processed_at: string | null; status: ResumeStatus; storage_path: string; uploaded_at: string };
 type ProcessingJob = Timestamps & { applicant_id: string; attempts: number; completed_at: string | null; error_message: string | null; id: string; kind: ProcessingKind; result_summary: Json; resume_id: string | null; started_at: string | null; status: ProcessingStatus };
 type ApplicantQualification = Timestamps & { applicant_id: string; confidence: number | null; evidence: string | null; evidence_method: ExtractionMethod | null; evidence_page: number | null; id: string; original_term: string | null; qualification_id: string; resume_id: string | null; review_status: ReviewStatus; source: QualificationSource; years_experience: number | null };
+type ResumeExtractionFinding = Timestamps & { applicant_id: string; confidence: number; created_at: string; evidence: string; evidence_method: ExtractionMethod; evidence_page: number; id: string; original_term: string; resume_id: string; selected_qualification_id: string | null; selection_source: FindingSelectionSource | null; status: ExtractionFindingStatus; updated_at: string; years_experience: number | null };
+type ResumeExtractionFindingCandidate = { created_at: string; finding_id: string; qualification_id: string; rank: number };
 type ApplicantExperience = Timestamps & { applicant_id: string; confidence: number | null; created_at: string; employer: string | null; evidence: string | null; id: string; resume_id: string | null; title: string; updated_at: string; years: number };
 type JobMatch = Timestamps & { applicant_id: string; calculated_at: string; id: string; interview_eligible: boolean; job_role_id: string; mandatory_requirements_met: boolean; score: number; status: MatchStatus };
 type MatchGap = Timestamps & { id: string; job_requirement_id: string; match_id: string; status: GapStatus };
@@ -98,6 +102,8 @@ export type Database = {
       resumes: Table<Resume, InsertOf<Resume> & Pick<Resume, "applicant_id" | "storage_path" | "original_filename" | "byte_size">, Partial<Resume>>;
       processing_jobs: Table<ProcessingJob, InsertOf<ProcessingJob> & Pick<ProcessingJob, "applicant_id" | "kind">, Partial<ProcessingJob>>;
       applicant_qualifications: Table<ApplicantQualification, InsertOf<ApplicantQualification> & Pick<ApplicantQualification, "applicant_id" | "qualification_id" | "source">, Partial<ApplicantQualification>>;
+      resume_extraction_findings: Table<ResumeExtractionFinding, InsertOf<ResumeExtractionFinding> & Pick<ResumeExtractionFinding, "applicant_id" | "resume_id" | "original_term" | "evidence" | "evidence_page" | "evidence_method" | "confidence">, Partial<ResumeExtractionFinding>>;
+      resume_extraction_finding_candidates: Table<ResumeExtractionFindingCandidate, InsertOf<ResumeExtractionFindingCandidate> & Pick<ResumeExtractionFindingCandidate, "finding_id" | "qualification_id" | "rank">, Partial<ResumeExtractionFindingCandidate>>;
       applicant_experience: Table<ApplicantExperience, InsertOf<ApplicantExperience> & Pick<ApplicantExperience, "applicant_id" | "title">, Partial<ApplicantExperience>>;
       job_matches: Table<JobMatch, InsertOf<JobMatch> & Pick<JobMatch, "applicant_id" | "job_role_id" | "score" | "mandatory_requirements_met" | "interview_eligible">, Partial<JobMatch>>;
       match_gaps: Table<MatchGap, InsertOf<MatchGap> & Pick<MatchGap, "match_id" | "job_requirement_id">, Partial<MatchGap>>;
@@ -116,6 +122,8 @@ export type Database = {
       get_consented_candidate_resume_path: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: string };
       get_consented_candidate_profile: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: Array<{ full_name: string | null; phone_number: string | null }> };
       get_active_extraction_taxonomy: { Args: Record<string, never>; Returns: Array<{ id: string; slug: string; name: string; category: RequirementKind; description: string | null; aliases: string[] }> };
+      confirm_extraction_finding: { Args: { target_finding_id: string; target_qualification_id: string }; Returns: undefined };
+      reject_extraction_finding: { Args: { target_finding_id: string }; Returns: undefined };
       accept_company_recruiter_invitation: { Args: { target_token_hash: string }; Returns: string };
       fail_processing_job: {
         Args: { processing_job_id: string; safe_error_message: string; terminal_failure?: boolean };
@@ -141,6 +149,8 @@ export type Database = {
       invitation_status: InvitationStatus;
       booking_status: BookingStatus;
       extraction_method: ExtractionMethod;
+      extraction_finding_status: ExtractionFindingStatus;
+      finding_selection_source: FindingSelectionSource;
     };
     CompositeTypes: { [_ in never]: never };
   };
@@ -210,6 +220,9 @@ export const Constants = {
       fair_status: ["draft", "open", "closed"],
       invitation_status: ["pending", "accepted", "declined", "expired"],
       booking_status: ["confirmed", "cancelled"],
+      extraction_method: ["native", "ocr", "vision"],
+      extraction_finding_status: ["pending", "confirmed", "rejected", "superseded"],
+      finding_selection_source: ["model_option", "applicant_correction"],
     },
   },
 } as const;
