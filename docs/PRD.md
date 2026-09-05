@@ -252,7 +252,7 @@ Vercel hosts only the Next.js application. CV bytes upload directly from the bro
 Seed data is for demonstration and must be visibly labeled as curated demo data unless independently verified before presentation.
 
 - Three approved demonstration companies.
-- Six active roles spanning mechanical, electrical, logistics, equipment, safety, and trainee pathways.
+- Seven active roles spanning mechanical, electrical, logistics, equipment, safety, trainee, and materials-handling pathways.
 - A broad canonical qualification taxonomy covering trades, offshore and
   onshore operations, technical services, logistics, hospitality, facilities,
   and office-support capabilities, with reviewed aliases.

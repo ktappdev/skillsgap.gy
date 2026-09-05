@@ -52,9 +52,9 @@ when publishing a role.
 
 Checkpoint 38 adds practical wording for `House Cleaner`, `Chef`, `Porter`,
 `Warehouse Worker`, `Computer Technician`, and `Teacher`/`Instructor`/`Trainer`.
-`Security Guard` was already covered by the security alias set. A bare
-`Porter` is conservatively treated as accommodation/guest-service experience;
-applicant review can correct it when the context is cargo or warehouse work.
+`Security Guard` was already covered by the security alias set. Checkpoint 40
+reinterprets a bare `Porter` as materials-handling experience for Guyana's
+warehouse and cargo context; `Hotel Porter` remains accommodation work.
 Phrases such as `professional drinker` remain unmapped because they do not
 describe a verifiable occupation or work capability.
 

@@ -18,6 +18,11 @@ The fallback scenario is deliberately transparent: it uses the curated demo taxo
 4. Sign out, choose **Company owner demo**, then open `/company/candidates`. Show that the candidate is anonymized before consent and visible only after the confirmed booking.
 5. Sign out, choose **Admin demo**, then use the qualification and training areas to show the governed taxonomy and curated-data labels.
 
+For the logistics scenario, open **Materials Handler / Porter** and show the
+mandatory manual-handling and HSE gates alongside optional cargo, warehouse,
+rigging, forklift, and first-aid gaps. The role is a curated demonstration;
+employer-specific lifting, medical, and access requirements must be verified.
+
 ## Live-processing add-on
 
 Once Thunder is healthy, verify the Qwen model identifier and synthetic image/strict-JSON gate, then use a synthetic CV from `services/processor/testdata/generated/`. Every PDF page is rendered and sent to Qwen vision with the extraction prompt; show the applicant upload → processing → evidence-backed review cards → confirmation flow and point out the `vision` evidence method. OCR is not required for this path. If Thunder or Qwen is unavailable, return to the prepared fallback account and say plainly that the live inference demonstration is unavailable while the product’s deterministic, privacy-gated workflow remains live.
