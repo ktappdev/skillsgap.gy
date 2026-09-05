@@ -253,7 +253,9 @@ Seed data is for demonstration and must be visibly labeled as curated demo data 
 
 - Three approved demonstration companies.
 - Six active roles spanning mechanical, electrical, logistics, equipment, safety, and trainee pathways.
-- Twenty-plus canonical qualifications with common aliases.
+- A broad canonical qualification taxonomy covering trades, offshore and
+  onshore operations, technical services, logistics, hospitality, facilities,
+  and office-support capabilities, with reviewed aliases.
 - Local training providers and programs mapped to BOSIET, hydraulic maintenance, heavy-equipment operations, electrical safety, and other seeded gaps.
 - One approved company job fair with available 15-minute slots.
 - The operator creates or promotes one super-admin, one company owner, one processed applicant fallback account, and one live applicant account after Auth is available. The SQL seed intentionally contains no passwords or Auth users.
