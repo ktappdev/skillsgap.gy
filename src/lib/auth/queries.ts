@@ -29,6 +29,12 @@ export async function requireUser(next = "/dashboard") {
   return { supabase, user: data.user };
 }
 
+export async function redirectAuthenticatedUser() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (data.user) redirect(await resolveUserHome(supabase, data.user.id));
+}
+
 export async function requireApplicant() {
   const context = await requireUser();
   const accountHome = await resolveUserHome(context.supabase, context.user.id);

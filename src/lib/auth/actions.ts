@@ -113,6 +113,45 @@ export async function signOut() {
   redirect("/");
 }
 
+export async function requestPasswordReset(
+  _previousState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const email = getTrimmedFormString(formData, "email");
+  if (!email || !email.includes("@")) return { error: "Enter a valid email address." };
+
+  const callbackUrl = new URL("/auth/callback", env.siteUrl);
+  callbackUrl.searchParams.set("next", "/update-password");
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: callbackUrl.toString(),
+  });
+
+  if (error) return { error: getAuthErrorMessage(error) };
+  return { message: "If an account exists for that email, a password reset link is on the way." };
+}
+
+export async function updatePassword(
+  _previousState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const password = getFormString(formData, "password");
+  const confirmation = getFormString(formData, "password_confirmation");
+  if (password.length < 8) return { error: "Use a password with at least 8 characters." };
+  if (password !== confirmation) return { error: "Those passwords do not match." };
+
+  const supabase = await createClient();
+  const { data: userResult } = await supabase.auth.getUser();
+  if (!userResult.user) return { error: "This password reset link has expired. Request a new one." };
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: getAuthErrorMessage(error) };
+
+  const home = await resolveUserHome(supabase, userResult.user.id);
+  revalidatePath("/", "layout");
+  redirect(home);
+}
+
 /**
  * One-click demo login for the testing phase. The browser sends only a role
  * label; credentials are resolved server-side and never returned to the client.

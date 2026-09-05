@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { AuthForm } from "@/components/auth/auth-form";
 import { getSafeRedirectPath } from "@/lib/validation";
+import { redirectAuthenticatedUser } from "@/lib/auth/queries";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -12,6 +13,7 @@ type LoginPageProps = {
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
+  await redirectAuthenticatedUser();
   const params = await searchParams;
   const nextValue = params.next;
   const next = getSafeRedirectPath(typeof nextValue === "string" ? nextValue : null, "");

@@ -118,6 +118,11 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
         >
           {isSignUp ? "Create account" : "Sign in"}
         </SubmitButton>
+        {!isSignUp ? (
+          <p className="text-right text-sm">
+            <Link href="/forgot-password" className="font-semibold text-accent underline-offset-4 hover:underline">Forgot password?</Link>
+          </p>
+        ) : null}
       </form>
 
       <OAuthButtons next={next} />
