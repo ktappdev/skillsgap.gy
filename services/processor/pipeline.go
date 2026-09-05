@@ -18,7 +18,7 @@ type pageRenderer interface {
 }
 
 type profileExtractor interface {
-	extractWithVision(context.Context, []pageImage) (extraction, error)
+	extractWithVision(context.Context, []pageImage, []taxonomyEntry) (extraction, error)
 }
 
 type pipeline struct {
@@ -61,5 +61,9 @@ func (pipeline *pipeline) process(ctx context.Context, job processingJob) (extra
 			return extraction{}, errors.New("document renderer returned pages out of order")
 		}
 	}
-	return pipeline.llm.extractWithVision(ctx, images)
+	taxonomy, err := pipeline.store.loadTaxonomy(ctx)
+	if err != nil {
+		return extraction{}, err
+	}
+	return pipeline.llm.extractWithVision(ctx, images, taxonomy)
 }

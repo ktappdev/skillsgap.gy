@@ -18,6 +18,7 @@ var errJobNotClaimed = errors.New("processing job was not claimed")
 type jobStore interface {
 	claim(context.Context, string) (processingJob, error)
 	queued(context.Context) ([]string, error)
+	loadTaxonomy(context.Context) ([]taxonomyEntry, error)
 	downloadResume(context.Context, processingJob) ([]byte, error)
 	complete(context.Context, processingJob, extraction) error
 	recalculate(context.Context, processingJob) error

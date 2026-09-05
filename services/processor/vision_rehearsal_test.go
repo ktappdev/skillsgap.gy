@@ -51,8 +51,8 @@ func TestVisionOnlyPipelineRehearsesRepresentativeFixtures(t *testing.T) {
 					t.Fatalf("image %d was not a non-empty JPEG", page+1)
 				}
 			}
-			if len(result.Qualifications) == 0 || result.Qualifications[0].EvidenceMethod != methodVision {
-				t.Fatalf("result provenance = %#v", result.Qualifications)
+			if len(result.Findings) == 0 || result.Findings[0].EvidenceMethod != methodVision {
+				t.Fatalf("result provenance = %#v", result.Findings)
 			}
 		})
 	}

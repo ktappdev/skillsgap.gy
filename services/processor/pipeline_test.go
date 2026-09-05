@@ -11,7 +11,8 @@ type fakeStore struct{ document []byte }
 func (store fakeStore) claim(context.Context, string) (processingJob, error) {
 	return processingJob{}, nil
 }
-func (fakeStore) queued(context.Context) ([]string, error) { return nil, nil }
+func (fakeStore) queued(context.Context) ([]string, error)              { return nil, nil }
+func (fakeStore) loadTaxonomy(context.Context) ([]taxonomyEntry, error) { return testTaxonomy(), nil }
 func (store fakeStore) downloadResume(context.Context, processingJob) ([]byte, error) {
 	return store.document, nil
 }
@@ -50,7 +51,7 @@ type fakeLLM struct {
 	images       []pageImage
 }
 
-func (llm *fakeLLM) extractWithVision(_ context.Context, images []pageImage) (extraction, error) {
+func (llm *fakeLLM) extractWithVision(_ context.Context, images []pageImage, _ []taxonomyEntry) (extraction, error) {
 	llm.visionCalls++
 	llm.images = append([]pageImage(nil), images...)
 	return llm.visionResult, llm.visionErr
@@ -79,8 +80,8 @@ func TestPipelineRendersEveryPageAndUsesVisionOnly(t *testing.T) {
 	if len(llm.images) != 3 || string(llm.images[1].Data) != "page-2" {
 		t.Fatalf("vision images = %#v", llm.images)
 	}
-	if result.Qualifications[0].EvidenceMethod != methodVision {
-		t.Fatalf("evidence method = %q", result.Qualifications[0].EvidenceMethod)
+	if result.Findings[0].EvidenceMethod != methodVision {
+		t.Fatalf("evidence method = %q", result.Findings[0].EvidenceMethod)
 	}
 }
 
@@ -158,5 +159,5 @@ func TestPipelineReturnsVisionFailureWithoutOCRFallback(t *testing.T) {
 }
 
 func supportedExtraction(name string) extraction {
-	return extraction{Qualifications: []extractedQualification{{OriginalTerm: name, CanonicalCandidate: "Mechanical Maintenance", Kind: "skill", Evidence: "Four years repairing diesel engines", EvidencePage: 1, EvidenceMethod: methodVision, Confidence: 0.9}}}
+	return extraction{Findings: []extractedQualification{{OriginalTerm: name, CandidateSlugs: []string{"mechanical-maintenance"}, Evidence: "Four years repairing diesel engines", EvidencePage: 1, EvidenceMethod: methodVision, Confidence: 0.9}}}
 }

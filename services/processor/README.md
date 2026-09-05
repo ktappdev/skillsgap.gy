@@ -1,6 +1,6 @@
 # SkillsGap processor
 
-The processor is the private Thunder Compute coordinator. It accepts a lightweight Supabase webhook, claims durable jobs through Supabase REST RPCs, renders every page of a private CV, sends those page images to Qwen vision, and persists validated structured facts. It never logs CV text, page images, model input/output, names, email addresses, or phone numbers.
+The processor is the private Thunder Compute coordinator. It accepts a lightweight Supabase webhook, claims durable jobs through Supabase REST RPCs, loads the active qualification taxonomy, renders every page of a private CV, sends those page images plus the taxonomy vocabulary to Qwen vision, and persists validated structured facts. It never logs CV text, page images, model input/output, names, email addresses, or phone numbers.
 
 ## Runtime dependencies
 
@@ -31,7 +31,7 @@ The worker calls three service-role-only RPCs:
 
 The poller reads queued IDs and claims older-than-15-minute processing jobs from `processing_jobs`; webhook requests are merely fast delivery signals. Each CV is downloaded from the private `resumes` bucket using `resumes.storage_path` when the claim response does not include it. A per-job processing context times out after 10 minutes.
 
-The document route is deterministic: `pdfinfo` validates the file and page count, every page is rendered at 144 DPI, and one strict Qwen vision request receives the ordered page images plus extraction instructions. PDF size is capped at 15 MB, page count at eight, and rendered image bytes at 20 MB. Permanent document errors fail immediately; transient service errors retain the three-attempt retry policy. Native text extraction and OCR are not active processing paths.
+The document route is deterministic: `pdfinfo` validates the file and page count, every page is rendered at 144 DPI, and one strict Qwen vision request receives the ordered page images plus a fresh active qualification taxonomy snapshot. Qwen returns one or two approved qualification slugs per evidence-backed finding; it never receives job requirements or calculates scores. PDF size is capped at 15 MB, page count at eight, and rendered image bytes at 20 MB. Permanent document errors fail immediately; transient service errors retain the three-attempt retry policy. Native text extraction and OCR are not active processing paths.
 
 The webhook handler accepts either the configured compact body `{ "job_id": "…" }` or the standard Supabase Database Webhook envelope and reads only `record.id`. It never trusts or logs the rest of the event payload.
 

@@ -23,20 +23,19 @@ type resumeRecord struct {
 }
 
 type extraction struct {
-	Qualifications []extractedQualification `json:"qualifications"`
-	Employment     []employmentRecord       `json:"employment"`
-	UnmappedTerms  []string                 `json:"unmapped_terms"`
+	Findings      []extractedQualification `json:"findings"`
+	Employment    []employmentRecord       `json:"employment"`
+	UnmappedTerms []string                 `json:"unmapped_terms"`
 }
 
 type extractedQualification struct {
-	OriginalTerm       string           `json:"original_term"`
-	CanonicalCandidate string           `json:"canonical_candidate"`
-	Kind               string           `json:"kind"`
-	YearsExperience    float64          `json:"years_experience"`
-	Evidence           string           `json:"evidence"`
-	EvidencePage       int              `json:"evidence_page"`
-	EvidenceMethod     extractionMethod `json:"evidence_method"`
-	Confidence         float64          `json:"confidence"`
+	OriginalTerm    string           `json:"original_term"`
+	CandidateSlugs  []string         `json:"candidate_slugs"`
+	YearsExperience float64          `json:"years_experience"`
+	Evidence        string           `json:"evidence"`
+	EvidencePage    int              `json:"evidence_page"`
+	EvidenceMethod  extractionMethod `json:"evidence_method"`
+	Confidence      float64          `json:"confidence"`
 }
 
 type employmentRecord struct {

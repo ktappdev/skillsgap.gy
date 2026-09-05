@@ -87,7 +87,7 @@ node --env-file=.env.local scripts/check-demo-readiness.mjs
 - The Thunder vLLM endpoint is configured only in the local, ignored `.env.local` file through `VLLM_URL`, `VLLM_MODEL`, and `VLLM_API_KEY`. The chosen model is Qwen3.6-35B-A3B with vision support.
 - The API key is a bearer secret: never commit it, print it, paste it into issues, or include it in logs. Rotate it after testing or the hackathon.
 - Model discovery can be checked without exposing the key: `set -a; . ./.env.local; set +a; curl --fail --silent --show-error --max-time 30 "$VLLM_URL/models" -H "Authorization: Bearer $VLLM_API_KEY" | jq '{data: [.data[] | {id, object, owned_by}], object}'`.
-- Render every validated PDF page locally and send an instruction prompt plus ordered page images to Qwen vision. Do not send native PDF text or OCR text in the active MVP path. The model extracts evidence-backed facts only; PostgreSQL calculates matches and applicant confirmation remains the eligibility gate.
+- Render every validated PDF page locally and send an instruction prompt, active qualification taxonomy snapshot, and ordered page images to Qwen vision. Do not send native PDF text, OCR text, job requirements, or match data in the active MVP path. The model extracts evidence-backed taxonomy slugs only; PostgreSQL calculates matches and applicant confirmation remains the eligibility gate.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
