@@ -16,6 +16,16 @@ func TestDecodeExtractionRejectsUnsupportedQualificationKind(t *testing.T) {
 	}
 }
 
+func TestExtractionSchemaConstrainsQualificationKinds(t *testing.T) {
+	encoded, err := json.Marshal(extractionSchema())
+	if err != nil {
+		t.Fatalf("marshal extraction schema: %v", err)
+	}
+	if !strings.Contains(string(encoded), `"enum":["skill","certification","education","compliance"]`) {
+		t.Fatalf("qualification kind enum missing from schema: %s", encoded)
+	}
+}
+
 func TestDecodeExtractionRejectsMultipleJSONValues(t *testing.T) {
 	_, err := decodeExtraction(`{"qualifications":[],"employment":[],"unmapped_terms":[]} {}`)
 	if err == nil {

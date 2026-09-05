@@ -201,7 +201,8 @@ func extractionSchema() map[string]any {
 	qualification := map[string]any{
 		"type": "object", "additionalProperties": false,
 		"properties": map[string]any{
-			"original_term": map[string]string{"type": "string"}, "canonical_candidate": map[string]string{"type": "string"}, "kind": map[string]string{"type": "string"},
+			"original_term": map[string]string{"type": "string"}, "canonical_candidate": map[string]string{"type": "string"},
+			"kind":             map[string]any{"type": "string", "enum": []string{"skill", "certification", "education", "compliance"}},
 			"years_experience": map[string]string{"type": "number"}, "evidence": map[string]string{"type": "string"}, "confidence": map[string]string{"type": "number"},
 			"evidence_page": map[string]string{"type": "integer"}, "evidence_method": map[string]any{"type": "string", "enum": []string{"vision"}},
 		}, "required": []string{"original_term", "canonical_candidate", "kind", "years_experience", "evidence", "evidence_page", "evidence_method", "confidence"},
