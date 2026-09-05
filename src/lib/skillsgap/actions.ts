@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requireApprovedCompanyMember, requirePlatformAdmin, requireUser } from "@/lib/auth/queries";
 import { getDatabaseErrorMessage } from "@/lib/errors";
 import { parseGuyanaDateTime } from "@/lib/guyana-time";
+import type { CareerActionType } from "@/lib/i-want-to-become/guidance";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/database.types";
 
@@ -336,6 +337,124 @@ export async function setTrainingProviderVerified(providerId: string, isVerified
   const { error } = await supabase.from("training_providers").update({ is_verified: isVerified }).eq("id", providerId);
   if (error) return { error: getDatabaseErrorMessage(error, "We could not update provider verification.") };
   revalidatePath("/admin/training");
+  return {};
+}
+
+function isHttpsUrl(value: string) {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function cleanGuidanceText(value: string, minimum: number, maximum: number) {
+  const cleaned = value.trim();
+  return cleaned.length >= minimum && cleaned.length <= maximum ? cleaned : null;
+}
+
+export async function updateOccupationTransferSummary(occupationId: string, summary: string): Promise<{ error?: string }> {
+  const { supabase } = await requirePlatformAdmin();
+  const cleanSummary = cleanGuidanceText(summary, 40, 700);
+  if (!occupationId || !cleanSummary) return { error: "Use a transfer summary between 40 and 700 characters." };
+  const { error } = await supabase.from("occupations").update({ industry_transfer_summary: cleanSummary }).eq("id", occupationId);
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not update that transfer summary.") };
+  revalidatePath("/admin/career-guidance");
+  revalidatePath("/i-want-to-become");
+  return {};
+}
+
+export async function createCareerPreparationSubject(
+  occupationId: string,
+  subjectName: string,
+  guidanceNote: string,
+  sourceUrl: string,
+  sourceLocator: string,
+): Promise<{ error?: string; subject?: Tables<"career_preparation_subjects"> }> {
+  const { supabase } = await requirePlatformAdmin();
+  const cleanSubject = cleanGuidanceText(subjectName, 2, 120);
+  const cleanNote = cleanGuidanceText(guidanceNote, 10, 500);
+  const cleanSourceUrl = sourceUrl.trim();
+  const cleanLocator = cleanGuidanceText(sourceLocator, 2, 180);
+  if (!occupationId || !cleanSubject || !cleanNote || !cleanLocator || !isHttpsUrl(cleanSourceUrl)) return { error: "Add a subject, guidance note, HTTPS source, and source location." };
+  const { data, error } = await supabase.from("career_preparation_subjects").insert({ occupation_id: occupationId, subject_name: cleanSubject, guidance_note: cleanNote, source_url: cleanSourceUrl, source_locator: cleanLocator, last_verified_at: new Date().toISOString().slice(0, 10), is_active: true }).select("*").single();
+  if (error) return { error: error.code === "23505" ? "That preparation subject is already mapped." : getDatabaseErrorMessage(error, "We could not add that preparation subject.") };
+  revalidatePath("/admin/career-guidance");
+  revalidatePath("/i-want-to-become");
+  return { subject: data };
+}
+
+export type OccupationPathwayActionInput = {
+  occupationId: string;
+  actionType: CareerActionType;
+  title: string;
+  instruction: string;
+  whyItHelps: string;
+  organizationName: string;
+  location: string;
+  url: string;
+  sourceUrl: string;
+  sourceLocator: string;
+  sortOrder: number;
+  trainingProgramId?: string | null;
+};
+
+function isCareerActionType(value: string): value is CareerActionType {
+  return value === "learn" || value === "practice" || value === "register" || value === "find_work" || value === "guidance";
+}
+
+function validateOccupationPathwayAction(input: OccupationPathwayActionInput) {
+  const title = cleanGuidanceText(input.title, 2, 180);
+  const instruction = cleanGuidanceText(input.instruction, 10, 700);
+  const whyItHelps = cleanGuidanceText(input.whyItHelps, 10, 500);
+  const organizationName = cleanGuidanceText(input.organizationName, 2, 180);
+  const location = input.location.trim();
+  const url = input.url.trim();
+  const sourceUrl = input.sourceUrl.trim();
+  const sourceLocator = cleanGuidanceText(input.sourceLocator, 2, 180);
+  if (!input.occupationId || !isCareerActionType(input.actionType) || !title || !instruction || !whyItHelps || !organizationName || location.length > 180 || !sourceLocator || !isHttpsUrl(url) || !isHttpsUrl(sourceUrl) || !Number.isInteger(input.sortOrder) || input.sortOrder < 1 || input.sortOrder > 20) return null;
+  return { title, instruction, whyItHelps, organizationName, location: location || null, url, sourceUrl, sourceLocator, sortOrder: input.sortOrder, trainingProgramId: input.trainingProgramId || null };
+}
+
+export async function createOccupationPathwayAction(input: OccupationPathwayActionInput): Promise<{ error?: string; action?: Tables<"occupation_pathway_actions"> }> {
+  const { supabase } = await requirePlatformAdmin();
+  const values = validateOccupationPathwayAction(input);
+  if (!values) return { error: "Use a valid action, complete text, HTTPS links, and a display order from 1 to 20." };
+  const { data, error } = await supabase.from("occupation_pathway_actions").insert({ occupation_id: input.occupationId, action_type: input.actionType, title: values.title, instruction: values.instruction, why_it_helps: values.whyItHelps, organization_name: values.organizationName, location: values.location, training_program_id: values.trainingProgramId, url: values.url, source_url: values.sourceUrl, source_locator: values.sourceLocator, sort_order: values.sortOrder, contact_text: null, last_verified_at: new Date().toISOString().slice(0, 10), is_verified: false, is_active: true }).select("*").single();
+  if (error) return { error: error.code === "23505" ? "That action type already exists for this occupation." : getDatabaseErrorMessage(error, "We could not add that pathway action.") };
+  revalidatePath("/admin/career-guidance");
+  revalidatePath("/i-want-to-become");
+  return { action: data };
+}
+
+export async function updateOccupationPathwayAction(actionId: string, input: OccupationPathwayActionInput): Promise<{ error?: string; action?: Tables<"occupation_pathway_actions"> }> {
+  const { supabase } = await requirePlatformAdmin();
+  const values = validateOccupationPathwayAction(input);
+  if (!actionId || !values) return { error: "Use a valid action, complete text, HTTPS links, and a display order from 1 to 20." };
+  const { data, error } = await supabase.from("occupation_pathway_actions").update({ occupation_id: input.occupationId, action_type: input.actionType, title: values.title, instruction: values.instruction, why_it_helps: values.whyItHelps, organization_name: values.organizationName, location: values.location, training_program_id: values.trainingProgramId, url: values.url, source_url: values.sourceUrl, source_locator: values.sourceLocator, sort_order: values.sortOrder, is_verified: false }).eq("id", actionId).select("*").single();
+  if (error) return { error: error.code === "23505" ? "That action type already exists for this occupation." : getDatabaseErrorMessage(error, "We could not update that pathway action.") };
+  revalidatePath("/admin/career-guidance");
+  revalidatePath("/i-want-to-become");
+  return { action: data };
+}
+
+export async function setOccupationPathwayActionVerified(actionId: string, isVerified: boolean): Promise<{ error?: string }> {
+  const { supabase } = await requirePlatformAdmin();
+  if (!actionId) return { error: "Choose a pathway action first." };
+  const { error } = await supabase.from("occupation_pathway_actions").update({ is_verified: isVerified, last_verified_at: isVerified ? new Date().toISOString().slice(0, 10) : undefined }).eq("id", actionId);
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not update that verification state.") };
+  revalidatePath("/admin/career-guidance");
+  revalidatePath("/i-want-to-become");
+  return {};
+}
+
+export async function setOccupationPathwayActionActive(actionId: string, isActive: boolean): Promise<{ error?: string }> {
+  const { supabase } = await requirePlatformAdmin();
+  if (!actionId) return { error: "Choose a pathway action first." };
+  const { error } = await supabase.from("occupation_pathway_actions").update({ is_active: isActive }).eq("id", actionId);
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not update that action.") };
+  revalidatePath("/admin/career-guidance");
+  revalidatePath("/i-want-to-become");
   return {};
 }
 
