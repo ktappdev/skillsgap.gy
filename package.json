@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check:account-boundaries": "node --env-file=.env.local scripts/check-account-boundaries.mjs",
     "check:recruiter-invites": "node --env-file=.env.local scripts/check-recruiter-invitations.mjs",
     "supabase:types": "supabase gen types typescript --linked --schema public > src/lib/supabase/database.types.ts"
   },

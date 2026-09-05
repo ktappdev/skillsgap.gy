@@ -68,11 +68,12 @@ Use plain progress language such as `You are closer to Offshore Mechanical Techn
 
 ### Company journey
 
-1. A user registers a company access request. It remains pending until a super admin approves the company.
-2. An approved company owner creates roles, adds weighted requirements, marks mandatory requirements, and sets a threshold. The default threshold is 75%.
-3. The company creates a job fair and available 15-minute interview slots.
-4. The company views candidates matched to its active roles using anonymized cards: match score, eligibility, and gap counts. Qualification evidence and work-history details remain hidden until consent; no name, contact information, or CV is visible at this stage.
-5. When an applicant explicitly shares their profile or confirms an interview, the company may view the applicant's identity and obtain a time-limited CV link.
+1. A user chooses company signup, creates an account, and submits a company access request. It remains pending until a super admin approves the company.
+2. Approval makes the requester the company owner. The owner can invite recruiters by email with a seven-day, one-time link; recruiters create or use their own password and join the same workspace.
+3. An approved company member creates roles, adds weighted requirements, marks mandatory requirements, and sets a threshold. The default threshold is 75%.
+4. The company creates a job fair and available 15-minute interview slots.
+5. The company views candidates matched to its active roles using anonymized cards: match score, eligibility, and gap counts. Qualification evidence and work-history details remain hidden until consent; no name, contact information, or CV is visible at this stage.
+6. When an applicant explicitly shares their profile or confirms an interview, the company may view the applicant's identity and obtain a time-limited CV link.
 
 ### Super-admin journey
 
@@ -85,10 +86,11 @@ Use plain progress language such as `You are closer to Offshore Mechanical Techn
 
 ### Accounts and authorization
 
-- Public signup creates an applicant account only.
-- Company users request access; a super admin approves the company before it can publish active roles.
+- Applicant and company signup are explicit entry points. Company signup continues directly to the access request.
+- A super admin approves a company before its members can publish roles. Approval assigns the requester as its owner.
+- An approved owner invites and removes recruiter accounts. Recruiters can manage company operations but cannot manage the team or platform administration.
+- Each account has one primary space, resolved in the order platform admin, company, then applicant. An account can belong to only one company in the MVP.
 - Do not use editable Auth `user_metadata` for authorization. Platform-admin and company membership records are server-managed database records.
-- A company may have an owner and recruiter members, but one owner account per seeded company is sufficient for the demo.
 - The existing starter's publicly readable `profiles` policy must be removed. Profiles are private to their owners unless an applicant has granted consent for a specific company and role.
 
 ### CV upload and processing
@@ -211,9 +213,9 @@ Vercel hosts only the Next.js application. CV bytes upload directly from the bro
 
 | Area | Routes | Purpose |
 | --- | --- | --- |
-| Public | `/`, `/login`, `/signup`, `/company/request-access` | Explain product, authenticate applicants, and collect company requests. |
+| Public | `/`, `/login`, `/signup`, `/signup/company`, `/forgot-password`, `/update-password` | Explain the product and complete applicant, company, and recovery authentication. |
 | Applicant | `/dashboard`, `/matches/[matchId]`, `/interviews` | Upload CV, review profile, explore recommendations, and book interviews. |
-| Company | `/company`, `/company/jobs`, `/company/candidates`, `/company/job-fairs` | Manage jobs and job fairs; browse authorized candidate data. |
+| Company | `/company/request-access`, `/company`, `/company/jobs`, `/company/candidates`, `/company/job-fairs`, `/company/team`, `/company/invitations/[token]` | Request approval, manage the shared workspace and recruiters, and browse authorized candidate data. |
 | Admin | `/admin`, `/admin/companies`, `/admin/qualifications`, `/admin/training` | Approve companies and maintain trusted data. |
 
 ## 5. Data Model and Security
@@ -222,7 +224,7 @@ Vercel hosts only the Next.js application. CV bytes upload directly from the bro
 
 | Domain | Records |
 | --- | --- |
-| Identity and access | `profiles`, `platform_admins`, `companies`, `company_members` |
+| Identity and access | `profiles`, `platform_admins`, `companies`, `company_members`, `company_recruiter_invitations` |
 | Shared taxonomy | `qualifications`, `qualification_aliases` |
 | Jobs and training | `job_roles`, `job_requirements`, `training_providers`, `training_programs`, `training_program_outcomes` |
 | Applicant processing | `resumes`, `processing_jobs`, `applicant_qualifications`, `applicant_experience` |
@@ -233,6 +235,7 @@ Vercel hosts only the Next.js application. CV bytes upload directly from the bro
 
 - Applicants can read and edit only their own profile, resumes, extracted qualifications, matches, gaps, consents, invitations, and bookings.
 - Approved company members can manage only their company's roles, requirements, job fairs, and slots.
+- Only approved company owners can invite, revoke, or remove recruiter access.
 - Company members can read anonymized matches and gap status for their company's roles. Qualification evidence, work-history details, identity, and signed CV URLs require active consent for that company and role.
 - Super admins manage verification and shared taxonomy/training data.
 - Service-role credentials are stored only on the Thunder Go server and server-side Vercel runtime. They are never prefixed with `NEXT_PUBLIC_` and never sent to a browser.
