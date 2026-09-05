@@ -42,6 +42,14 @@ supabase db push --dry-run --include-seed --project-ref uljznzafpiamxmervxjb
 supabase db lint --linked --project-ref uljznzafpiamxmervxjb --schema public --fail-on error
 ```
 
+Prepare and verify the non-sensitive fallback demo account:
+
+```bash
+node --env-file=.env.local scripts/setup-demo-users.mjs
+node --env-file=.env.local scripts/prepare-demo-fallback.mjs
+node --env-file=.env.local scripts/check-demo-readiness.mjs
+```
+
 ## Conventions
 
 - Keep files and components small; prefer readable, domain-named code over cryptic names or premature abstractions.

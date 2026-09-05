@@ -309,6 +309,8 @@ Seed data is for demonstration and must be visibly labeled as curated demo data 
 6. Demonstrate eligibility, invitation, consent, and a confirmed 15-minute interview slot.
 7. Switch to admin to show company approval and training data governance.
 
+The executable rehearsal, fallback setup, and recovery steps are in [`docs/demo-rehearsal.md`](demo-rehearsal.md). The prepared fallback uses curated qualifications and the same deterministic database rules as the product; it is never represented as a live CV or AI result.
+
 ### Health checklist before presentation
 
 - Thunder vLLM (Qwen3.6-35B-A3B), OCR, and Go systemd services are active.
