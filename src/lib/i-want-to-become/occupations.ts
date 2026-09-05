@@ -209,6 +209,15 @@ export function isPublicOccupationPathwayRpcRow(value: unknown): value is Public
     && row.actions.every(isPathwayAction);
 }
 
+export function isPublicOccupationPathway(value: unknown): value is PublicOccupationPathway {
+  if (!isPublicOccupation(value)) return false;
+  const pathway = value as Record<string, unknown>;
+  return Array.isArray(pathway.preparationSubjects)
+    && pathway.preparationSubjects.every(isPreparationSubject)
+    && Array.isArray(pathway.actions)
+    && pathway.actions.every(isPathwayAction);
+}
+
 export function normalizePublicOccupationPathway(value: PublicOccupationPathwayRpcRow): PublicOccupationPathway {
   const summary = normalizePublicOccupation(value);
   const preparationSubjects: unknown[] = Array.isArray(value.preparation_subjects) ? value.preparation_subjects : [];

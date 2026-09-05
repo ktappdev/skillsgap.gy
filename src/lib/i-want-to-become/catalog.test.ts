@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { careerPathways, findCareerPathway, isValidCsecResult, supportingSubjects } from "@/lib/i-want-to-become/catalog";
+import { careerPathways, findCareerPathway, isValidCsecResult, normalizeSubjectName, supportingSubjects } from "@/lib/i-want-to-become/catalog";
 import { getAllOccupationGuidance } from "@/lib/i-want-to-become/guidance";
 import { getStaticOccupationPathway, isPublicOccupation, isPublicOccupationRpcRow, normalizePublicOccupation, occupationCatalog } from "@/lib/i-want-to-become/occupations";
 
@@ -15,6 +15,8 @@ describe("career pathway catalogue", () => {
     const pathway = findCareerPathway("offshore-electrical-trainee");
     expect(pathway).not.toBeNull();
     expect(supportingSubjects(pathway!, [{ subject: " mathematics ", grade: "I" }])).toContainEqual({ subject: "Mathematics", confirmed: true });
+    expect(normalizeSubjectName("Maths")).toBe("mathematics");
+    expect(normalizeSubjectName("English Language")).toBe("english a");
   });
 
   it("keeps the reviewed occupation fallback aligned with the seeded catalogue", () => {

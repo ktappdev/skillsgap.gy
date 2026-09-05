@@ -99,9 +99,23 @@ export function findCareerPathway(id: string) {
   return careerPathways.find((pathway) => pathway.id === id) ?? null;
 }
 
+const subjectAliases: Record<string, string> = {
+  maths: "mathematics",
+  math: "mathematics",
+  "english language": "english a",
+  "english a": "english a",
+  "information technology": "information technology",
+  ict: "information technology",
+};
+
+export function normalizeSubjectName(subject: string) {
+  const normalized = subject.trim().toLocaleLowerCase().replace(/[.\-_]+/g, " ").replace(/\s+/g, " ");
+  return subjectAliases[normalized] ?? normalized;
+}
+
 export function supportingSubjects(pathway: CareerPathway, results: CsecResult[]) {
-  const completed = new Set(results.map((result) => result.subject.trim().toLocaleLowerCase()));
-  return pathway.preparationSubjects.map((subject) => ({ subject, confirmed: completed.has(subject.toLocaleLowerCase()) }));
+  const completed = new Set(results.map((result) => normalizeSubjectName(result.subject)));
+  return pathway.preparationSubjects.map((subject) => ({ subject, confirmed: completed.has(normalizeSubjectName(subject)) }));
 }
 
 export function isValidCsecResult(result: CsecResult) {
