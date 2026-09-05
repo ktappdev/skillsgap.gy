@@ -99,6 +99,7 @@ export type Database = {
       apply_match_recalculation: { Args: { job_id: string }; Returns: undefined };
       get_consented_resume_path: { Args: { target_job_role_id: string; target_resume_id: string }; Returns: string };
       get_consented_candidate_resume_path: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: string };
+      get_consented_candidate_profile: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: Array<{ full_name: string | null; phone_number: string | null }> };
       fail_processing_job: { Args: { processing_job_id: string; safe_error_message: string }; Returns: undefined };
     };
     Enums: {

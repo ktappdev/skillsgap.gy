@@ -23,11 +23,17 @@ export default async function CandidatesPage() {
     ? await supabase.from("candidate_consents").select("applicant_id,job_role_id").eq("company_id", companyId).eq("status", "active").in("job_role_id", roleIds)
     : { data: [] };
   const consentedMatches = new Set((consents ?? []).map((consent) => `${consent.applicant_id}:${consent.job_role_id}`));
-  const consentedApplicantIds = [...new Set((consents ?? []).map((consent) => consent.applicant_id))];
-  const { data: profiles } = consentedApplicantIds.length > 0
-    ? await supabase.from("profiles").select("id,full_name,phone_number").in("id", consentedApplicantIds)
-    : { data: [] };
-  const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+  const consentedProfiles = await Promise.all((consents ?? []).map(async (consent) => {
+    const { data } = await supabase.rpc("get_consented_candidate_profile", {
+      target_applicant_id: consent.applicant_id,
+      target_job_role_id: consent.job_role_id,
+    });
+    return [
+      `${consent.applicant_id}:${consent.job_role_id}`,
+      data?.[0] ?? null,
+    ] as const;
+  }));
+  const profileByConsent = new Map(consentedProfiles);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -46,7 +52,7 @@ export default async function CandidatesPage() {
           {matchRows.map((match, index) => {
             const role = roleRows.find((item) => item.id === match.job_role_id);
             const isConsented = consentedMatches.has(`${match.applicant_id}:${match.job_role_id}`);
-            const profile = profileById.get(match.applicant_id);
+            const profile = profileByConsent.get(`${match.applicant_id}:${match.job_role_id}`);
             return (
               <article key={match.id} className="flex flex-col justify-between gap-4 border border-border bg-surface p-5 shadow-sm sm:flex-row sm:items-center">
                 <div>
