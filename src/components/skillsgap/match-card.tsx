@@ -1,8 +1,65 @@
 import Link from "next/link";
+
 import type { Match } from "@/lib/skillsgap-demo";
+
 import { StatusPill } from "./milestone-path";
 
 export function MatchCard({ match }: { match: Match }) {
   const remaining = Math.max(match.threshold - match.score, 0);
-  return <article className="border border-border bg-surface p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.15em] text-muted">{match.company}</p><h3 className="mt-2 text-lg font-semibold tracking-tight text-foreground">{match.title}</h3></div><StatusPill tone={match.eligible ? "success" : "accent"}>{match.score}% match</StatusPill></div><div className="mt-5 h-2 overflow-hidden rounded-full bg-surface-muted" aria-label={`${match.score}% match`}><div className="h-full bg-accent" style={{ width: `${match.score}%` }} /></div><p className="mt-3 text-sm leading-6 text-muted">{remaining > 0 ? `${remaining}% to this role's interview threshold. Your recognized strengths already count.` : "You meet the score threshold."}</p><div className="mt-5 border-t border-border pt-4"><p className="text-xs font-bold uppercase tracking-[0.15em] text-muted">Strengths already recognized</p><ul className="mt-2 flex flex-wrap gap-2" role="list">{match.strengths.slice(0, 2).map((strength) => <li key={strength} className="bg-surface-muted px-2.5 py-1 text-xs font-medium text-foreground">{strength}</li>)}</ul></div><Link href={`/matches/${match.id}`} className="mt-5 inline-flex text-sm font-semibold text-accent underline-offset-4 hover:underline">See your pathway <span aria-hidden="true">→</span></Link></article>;
+  const hasConfirmedStrengths = match.strengths.length > 0;
+  const opportunityLabel = match.isDemo ? "Curated demo pathway" : "Company-published role";
+
+  return (
+    <article className="border border-border bg-surface p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted">{match.company}</p>
+          <p className="mt-2 text-xs font-semibold text-accent">{opportunityLabel}</p>
+          <h3 className="mt-2 text-lg font-semibold tracking-tight text-foreground">{match.title}</h3>
+        </div>
+        <StatusPill tone={match.eligible ? "success" : "accent"}>{match.score}% match</StatusPill>
+      </div>
+
+      <div className="mt-5 h-2 overflow-hidden rounded-full bg-surface-muted" aria-label={`${match.score}% match`}>
+        <div className="h-full bg-accent" style={{ width: `${match.score}%` }} />
+      </div>
+      <p className="mt-3 text-sm leading-6 text-muted">
+        {match.eligible
+          ? "You meet this role's score threshold and mandatory requirements."
+          : remaining > 0
+            ? `${remaining}% to this role's interview threshold.`
+            : "The score threshold is met; review any mandatory requirements below."}
+      </p>
+
+      <div className="mt-5 border-t border-border pt-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted">What counts today</p>
+          <p className="text-xs text-muted">{hasConfirmedStrengths ? "Confirmed" : "Pending your review"}</p>
+        </div>
+        {hasConfirmedStrengths ? (
+          <ul className="mt-2 flex flex-wrap gap-2" role="list">
+            {match.strengths.slice(0, 2).map((strength) => (
+              <li key={strength} className="bg-surface-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                {strength}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm leading-6 text-muted">
+            No strengths are confirmed yet. Choose a possible CV translation above before it affects this route.
+          </p>
+        )}
+      </div>
+
+      {match.gaps.length > 0 ? (
+        <p className="mt-4 text-sm font-medium text-foreground">
+          {match.gaps.length} {match.gaps.length === 1 ? "requirement" : "requirements"} still to verify
+        </p>
+      ) : null}
+
+      <Link href={`/matches/${match.id}`} className="mt-5 inline-flex text-sm font-semibold text-accent underline-offset-4 hover:underline">
+        See your pathway <span aria-hidden="true">→</span>
+      </Link>
+    </article>
+  );
 }

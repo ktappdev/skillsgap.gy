@@ -261,6 +261,15 @@ Vercel hosts only the Next.js application. CV bytes upload directly from the bro
 
 Seed data is for demonstration and must be visibly labeled as curated demo data unless independently verified before presentation.
 
+The applicant dashboard makes that boundary explicit: seeded pathways carry a
+“Curated demo pathway” label, while company-created roles carry a
+“Company-published role” label. The dashboard shows the top three routes and
+the total number of approved active routes (for example, “Top 3 of 7 roles”),
+and it never invents a strength when no qualification has been confirmed.
+Each gap may point to a verified training provider and official URL; the
+applicant is told to confirm current intake, cost, eligibility, and outcomes
+before spending money.
+
 - Three approved demonstration companies.
 - Seven active roles spanning mechanical, electrical, logistics, equipment, safety, trainee, and materials-handling pathways.
 - A broad canonical qualification taxonomy covering trades, offshore and

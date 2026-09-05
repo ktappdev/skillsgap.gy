@@ -77,16 +77,17 @@ on conflict (id) do update set
   location = excluded.location,
   description = excluded.description;
 
-insert into public.training_programs (id, provider_id, name, description, duration_text, is_active)
+insert into public.training_programs (id, provider_id, name, description, duration_text, enrollment_url, is_active)
 values
-  ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Offshore Safety Preparation', 'Curated demo pathway for offshore safety preparation.', 'Confirm with provider', true),
-  ('30000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', 'Hydraulic Maintenance Fundamentals', 'Curated demo pathway for hydraulic maintenance.', 'Confirm with provider', true),
-  ('30000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000003', 'Heavy Equipment Operations', 'Curated demo pathway for heavy-equipment operations.', 'Confirm with provider', true),
-  ('30000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', 'Electrical Safety Fundamentals', 'Curated demo pathway for electrical safety.', 'Confirm with provider', true)
+  ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Offshore Safety Preparation', 'Curated demo pathway for offshore safety preparation.', 'Confirm with provider', 'https://enermech.com/training', true),
+  ('30000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', 'Hydraulic Maintenance Fundamentals', 'Curated demo pathway for hydraulic maintenance.', 'Confirm with provider', 'https://www.gtigeorgetown.com/', true),
+  ('30000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000003', 'Heavy Equipment Operations', 'Curated demo pathway for heavy-equipment operations.', 'Confirm with provider', 'https://srms.bit.gov.gy/', true),
+  ('30000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', 'Electrical Safety Fundamentals', 'Curated demo pathway for electrical safety.', 'Confirm with provider', 'https://www.gtigeorgetown.com/', true)
 on conflict (id) do update set
   name = excluded.name,
   description = excluded.description,
   duration_text = excluded.duration_text,
+  enrollment_url = excluded.enrollment_url,
   is_active = true;
 
 insert into public.training_program_outcomes (training_program_id, qualification_id)
@@ -101,14 +102,14 @@ from (
 join public.qualifications qualification on qualification.slug = outcome.qualification_slug
 on conflict do nothing;
 
-insert into public.job_roles (id, company_id, title, description, location, employment_type, status, eligibility_threshold, published_at)
+insert into public.job_roles (id, company_id, title, description, location, employment_type, status, eligibility_threshold, published_at, is_demo)
 values
-  ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'Trainee Offshore Mechanical Technician', 'Curated demo role for a mechanic transitioning offshore.', 'Georgetown / Offshore', 'Full time', 'draft', 75, null),
-  ('40000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'Offshore Electrical Trainee', 'Curated demo electrical pathway.', 'Georgetown / Offshore', 'Full time', 'draft', 75, null),
-  ('40000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 'Hydraulic Maintenance Assistant', 'Curated demo maintenance pathway.', 'Georgetown, Guyana', 'Full time', 'draft', 70, null),
-  ('40000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', 'HSE Support Trainee', 'Curated demo safety pathway.', 'Georgetown, Guyana', 'Full time', 'draft', 70, null),
-  ('40000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000003', 'Heavy Equipment Operator Trainee', 'Curated demo equipment pathway.', 'Guyana', 'Full time', 'draft', 70, null),
-  ('40000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000003', 'Warehouse and Logistics Assistant', 'Curated demo logistics pathway.', 'Georgetown, Guyana', 'Full time', 'draft', 65, null)
+  ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'Trainee Offshore Mechanical Technician', 'Curated demo role for a mechanic transitioning offshore.', 'Georgetown / Offshore', 'Full time', 'draft', 75, null, true),
+  ('40000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'Offshore Electrical Trainee', 'Curated demo electrical pathway.', 'Georgetown / Offshore', 'Full time', 'draft', 75, null, true),
+  ('40000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 'Hydraulic Maintenance Assistant', 'Curated demo maintenance pathway.', 'Georgetown, Guyana', 'Full time', 'draft', 70, null, true),
+  ('40000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', 'HSE Support Trainee', 'Curated demo safety pathway.', 'Georgetown, Guyana', 'Full time', 'draft', 70, null, true),
+  ('40000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000003', 'Heavy Equipment Operator Trainee', 'Curated demo equipment pathway.', 'Guyana', 'Full time', 'draft', 70, null, true),
+  ('40000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000003', 'Warehouse and Logistics Assistant', 'Curated demo logistics pathway.', 'Georgetown, Guyana', 'Full time', 'draft', 65, null, true)
 on conflict (id) do update set
   title = excluded.title,
   description = excluded.description,
@@ -116,7 +117,8 @@ on conflict (id) do update set
   employment_type = excluded.employment_type,
   status = 'draft',
   eligibility_threshold = excluded.eligibility_threshold,
-  published_at = null;
+  published_at = null,
+  is_demo = excluded.is_demo;
 
 insert into public.job_requirements (job_role_id, qualification_id, kind, weight, minimum_years, mandatory)
 select requirement.role_id, qualification.id, qualification.category, requirement.weight, requirement.minimum_years, requirement.mandatory

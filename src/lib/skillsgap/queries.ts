@@ -12,6 +12,7 @@ export type ApplicantProgress = {
   unmappedTerms: string[];
   experience: Tables<"applicant_experience">[];
   matches: Match[];
+  visibleRoleCount: number;
   findings: ApplicantExtractionFindingView[];
   qualifications: ApplicantQualificationView[];
   availableQualifications: Tables<"qualifications">[];
@@ -26,7 +27,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const [resumeResult, jobResult, matchesResult, experienceResult] = await Promise.all([
     client.from("resumes").select("*").eq("applicant_id", applicantId).is("deleted_at", null).order("uploaded_at", { ascending: false }).limit(1).maybeSingle(),
     client.from("processing_jobs").select("*").eq("applicant_id", applicantId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-    client.from("job_matches").select("*").eq("applicant_id", applicantId).eq("status", "current").order("score", { ascending: false }),
+    client.from("job_matches").select("*").eq("applicant_id", applicantId).eq("status", "current").order("score", { ascending: false }).order("calculated_at", { ascending: false }).order("id", { ascending: true }),
     client.from("applicant_experience").select("*").eq("applicant_id", applicantId).order("created_at", { ascending: false }),
   ]);
 
@@ -34,7 +35,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const unmappedTerms = getUnmappedTerms(jobResult.data?.result_summary);
   const currentRoleIds = currentMatches.map((row) => row.job_role_id);
   const activeRoleResult = currentRoleIds.length > 0
-    ? await client.from("job_roles").select("id,company_id").in("id", currentRoleIds).eq("status", "active")
+    ? await client.from("job_roles").select("id,company_id,is_demo").in("id", currentRoleIds).eq("status", "active")
     : { data: [] };
   const activeRoles = activeRoleResult.data ?? [];
   const activeCompanyIds = [...new Set(activeRoles.map((role) => role.company_id))];
@@ -45,7 +46,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const activeRoleIds = new Set(activeRoles.filter((role) => approvedCompanyIds.has(role.company_id)).map((role) => role.id));
   const rows = currentMatches.filter((row) => activeRoleIds.has(row.job_role_id)).slice(0, 3);
   if (rows.length === 0) {
-    return { latestResume: resumeResult.data, processingStatus: jobResult.data?.status ?? null, processingError: jobResult.data?.error_message ?? null, unmappedTerms, experience: experienceResult.data ?? [], matches: [], findings: await getApplicantFindings(client, applicantId), qualifications: await getApplicantQualifications(client, applicantId), availableQualifications: await getAvailableQualifications(client) };
+    return { latestResume: resumeResult.data, processingStatus: jobResult.data?.status ?? null, processingError: jobResult.data?.error_message ?? null, unmappedTerms, experience: experienceResult.data ?? [], matches: [], visibleRoleCount: activeRoleIds.size, findings: await getApplicantFindings(client, applicantId), qualifications: await getApplicantQualifications(client, applicantId), availableQualifications: await getAvailableQualifications(client) };
   }
 
   const roleIds = rows.map((row) => row.job_role_id);
@@ -69,6 +70,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const requirementById = new Map(requirements.map((requirement) => [requirement.id, requirement]));
   const applicantQualificationResult = await client.from("applicant_qualifications").select("qualification_id").eq("applicant_id", applicantId).eq("review_status", "confirmed");
   const applicantQualificationIds = new Set((applicantQualificationResult.data ?? []).map((item) => item.qualification_id));
+  const trainingByQualification = await getTrainingPathways(client, qualificationIds);
 
   return {
     latestResume: resumeResult.data,
@@ -79,6 +81,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
     findings: await getApplicantFindings(client, applicantId),
     qualifications: await getApplicantQualifications(client, applicantId),
     availableQualifications: await getAvailableQualifications(client),
+    visibleRoleCount: activeRoleIds.size,
     matches: rows.flatMap((row) => {
       const role = roles.find((item) => item.id === row.job_role_id);
       if (!role || !approvedCompanyIds.has(role.company_id)) return [];
@@ -90,7 +93,8 @@ export async function getApplicantProgress(client: Client, applicantId: string):
           id: gap.id,
           name: qualificationNames.get(requirement.qualification_id) ?? "Qualification to verify",
           type: requirement.kind === "certification" ? "Certification" as const : requirement.kind === "experience" ? "Experience" as const : "Technical skill" as const,
-          training: null,
+          training: trainingByQualification.get(requirement.qualification_id)?.label ?? null,
+          trainingUrl: trainingByQualification.get(requirement.qualification_id)?.url ?? null,
           status: gap.status,
         }];
       });
@@ -107,7 +111,8 @@ export async function getApplicantProgress(client: Client, applicantId: string):
         score: row.score,
         threshold: role.eligibility_threshold,
         eligible: row.interview_eligible,
-        strengths: strengths.length > 0 ? strengths : ["Profile qualification recognized"],
+        strengths,
+        isDemo: role.is_demo,
         gaps: mappedGaps,
       }];
     }),
@@ -166,6 +171,37 @@ async function getAvailableQualifications(client: Client): Promise<Tables<"quali
   return data ?? [];
 }
 
+type TrainingPathway = { label: string; url: string | null };
+
+async function getTrainingPathways(client: Client, qualificationIds: string[]): Promise<Map<string, TrainingPathway>> {
+  if (qualificationIds.length === 0) return new Map();
+
+  const { data: outcomes } = await client
+    .from("training_program_outcomes")
+    .select("training_program_id,qualification_id")
+    .in("qualification_id", qualificationIds);
+  const programIds = [...new Set((outcomes ?? []).map((outcome) => outcome.training_program_id))];
+  if (programIds.length === 0) return new Map();
+
+  const [{ data: programs }, { data: providers }] = await Promise.all([
+    client.from("training_programs").select("id,name,provider_id,enrollment_url").in("id", programIds).eq("is_active", true),
+    client.from("training_providers").select("id,name,contact_url").eq("is_verified", true),
+  ]);
+  const providerById = new Map((providers ?? []).map((provider) => [provider.id, provider]));
+  const pathways = new Map<string, TrainingPathway>();
+  for (const outcome of outcomes ?? []) {
+    const program = (programs ?? []).find((item) => item.id === outcome.training_program_id);
+    const provider = program ? providerById.get(program.provider_id) : undefined;
+    if (program && provider && !pathways.has(outcome.qualification_id)) {
+      pathways.set(outcome.qualification_id, {
+        label: `${program.name} · ${provider.name}`,
+        url: program.enrollment_url ?? provider.contact_url,
+      });
+    }
+  }
+  return pathways;
+}
+
 export async function getApplicantMatch(client: Client, applicantId: string, matchId: string): Promise<Match | null> {
   const { data: match } = await client.from("job_matches").select("*").eq("id", matchId).eq("applicant_id", applicantId).eq("status", "current").maybeSingle();
   if (!match) return null;
@@ -187,21 +223,7 @@ export async function getApplicantMatch(client: Client, applicantId: string, mat
   const names = new Map((qualifications ?? []).map((qualification) => [qualification.id, qualification.name]));
   const applicantQualificationIds = new Set((applicantQualifications ?? []).map((item) => item.qualification_id));
 
-  const trainingQualificationIds = gapRequirements.map((requirement) => requirement.qualification_id);
-  const { data: outcomes } = trainingQualificationIds.length > 0 ? await client.from("training_program_outcomes").select("training_program_id,qualification_id").in("qualification_id", trainingQualificationIds) : { data: [] };
-  const programIds = [...new Set((outcomes ?? []).map((outcome) => outcome.training_program_id))];
-  const { data: programs } = programIds.length > 0 ? await client.from("training_programs").select("id,name,provider_id").in("id", programIds).eq("is_active", true) : { data: [] };
-  const providerIds = [...new Set((programs ?? []).map((program) => program.provider_id))];
-  const { data: providers } = providerIds.length > 0 ? await client.from("training_providers").select("id,name,location").in("id", providerIds).eq("is_verified", true) : { data: [] };
-  const providerById = new Map((providers ?? []).map((provider) => [provider.id, provider]));
-  const trainingByQualification = new Map<string, string>();
-  for (const outcome of outcomes ?? []) {
-    const program = (programs ?? []).find((item) => item.id === outcome.training_program_id);
-    const provider = program ? providerById.get(program.provider_id) : undefined;
-    if (program && provider && !trainingByQualification.has(outcome.qualification_id)) {
-      trainingByQualification.set(outcome.qualification_id, `${program.name} · ${provider.name}`);
-    }
-  }
+  const trainingByQualification = await getTrainingPathways(client, [...new Set(gapRequirements.map((requirement) => requirement.qualification_id))]);
 
   return {
     id: match.id,
@@ -213,12 +235,14 @@ export async function getApplicantMatch(client: Client, applicantId: string, mat
     score: match.score,
     threshold: role.eligibility_threshold,
     eligible: match.interview_eligible,
+    isDemo: role.is_demo,
     strengths: roleRequirements.filter((requirement) => applicantQualificationIds.has(requirement.qualification_id)).map((requirement) => names.get(requirement.qualification_id)).filter((name): name is string => Boolean(name)),
     gaps: gapRequirements.map((requirement) => ({
       id: (gaps ?? []).find((gap) => gap.job_requirement_id === requirement.id)?.id,
       name: names.get(requirement.qualification_id) ?? "Qualification to verify",
       type: requirement.kind === "certification" ? "Certification" as const : requirement.kind === "experience" ? "Experience" as const : "Technical skill" as const,
-      training: trainingByQualification.get(requirement.qualification_id) ?? null,
+      training: trainingByQualification.get(requirement.qualification_id)?.label ?? null,
+      trainingUrl: trainingByQualification.get(requirement.qualification_id)?.url ?? null,
       status: (gaps ?? []).find((gap) => gap.job_requirement_id === requirement.id)?.status,
     })),
   };

@@ -18,6 +18,14 @@ export default async function DashboardPage() {
   const progress = await getApplicantProgress(supabase, user.id);
   const usingDemoMatches = progress.matches.length === 0 && !progress.latestResume;
   const matches = progress.matches.length > 0 ? progress.matches : usingDemoMatches ? demoMatches : [];
+  const roleCount = usingDemoMatches ? matches.length : progress.visibleRoleCount;
+  const roleLabel = usingDemoMatches
+    ? "Demo pathways"
+    : roleCount > matches.length
+      ? `Top ${matches.length} of ${roleCount} roles`
+      : roleCount === 0
+        ? "No roles yet"
+        : `${roleCount} roles found`;
   const metadataName = user.user_metadata.full_name;
   const name = typeof metadataName === "string" && metadataName.trim()
     ? metadataName.trim()
@@ -46,9 +54,9 @@ export default async function DashboardPage() {
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted">Closest opportunities</p>
                 <h2 id="matches-heading" className="mt-2 text-2xl font-semibold tracking-tight">Your best-fit routes</h2>
               </div>
-              <StatusPill tone="accent">{usingDemoMatches ? "Demo pathways" : `${matches.length} roles found`}</StatusPill>
+              <StatusPill tone="accent">{roleLabel}</StatusPill>
             </div>
-            <p className="mt-3 text-sm leading-6 text-muted">These roles are ranked from your experience. You do not need to know the job title first.</p>
+            <p className="mt-3 text-sm leading-6 text-muted">These routes are ranked from your confirmed profile. You do not need to know the job title first.</p>
             <div className="mt-5 grid gap-4 xl:grid-cols-2">{matches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
           </section>
         </div>
