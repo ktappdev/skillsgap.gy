@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { requireApprovedCompanyMember, requirePlatformAdmin, requireUser } from "@/lib/auth/queries";
+import { requireApplicant, requireApprovedCompanyMember, requirePlatformAdmin, requireUser } from "@/lib/auth/queries";
 import { getDatabaseErrorMessage } from "@/lib/errors";
 import { isCompanyDescription, normalizeCompanyWebsite } from "@/lib/company/access-request";
 import { parseGuyanaDateTime } from "@/lib/guyana-time";
@@ -20,7 +20,7 @@ export async function queueResumeProcessing(
   originalFilename: string,
   byteSize: number,
 ): Promise<QueueResumeResult> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   const cleanPath = storagePath.trim();
   const cleanFilename = originalFilename.trim();
 
@@ -69,7 +69,7 @@ export async function queueResumeProcessing(
 }
 
 export async function bookInterviewSlot(invitationId: string, interviewSlotId: string): Promise<{ error?: string; message?: string }> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   const { error } = await supabase.from("interview_bookings").insert({
     invitation_id: invitationId,
     interview_slot_id: interviewSlotId,
@@ -84,7 +84,7 @@ export async function bookInterviewSlot(invitationId: string, interviewSlotId: s
 }
 
 export async function confirmApplicantQualification(qualificationId: string): Promise<{ error?: string }> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   const { error: updateError } = await supabase.from("applicant_qualifications").update({ source: "applicant_confirmed", review_status: "confirmed" }).eq("applicant_id", user.id).eq("qualification_id", qualificationId);
   if (updateError) return { error: getDatabaseErrorMessage(updateError, "We could not confirm that qualification.") };
   revalidatePath("/dashboard");
@@ -92,7 +92,7 @@ export async function confirmApplicantQualification(qualificationId: string): Pr
 }
 
 export async function updateApplicantQualificationYears(qualificationId: string, yearsValue: string): Promise<{ error?: string }> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   const trimmed = yearsValue.trim();
   const years = trimmed === "" ? null : Number(trimmed);
   if (years !== null && (!Number.isFinite(years) || years < 0 || years > 60)) return { error: "Use experience from 0 to 60 years." };
@@ -103,7 +103,7 @@ export async function updateApplicantQualificationYears(qualificationId: string,
 }
 
 export async function correctApplicantQualification(qualificationId: string, correctedQualificationId: string): Promise<{ error?: string }> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   if (!qualificationId || !correctedQualificationId) return { error: "Choose the correct transferable skill." };
   const { error } = await supabase
     .from("applicant_qualifications")
@@ -121,7 +121,7 @@ export async function updateApplicantExperience(
   employer: string,
   yearsValue: string,
 ): Promise<{ error?: string }> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   const cleanTitle = title.trim();
   const cleanEmployer = employer.trim();
   const trimmedYears = yearsValue.trim();
@@ -148,7 +148,7 @@ export async function updateApplicantExperience(
 }
 
 export async function startTrainingPlan(gapId: string): Promise<{ error?: string }> {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireApplicant();
   const { error } = await supabase.from("match_gaps").update({ status: "plan_started" }).eq("id", gapId);
   if (error) return { error: getDatabaseErrorMessage(error, "We could not start that training plan.") };
   revalidatePath("/dashboard");
@@ -157,7 +157,7 @@ export async function startTrainingPlan(gapId: string): Promise<{ error?: string
 }
 
 export async function addApplicantQualification(qualificationId: string): Promise<{ error?: string }> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   const { error } = await supabase.from("applicant_qualifications").insert({ applicant_id: user.id, qualification_id: qualificationId, source: "applicant_confirmed", review_status: "confirmed" });
   if (error && error.code !== "23505") return { error: getDatabaseErrorMessage(error, "We could not add that qualification.") };
   revalidatePath("/dashboard");
@@ -165,7 +165,7 @@ export async function addApplicantQualification(qualificationId: string): Promis
 }
 
 export async function removeApplicantQualification(qualificationId: string): Promise<{ error?: string }> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   const { error } = await supabase.from("applicant_qualifications").delete().eq("applicant_id", user.id).eq("qualification_id", qualificationId);
   if (error) return { error: getDatabaseErrorMessage(error, "We could not remove that qualification.") };
   revalidatePath("/dashboard");
@@ -192,7 +192,7 @@ export async function requestCompanyAccess(formData: FormData): Promise<void> {
 }
 
 export async function reviewCompany(companyId: string, status: "approved" | "rejected"): Promise<{ error?: string }> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requirePlatformAdmin();
   const { error } = await supabase.from("companies").update({ status, reviewed_by: user.id, reviewed_at: new Date().toISOString() }).eq("id", companyId);
   if (error) return { error: getDatabaseErrorMessage(error, "Only a platform administrator can review companies.") };
   revalidatePath("/admin/companies");
@@ -461,7 +461,7 @@ export async function setOccupationPathwayActionActive(actionId: string, isActiv
 }
 
 export async function getConsentedResumeUrl(resumeId: string, roleId: string): Promise<{ error?: string; url?: string }> {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireApprovedCompanyMember();
   const { data: storagePath, error: pathError } = await supabase.rpc("get_consented_resume_path", { target_resume_id: resumeId, target_job_role_id: roleId });
   if (pathError || !storagePath) return { error: "Applicant consent is required before viewing this CV." };
   let adminClient;
@@ -476,7 +476,7 @@ export async function getConsentedResumeUrl(resumeId: string, roleId: string): P
 }
 
 export async function shareProfileForRole(roleId: string): Promise<{ error?: string; message?: string }> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   const { data: role } = await supabase.from("job_roles").select("id,company_id,status").eq("id", roleId).eq("status", "active").maybeSingle();
   if (!role) return { error: "That opportunity is no longer active." };
   const { data: match } = await supabase.from("job_matches").select("id").eq("applicant_id", user.id).eq("job_role_id", roleId).eq("status", "current").maybeSingle();
@@ -496,7 +496,7 @@ export async function shareProfileForRole(roleId: string): Promise<{ error?: str
 }
 
 export async function revokeProfileShare(roleId: string): Promise<{ error?: string; message?: string }> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   const { error } = await supabase.from("candidate_consents").update({ status: "revoked", revoked_at: new Date().toISOString() }).eq("applicant_id", user.id).eq("job_role_id", roleId);
   if (error) return { error: getDatabaseErrorMessage(error, "We could not revoke profile sharing.") };
   revalidatePath("/dashboard");
@@ -505,7 +505,7 @@ export async function revokeProfileShare(roleId: string): Promise<{ error?: stri
 }
 
 export async function getConsentedCandidateResumeUrl(applicantId: string, roleId: string): Promise<{ error?: string; url?: string }> {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireApprovedCompanyMember();
   const { data: storagePath, error: pathError } = await supabase.rpc("get_consented_candidate_resume_path", { target_applicant_id: applicantId, target_job_role_id: roleId });
   if (pathError || !storagePath) return { error: "Applicant consent is required before viewing this CV." };
   let adminClient;

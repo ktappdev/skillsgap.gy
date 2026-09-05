@@ -12,6 +12,7 @@ describe("account spaces", () => {
     expect(getAccountHome(resolveAccountSpace(true, ["approved"]))).toBe("/admin");
     expect(getAccountHome(resolveAccountSpace(false, ["approved"]))).toBe("/company");
     expect(getAccountHome(resolveAccountSpace(false, ["pending"]))).toBe("/company/request-access");
+    expect(getAccountHome(resolveAccountSpace(false, ["rejected"]))).toBe("/company/request-access");
     expect(getAccountHome(resolveAccountSpace(false, []))).toBe("/dashboard");
   });
 });

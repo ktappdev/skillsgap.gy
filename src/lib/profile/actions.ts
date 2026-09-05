@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getDatabaseErrorMessage } from "@/lib/errors";
-import { requireUser } from "@/lib/auth/queries";
+import { requireApplicant } from "@/lib/auth/queries";
 import { getTrimmedFormString } from "@/lib/validation";
 
 export type ProfileActionState = {
@@ -15,7 +15,7 @@ export async function updateProfile(
   _previousState: ProfileActionState,
   formData: FormData,
 ): Promise<ProfileActionState> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireApplicant();
   const fullName = getTrimmedFormString(formData, "full_name");
   const username = getTrimmedFormString(formData, "username");
 

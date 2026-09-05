@@ -5,7 +5,7 @@ export type AccountSpace = "admin" | "company" | "company-pending" | "applicant"
 export function resolveAccountSpace(isAdmin: boolean, companyStatuses: CompanyStatus[]): AccountSpace {
   if (isAdmin) return "admin";
   if (companyStatuses.includes("approved")) return "company";
-  if (companyStatuses.includes("pending")) return "company-pending";
+  if (companyStatuses.some((status) => status === "pending" || status === "rejected")) return "company-pending";
   return "applicant";
 }
 
