@@ -1,6 +1,6 @@
 # SkillsGap.gy Product Requirements Document
 
-**Version:** 1.3
+**Version:** 1.4
 **Build target:** 72-hour hackathon MVP
 **Product loop:** skills → opportunities → gaps → training → interview
 **Extraction decision:** Qwen3.6-35B-A3B vision-only extraction from locally rendered PDF pages
@@ -47,7 +47,7 @@ The MVP must demonstrate one complete outcome: a worker uploads a CV, receives t
 1. Public signup creates an applicant account.
 2. The applicant uploads one PDF CV to a private bucket.
 3. The dashboard shows `Queued`, `Processing`, `Completed`, or `Needs attention`.
-4. Once processing completes, the applicant reviews extracted qualifications, work history, and certifications. They can correct the data and trigger a recalculation.
+4. Once processing completes, the applicant reviews possible translations from their CV. Each finding shows the original wording, evidence, page, and one or two active taxonomy choices. The applicant chooses a translation, chooses a different active qualification, or rejects it; only an explicit choice creates a confirmed qualification. Work history and certifications remain editable and trigger recalculation.
 5. The dashboard presents the three highest-ranked active roles from approved companies.
 6. Each role explains transferable strengths, missing requirements, whether mandatory gates are met, and recommended local training.
 7. When the applicant is eligible for an interview, an in-app invitation appears. The applicant selects one open 15-minute slot.
@@ -115,7 +115,8 @@ Qwen3.6-35B-A3B, served through vLLM, receives only a bounded extraction prompt 
 The model boundary is deliberately narrow:
 
 - The Go renderer is responsible for PDF validation, page order, and image-size limits; Qwen interprets the page images but does not decide what a person's experience means.
-- The LLM extracts the worker's original wording, work history, qualifications, certifications, education, page evidence, and confidence. For each possible qualification it preserves the original term (for example, `Minibus diesel repair`) beside a canonical candidate (for example, `Mechanical Maintenance`); PostgreSQL accepts it only when that candidate or an approved alias resolves through the taxonomy.
+- The LLM extracts the worker's original wording, work history, qualifications, certifications, education, page evidence, and confidence. For each possible qualification it preserves the original term (for example, `Minibus diesel repair`) and returns one or two `candidate_slugs` from the fresh active taxonomy snapshot. Descriptions and aliases help Qwen reason about meaning; they are not a license to invent a qualification. PostgreSQL stores those choices as pending findings and accepts one only after the applicant explicitly confirms it.
+- Qwen receives no job roles, requirements, weights, training providers, match scores, eligibility rules, or interview data. The model widens the funnel; PostgreSQL remains the sole matching authority and the applicant remains the final reviewer.
 - PostgreSQL is the single source of truth for canonical qualification mapping, weighted matching, mandatory gates, thresholds, and interview eligibility. Go only orchestrates extraction and submits validated facts.
 - Every visible word in a CV image is untrusted data. The extraction prompt must instruct the LLM to ignore instructions found inside the document and to report missing evidence rather than infer a fact. Terms that do not resolve safely are bounded, stored only in the applicant's processing summary, and never reach matching or company views.
 
@@ -139,7 +140,7 @@ The extraction response contains:
 - Unmapped terms that require applicant or admin review.
 - Original CV wording, evidence snippets, page references, extraction method, and confidence for each extracted qualification.
 
-The applicant can edit or remove extracted records and add qualifications. Every profile change creates a recalculation job.
+The applicant can choose or reject pending findings, correct a translation to any active taxonomy item, edit confirmed years, remove confirmed qualifications, and add qualifications manually. Pending findings never improve a score. Every confirmed profile change creates a recalculation job.
 
 ### Opportunity discovery and matching
 
@@ -147,7 +148,7 @@ The applicant can edit or remove extracted records and add qualifications. Every
 - Only the three highest-ranked roles appear as primary recommendations.
 - A requirement has a canonical qualification, a weight from 1 through 5, an optional minimum experience value, and a `mandatory` flag.
 - A requirement is satisfied only when the applicant has the required qualification and meets any minimum years. The MVP gives no partial credit.
-- Extracted qualifications stay `pending_review`; only applicant-confirmed records can satisfy a requirement, contribute score weight, or create interview eligibility.
+- Model findings stay in `resume_extraction_findings` with ranked rows in `resume_extraction_finding_candidates` and status `pending`, `confirmed`, `rejected`, or `superseded`. Only applicant-confirmed rows in `applicant_qualifications` can satisfy a requirement, contribute score weight, or create interview eligibility.
 - The score is `round(100 × satisfied requirement weight ÷ total requirement weight)`.
 - Missing mandatory requirements do not prevent a score from being shown, but they prevent interview eligibility.
 - An applicant is interview-eligible only when the score meets the role threshold and all mandatory requirements are satisfied.
@@ -205,6 +206,15 @@ The webhook never contains CV bytes. The Go worker retrieves the job and CV from
 
 Run one resume at a time until Qwen latency and GPU memory use are measured. Keep Qwen resident on the RTX 6000-class GPU. No OCR process is required for the active MVP deployment.
 
+The private worker/database boundary is intentionally narrow:
+
+| RPC | Caller | Purpose |
+| --- | --- | --- |
+| `get_active_extraction_taxonomy()` | Thunder service role only | Return active slugs, names, descriptions, categories, and grouped aliases in slug order. |
+| `apply_resume_extraction(job_id, extraction)` | Thunder service role only | Persist pending findings/options and employment evidence, then recalculate from confirmed qualifications. |
+| `confirm_extraction_finding(finding_id, qualification_id)` | Authenticated owner | Confirm a model option or choose another active taxonomy item; creates one confirmed qualification. |
+| `reject_extraction_finding(finding_id)` | Authenticated owner | Reject one pending finding without changing matching. |
+
 Vercel hosts only the Next.js application. CV bytes upload directly from the browser to private Supabase Storage. Cloudflare remains authoritative for `skillsgap.gy` DNS, using the exact record Vercel reports; Thunder HTTPS forwarding exposes only Go port `8080`, so the MVP does not use Caddy.
 
 ### Frontend routes
@@ -225,13 +235,13 @@ Vercel hosts only the Next.js application. CV bytes upload directly from the bro
 | Identity and access | `profiles`, `platform_admins`, `companies`, `company_members`, `company_recruiter_invitations` |
 | Shared taxonomy | `qualifications`, `qualification_aliases` |
 | Jobs and training | `job_roles`, `job_requirements`, `training_providers`, `training_programs`, `training_program_outcomes` |
-| Applicant processing | `resumes`, `processing_jobs`, `applicant_qualifications`, `applicant_experience` |
+| Applicant processing | `resumes`, `processing_jobs`, `resume_extraction_findings`, `resume_extraction_finding_candidates`, `applicant_qualifications`, `applicant_experience` |
 | Results | `job_matches`, `match_gaps`, `candidate_consents` |
 | Interviews | `job_fairs`, `interview_slots`, `interview_invitations`, `interview_bookings` |
 
 ### Data ownership rules
 
-- Applicants can read and edit only their own profile, resumes, extracted qualifications, matches, gaps, consents, invitations, and bookings.
+- Applicants can read and edit only their own profile, resumes, extraction findings/options, confirmed qualifications, matches, gaps, consents, invitations, and bookings. Finding confirmation/rejection is owner-checked by a security-definer RPC; a browser role cannot write processor tables directly.
 - Approved company members can manage only their company's roles, requirements, job fairs, and slots.
 - Only approved company owners can invite, revoke, or remove recruiter access.
 - Company members can read anonymized matches and gap status for their company's roles. Qualification evidence, work-history details, identity, and signed CV URLs require active consent for that company and role.
@@ -285,18 +295,18 @@ Seed data is for demonstration and must be visibly labeled as curated demo data 
 ### Automated and integration checks
 
 - Unit-test matching weights, mandatory gates, top-three ordering, taxonomy aliasing, gap creation, training mappings, and slot-booking conflicts.
-- Test JSON-schema validation for malformed model outputs, unsupported qualifications, missing evidence, prompt-like instructions embedded in CV text or images, and oversized extraction output.
+- Test JSON-schema validation for malformed model outputs, unknown/duplicate/third candidate slugs, unsupported qualifications, missing evidence, prompt-like instructions embedded in CV images, and oversized extraction output. Verify semantic examples use taxonomy descriptions/context (house cleaning, catering, porter/materials handling, computer support, security, and teaching) while unsupported terms remain unmapped.
 - Test PDF-only, 15 MB, eight-page, and 20 MB rendered-image limits; page ordering; image-only prompt construction; strict vision provenance; retry behavior; duplicate webhooks; failed workers; unavailable vLLM; and temporary-file cleanup.
 - Test RLS as anonymous, applicant, company, admin, and service roles. Confirm a company cannot read another company's roles, any unconsented applicant PII, or arbitrary Storage objects.
 - Add end-to-end coverage for applicant upload-to-booking, company approval-to-candidate-view, and admin management flows.
 
 ### Manual acceptance checklist
 
-- Applicant: sign up, upload CV, see progress update, correct extracted data, receive three matches, inspect gaps and training, and book a valid slot.
+- Applicant: sign up, upload CV, see progress update, review one or two possible taxonomy translations, confirm or reject each finding, receive three matches, inspect gaps and training, and book a valid slot.
 - Extraction routing: confirm every valid PDF renders all pages and invokes Qwen vision once, regardless of whether the PDF contains selectable text.
 - Progression: confirm that upload, extraction, qualification confirmation, training-plan selection, and interview eligibility each produce a clear next-step message.
 - Company: request approval, become approved, publish a role, define mandatory and weighted requirements, create slots, and see only anonymized candidates before consent.
-- Admin: approve a company, create a qualification and training outcome, and confirm that a changed role recalculates matches.
+- Admin: approve a company, edit a qualification's description/category/active state and aliases, create a training outcome, and confirm that the next CV sees the updated taxonomy without a processor restart.
 - Privacy: verify that browser network calls never contain a service-role key; verify no CV, page image, prompt, response, or PII appears in Go/vLLM logs.
 - Reliability: restart the Go process during a queued job and confirm the job can be retried safely.
 

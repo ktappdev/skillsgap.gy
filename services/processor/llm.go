@@ -272,9 +272,7 @@ func validateExtraction(result extraction, taxonomy []taxonomyEntry) error {
 			}
 			seenCandidates[slug] = struct{}{}
 		}
-		switch qualification.EvidenceMethod {
-		case methodNative, methodOCR, methodVision:
-		default:
+		if qualification.EvidenceMethod != methodVision {
 			return errors.New("LLM output contains an unsupported evidence method")
 		}
 	}

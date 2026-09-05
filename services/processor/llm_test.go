@@ -50,6 +50,28 @@ func TestDecodeExtractionRejectsImpossibleExperience(t *testing.T) {
 	}
 }
 
+func TestDecodeExtractionRejectsDuplicateAndThirdCandidate(t *testing.T) {
+	tests := []string{
+		`{"findings":[{"original_term":"porter","candidate_slugs":["warehouse-operations","warehouse-operations"],"years_experience":2,"evidence":"Loaded stock","evidence_page":1,"evidence_method":"vision","confidence":0.8}],"employment":[],"unmapped_terms":[]}`,
+		`{"findings":[{"original_term":"porter","candidate_slugs":["domestic-services","mechanical-maintenance","warehouse-operations"],"years_experience":2,"evidence":"Loaded stock","evidence_page":1,"evidence_method":"vision","confidence":0.8}],"employment":[],"unmapped_terms":[]}`,
+	}
+	for _, value := range tests {
+		if _, err := decodeExtraction(value, testTaxonomy()); err == nil {
+			t.Fatal("expected candidate choices to be rejected")
+		}
+	}
+}
+
+func TestDecodeExtractionKeepsUnsupportedTermsUnmapped(t *testing.T) {
+	result, err := decodeExtraction(`{"findings":[],"employment":[],"unmapped_terms":["professional drinker"]}`, testTaxonomy())
+	if err != nil {
+		t.Fatalf("decode unmapped term: %v", err)
+	}
+	if len(result.Findings) != 0 || len(result.UnmappedTerms) != 1 || result.UnmappedTerms[0] != "professional drinker" {
+		t.Fatalf("result = %#v", result)
+	}
+}
+
 func TestVisionExtractionUsesPrivateDataURLAndStrictSchema(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if request.Header.Get("Authorization") != "Bearer secret" {

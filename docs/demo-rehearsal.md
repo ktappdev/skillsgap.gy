@@ -12,7 +12,7 @@ The fallback scenario is deliberately transparent: it uses the curated demo taxo
 
 ## Judge path
 
-1. Open `/login` and choose **Applicant demo**. Show the closest roles and the mechanical-work-to-offshore transfer.
+1. Open `/login` and choose **Applicant demo**. Show the closest roles and the mechanical-work-to-offshore transfer. If using a live CV, pause on **Possible transfers from your CV** and select one taxonomy translation before showing the score; explain that Qwen suggests and the applicant confirms.
 2. Open **Trainee Offshore Mechanical Technician**. Explain the deterministic score, BOSIET gate, hydraulic-maintenance gap, and local training route.
 3. Open `/interviews` and reserve a 15-minute slot. This confirms the invitation and grants the role-specific consent required by the database trigger.
 4. Sign out, choose **Company owner demo**, then open `/company/candidates`. Show that the candidate is anonymized before consent and visible only after the confirmed booking.
@@ -38,6 +38,12 @@ Run the automated private-stack gate (it never prints the API key):
 
 ```bash
 node --env-file=.env.local scripts/check-vision-only-readiness.mjs
+```
+
+After the findings migration is applied, verify the live taxonomy boundary and private finding tables:
+
+```bash
+node --env-file=.env.local scripts/check-taxonomy-guided-readiness.mjs
 ```
 
 The local page-rendering rehearsal is deterministic and does not call Thunder:
