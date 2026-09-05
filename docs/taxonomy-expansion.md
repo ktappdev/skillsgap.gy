@@ -50,6 +50,14 @@ alias such as “Mechanic” maps to a broad maintenance concept, so a company c
 still require the more specific diesel, hydraulic, electrical, or other skill
 when publishing a role.
 
+Checkpoint 38 adds practical wording for `House Cleaner`, `Chef`, `Porter`,
+`Warehouse Worker`, `Computer Technician`, and `Teacher`/`Instructor`/`Trainer`.
+`Security Guard` was already covered by the security alias set. A bare
+`Porter` is conservatively treated as accommodation/guest-service experience;
+applicant review can correct it when the context is cargo or warehouse work.
+Phrases such as `professional drinker` remain unmapped because they do not
+describe a verifiable occupation or work capability.
+
 ## Source and verification policy
 
 The catalogue expansion was checked against public Guyana sources on 2026-09-05:
