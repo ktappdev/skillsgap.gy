@@ -48,10 +48,12 @@ type CompanyMember = Timestamps & { company_id: string; role: CompanyMemberRole;
 type PlatformAdmin = { created_at: string; user_id: string };
 type Qualification = Timestamps & { category: RequirementKind; description: string | null; id: string; is_active: boolean; name: string; slug: string };
 type QualificationAlias = { alias: string; created_at: string; id: string; normalized_alias: string; qualification_id: string };
-type Occupation = Timestamps & { id: string; is_active: boolean; isco08_code: string; isco08_level: "unit" | "minor" | "sub_major" | "major"; role_family: string; slug: string; source_locator: string | null; source_summary: string; source_url: string; title: string; value_chain_stages: string[] };
+type Occupation = Timestamps & { id: string; industry_transfer_summary: string; is_active: boolean; isco08_code: string; isco08_level: "unit" | "minor" | "sub_major" | "major"; role_family: string; slug: string; source_locator: string | null; source_summary: string; source_url: string; title: string; value_chain_stages: string[] };
 type OccupationAlias = { alias: string; created_at: string; id: string; normalized_alias: string; occupation_id: string; source_locator: string | null; source_url: string };
 type LocalContentCategory = Timestamps & { id: string; is_active: boolean; name: string; slug: string; source_locator: string; source_url: string; target_percentage: number | null };
 type OccupationLocalContentCategory = { created_at: string; local_content_category_id: string; occupation_id: string; relevance_note: string };
+type CareerPreparationSubject = Timestamps & { id: string; is_active: boolean; last_verified_at: string; minimum_grade: string | null; occupation_id: string; guidance_note: string; source_locator: string; source_url: string; subject_name: string };
+type OccupationPathwayAction = Timestamps & { action_type: "learn" | "practice" | "register" | "find_work" | "guidance"; contact_text: string | null; id: string; instruction: string; is_active: boolean; is_verified: boolean; last_verified_at: string; location: string | null; occupation_id: string; organization_name: string; sort_order: number; source_locator: string; source_url: string; title: string; training_program_id: string | null; url: string; why_it_helps: string };
 type JobRole = Timestamps & { company_id: string; created_by: string | null; description: string; eligibility_threshold: number; employment_type: string | null; id: string; location: string; occupation_id: string | null; published_at: string | null; status: JobStatus; title: string };
 type JobRequirement = Timestamps & { id: string; job_role_id: string; kind: RequirementKind; mandatory: boolean; minimum_years: number | null; qualification_id: string; weight: number };
 type TrainingProvider = Timestamps & { contact_phone: string | null; contact_url: string | null; description: string | null; id: string; is_verified: boolean; location: string; name: string };
@@ -84,6 +86,8 @@ export type Database = {
       occupation_aliases: Table<OccupationAlias, InsertOf<OccupationAlias> & Pick<OccupationAlias, "occupation_id" | "alias" | "source_url">, Partial<OccupationAlias>>;
       local_content_categories: Table<LocalContentCategory, InsertOf<LocalContentCategory> & Pick<LocalContentCategory, "slug" | "name" | "source_url" | "source_locator">, Partial<LocalContentCategory>>;
       occupation_local_content_categories: Table<OccupationLocalContentCategory, InsertOf<OccupationLocalContentCategory> & Pick<OccupationLocalContentCategory, "occupation_id" | "local_content_category_id" | "relevance_note">, Partial<OccupationLocalContentCategory>>;
+      career_preparation_subjects: Table<CareerPreparationSubject, InsertOf<CareerPreparationSubject> & Pick<CareerPreparationSubject, "occupation_id" | "subject_name" | "guidance_note" | "source_url" | "source_locator" | "last_verified_at">, Partial<CareerPreparationSubject>>;
+      occupation_pathway_actions: Table<OccupationPathwayAction, InsertOf<OccupationPathwayAction> & Pick<OccupationPathwayAction, "occupation_id" | "action_type" | "title" | "instruction" | "why_it_helps" | "organization_name" | "url" | "source_url" | "source_locator" | "last_verified_at">, Partial<OccupationPathwayAction>>;
       job_roles: Table<JobRole, InsertOf<JobRole> & Pick<JobRole, "company_id" | "title">, Partial<JobRole>>;
       job_requirements: Table<JobRequirement, InsertOf<JobRequirement> & Pick<JobRequirement, "job_role_id" | "qualification_id" | "kind">, Partial<JobRequirement>>;
       training_providers: Table<TrainingProvider, InsertOf<TrainingProvider> & Pick<TrainingProvider, "name" | "location">, Partial<TrainingProvider>>;
@@ -113,7 +117,8 @@ export type Database = {
         Args: { processing_job_id: string; safe_error_message: string; terminal_failure?: boolean };
         Returns: undefined;
       };
-      get_public_occupations: { Args: Record<string, never>; Returns: Array<{ id: string; slug: string; title: string; isco08_code: string; isco08_level: "unit" | "minor" | "sub_major" | "major"; role_family: string; value_chain_stages: string[]; source_summary: string; source_url: string; source_locator: string | null; local_content_categories: string[]; example_titles: string[] }> };
+      get_public_occupations: { Args: Record<string, never>; Returns: Array<{ id: string; slug: string; title: string; isco08_code: string; isco08_level: "unit" | "minor" | "sub_major" | "major"; role_family: string; value_chain_stages: string[]; source_summary: string; source_url: string; source_locator: string | null; local_content_categories: string[]; example_titles: string[]; industry_transfer_summary: string }> };
+      get_public_occupation_pathway: { Args: { occupation_slug: string }; Returns: Array<{ id: string; slug: string; title: string; isco08_code: string; isco08_level: "unit" | "minor" | "sub_major" | "major"; role_family: string; value_chain_stages: string[]; source_summary: string; source_url: string; source_locator: string | null; local_content_categories: string[]; example_titles: string[]; industry_transfer_summary: string; preparation_subjects: Json; actions: Json }> };
     };
     Enums: {
       company_status: CompanyStatus;

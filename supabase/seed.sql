@@ -356,3 +356,110 @@ from (
 join public.occupations occupation on occupation.slug = mapping.occupation_slug
 join public.local_content_categories category on category.slug = mapping.category_slug
 on conflict (occupation_id, local_content_category_id) do update set relevance_note = excluded.relevance_note;
+
+-- Actionable occupation guidance. These are official starting points to
+-- investigate, not guaranteed course places or vacancies. Keep the source
+-- and review date visible so an administrator can refresh them.
+with guidance(slug, transfer_summary, subjects, role_phrase, learn_provider, learn_location, learn_url, learn_locator) as (
+  values
+    ('engineering-professionals', 'Engineering study can transfer into design, reliability, measurement, facilities, and project support for Guyana''s petroleum value chain.', '{Mathematics,Physics,"Technical Drawing"}', 'engineering fundamentals', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Institute website'),
+    ('mineral-processing-plant-operators', 'Plant and mineral-processing experience can transfer into safe equipment operation, production checks, and process discipline around industrial and petroleum facilities.', '{Mathematics,"Integrated Science","Technical Drawing"}', 'plant operations and process safety', 'Board of Industrial Training', 'Guyana', 'https://srms.bit.gov.gy/', 'Skills training and registration portal'),
+    ('sheet-structural-metal-workers-and-welders', 'Metalwork and welding can transfer into fabrication, pipe work, maintenance, and construction support where safe, documented quality matters.', '{Mathematics,"Technical Drawing","Integrated Science"}', 'welding and fabrication', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Institute website'),
+    ('ships-deck-crews', 'Deck work can transfer into marine logistics, cargo handling, vessel support, and offshore movement where safety and documented sea-readiness matter.', '{Mathematics,"English A","Physical Education"}', 'marine safety and deck operations', '3t Global Guyana', 'Lusignan, Guyana', 'https://www.3tglobal.com/about/our-locations/guyana/', 'Guyana training centre'),
+    ('machinery-mechanics-and-repairers', 'Vehicle, generator, and machinery repair can transfer into mechanical maintenance, troubleshooting, and equipment reliability across onshore and offshore support.', '{Mathematics,"Integrated Science","Technical Drawing"}', 'mechanical maintenance and hydraulics', 'EnerMech training', 'Guyana and regional centres', 'https://enermech.com/training', 'Training course families'),
+    ('heavy-truck-and-bus-drivers', 'Heavy-vehicle driving can transfer into trucking, personnel movement, materials logistics, and disciplined transport support for industrial sites.', '{Mathematics,"English A","Information Technology"}', 'commercial driving and transport safety', 'Board of Industrial Training', 'Guyana', 'https://srms.bit.gov.gy/', 'Skills training and registration portal'),
+    ('ship-and-aircraft-controllers-and-technicians', 'Transport control or technical experience can transfer into marine, aviation, asset-control, and safety-critical support where precise procedures matter.', '{Mathematics,Physics,"English A"}', 'transport systems and safety procedures', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Institute website'),
+    ('finance-professionals', 'Finance experience can transfer into cost control, procurement, accounting, supplier administration, and compliance support for Guyana''s petroleum supply chain.', '{Mathematics,"English A","Information Technology"}', 'accounting, procurement, and cost control', 'Ministry of Education TVET', 'Guyana', 'https://education.gov.gy/web2/index.php/students-resources/technical-vocational-education', 'Technical and vocational education resources'),
+    ('physical-and-engineering-science-technicians', 'Science and technical practice can transfer into equipment checks, measurement, field support, laboratory work, and production operations.', '{Mathematics,Physics,Chemistry}', 'technical operations and measurement', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Institute website'),
+    ('process-control-technicians', 'Controls and instrumentation experience can transfer into monitoring, measurement, alarms, and safe process operations in industrial facilities.', '{Mathematics,Physics,"Information Technology"}', 'instrumentation and control systems', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Institute website'),
+    ('administration-professionals', 'Administration experience can transfer into materials, personnel, document, procurement, and facilities coordination for contractors and operating companies.', '{"English A",Mathematics,"Information Technology"}', 'administration, logistics, and records', 'Ministry of Education TVET', 'Guyana', 'https://education.gov.gy/web2/index.php/students-resources/technical-vocational-education', 'Technical and vocational education resources'),
+    ('other-health-professionals', 'Health experience can transfer into occupational health, site wellness, emergency response, and worker-support services where confidentiality and safety practice matter.', '{Biology,"English A",Chemistry}', 'occupational health and emergency response', 'Ministry of Education TVET', 'Guyana', 'https://education.gov.gy/web2/index.php/students-resources/technical-vocational-education', 'Technical and vocational education resources'),
+    ('architects-planners-surveyors-and-designers', 'Design, planning, and surveying can transfer into site preparation, project documentation, measurements, and facilities work across the petroleum value chain.', '{Mathematics,"Technical Drawing","Information Technology"}', 'surveying and project documentation', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Institute website'),
+    ('mining-and-construction-labourers', 'Construction and site work can transfer into civil works, structural support, equipment assistance, and safe industrial site preparation.', '{Mathematics,"Integrated Science","Technical Drawing"}', 'construction safety and site skills', 'Board of Industrial Training', 'Guyana', 'https://srms.bit.gov.gy/', 'Skills training and registration portal'),
+    ('painters-and-building-cleaners', 'Painting, cleaning, and facilities work can transfer into industrial cleaning, surface preparation, coatings, accommodation, and safe site support.', '{Mathematics,"Integrated Science","English A"}', 'industrial cleaning and surface preparation', 'Board of Industrial Training', 'Guyana', 'https://srms.bit.gov.gy/', 'Skills training and registration portal'),
+    ('shop-salespersons', 'Customer service and sales can transfer into supply counters, parts support, procurement coordination, and commercial services serving industrial companies.', '{Mathematics,"English A","Information Technology"}', 'commercial, stock, and customer support', 'Ministry of Education TVET', 'Guyana', 'https://education.gov.gy/web2/index.php/students-resources/technical-vocational-education', 'Technical and vocational education resources'),
+    ('cooks', 'Cooking experience can transfer into catering, food supply, camp hospitality, hygiene, and disciplined service for worksites and marine operations.', '{"English A",Mathematics,"Integrated Science"}', 'food safety and industrial catering', 'Board of Industrial Training', 'Guyana', 'https://srms.bit.gov.gy/', 'Skills training and registration portal'),
+    ('environmental-and-occupational-health-professionals', 'Environmental, health, and hygiene experience can transfer into HSE support, environmental monitoring, occupational health, and compliance work around petroleum operations.', '{Biology,Chemistry,"English A"}', 'HSE, environmental, and occupational health', 'EnerMech training', 'Guyana and regional centres', 'https://enermech.com/training', 'Training course families')
+), updated as (
+  update public.occupations occupation
+  set industry_transfer_summary = guidance.transfer_summary, updated_at = timezone('utc', now())
+  from guidance
+  where occupation.slug = guidance.slug
+  returning occupation.id, occupation.slug
+)
+insert into public.career_preparation_subjects (occupation_id, subject_name, guidance_note, minimum_grade, source_url, source_locator, last_verified_at, is_active)
+select updated.id, subject_name, concat('A useful foundation for ', guidance.role_phrase, ' work. Ask a provider how it connects to current training.'), null, 'https://education.gov.gy/web2/index.php/students-resources/technical-vocational-education', 'Technical and vocational education resources', date '2026-09-05', true
+from updated
+join guidance on guidance.slug = updated.slug
+cross join lateral unnest(guidance.subjects) as subject_name
+on conflict (occupation_id, subject_name) do update set
+  guidance_note = excluded.guidance_note,
+  source_url = excluded.source_url,
+  source_locator = excluded.source_locator,
+  last_verified_at = excluded.last_verified_at,
+  is_active = true,
+  updated_at = timezone('utc', now());
+
+with guidance(slug, role_phrase, learn_provider, learn_location, learn_url, learn_locator) as (
+  values
+    ('engineering-professionals', 'engineering fundamentals', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Institute website'),
+    ('mineral-processing-plant-operators', 'plant operations and process safety', 'Board of Industrial Training', 'Guyana', 'https://srms.bit.gov.gy/', 'Skills training and registration portal'),
+    ('sheet-structural-metal-workers-and-welders', 'welding and fabrication', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Institute website'),
+    ('ships-deck-crews', 'marine safety and deck operations', '3t Global Guyana', 'Lusignan, Guyana', 'https://www.3tglobal.com/about/our-locations/guyana/', 'Guyana training centre'),
+    ('machinery-mechanics-and-repairers', 'mechanical maintenance and hydraulics', 'EnerMech training', 'Guyana and regional centres', 'https://enermech.com/training', 'Training course families'),
+    ('heavy-truck-and-bus-drivers', 'commercial driving and transport safety', 'Board of Industrial Training', 'Guyana', 'https://srms.bit.gov.gy/', 'Skills training and registration portal'),
+    ('ship-and-aircraft-controllers-and-technicians', 'transport systems and safety procedures', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Institute website'),
+    ('finance-professionals', 'accounting, procurement, and cost control', 'Ministry of Education TVET', 'Guyana', 'https://education.gov.gy/web2/index.php/students-resources/technical-vocational-education', 'Technical and vocational education resources'),
+    ('physical-and-engineering-science-technicians', 'technical operations and measurement', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Institute website'),
+    ('process-control-technicians', 'instrumentation and control systems', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Institute website'),
+    ('administration-professionals', 'administration, logistics, and records', 'Ministry of Education TVET', 'Guyana', 'https://education.gov.gy/web2/index.php/students-resources/technical-vocational-education', 'Technical and vocational education resources'),
+    ('other-health-professionals', 'occupational health and emergency response', 'Ministry of Education TVET', 'Guyana', 'https://education.gov.gy/web2/index.php/students-resources/technical-vocational-education', 'Technical and vocational education resources'),
+    ('architects-planners-surveyors-and-designers', 'surveying and project documentation', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Institute website'),
+    ('mining-and-construction-labourers', 'construction safety and site skills', 'Board of Industrial Training', 'Guyana', 'https://srms.bit.gov.gy/', 'Skills training and registration portal'),
+    ('painters-and-building-cleaners', 'industrial cleaning and surface preparation', 'Board of Industrial Training', 'Guyana', 'https://srms.bit.gov.gy/', 'Skills training and registration portal'),
+    ('shop-salespersons', 'commercial, stock, and customer support', 'Ministry of Education TVET', 'Guyana', 'https://education.gov.gy/web2/index.php/students-resources/technical-vocational-education', 'Technical and vocational education resources'),
+    ('cooks', 'food safety and industrial catering', 'Board of Industrial Training', 'Guyana', 'https://srms.bit.gov.gy/', 'Skills training and registration portal'),
+    ('environmental-and-occupational-health-professionals', 'HSE, environmental, and occupational health', 'EnerMech training', 'Guyana and regional centres', 'https://enermech.com/training', 'Training course families')
+), updated as (
+  select occupation.id, guidance.role_phrase, guidance.learn_provider, guidance.learn_location, guidance.learn_url, guidance.learn_locator
+  from guidance
+  join public.occupations occupation on occupation.slug = guidance.slug
+)
+insert into public.occupation_pathway_actions (
+  occupation_id, action_type, title, instruction, why_it_helps, organization_name, location, contact_text, url, source_url, source_locator, last_verified_at, is_verified, is_active, sort_order
+)
+select updated.id, 'learn', concat('Ask about training for ', updated.role_phrase), concat('Use the official ', updated.learn_provider, ' link to ask about current intake, entry requirements, costs, and training that builds ', updated.role_phrase, '.'), 'A recognised learning route gives you safer foundations and evidence to discuss with an employer.', updated.learn_provider, updated.learn_location, null, updated.learn_url, updated.learn_url, updated.learn_locator, date '2026-09-05', true, true, 1
+from updated
+on conflict (occupation_id, action_type) do update set
+  title = excluded.title, instruction = excluded.instruction, why_it_helps = excluded.why_it_helps,
+  organization_name = excluded.organization_name, location = excluded.location, url = excluded.url,
+  source_url = excluded.source_url, source_locator = excluded.source_locator, last_verified_at = excluded.last_verified_at,
+  is_verified = true, is_active = true, updated_at = timezone('utc', now());
+
+with practice(slug, role_phrase) as (
+  values
+    ('engineering-professionals', 'engineering'), ('mineral-processing-plant-operators', 'plant operations'), ('sheet-structural-metal-workers-and-welders', 'fabrication'), ('ships-deck-crews', 'marine operations'), ('machinery-mechanics-and-repairers', 'mechanical maintenance'), ('heavy-truck-and-bus-drivers', 'transport'), ('ship-and-aircraft-controllers-and-technicians', 'transport technical'), ('finance-professionals', 'commercial support'), ('physical-and-engineering-science-technicians', 'technical operations'), ('process-control-technicians', 'controls and instrumentation'), ('administration-professionals', 'administrative and logistics'), ('other-health-professionals', 'health support'), ('architects-planners-surveyors-and-designers', 'surveying and design'), ('mining-and-construction-labourers', 'construction'), ('painters-and-building-cleaners', 'facilities support'), ('shop-salespersons', 'commercial support'), ('cooks', 'catering'), ('environmental-and-occupational-health-professionals', 'HSE and environmental')
+)
+insert into public.occupation_pathway_actions (
+  occupation_id, action_type, title, instruction, why_it_helps, organization_name, location, contact_text, url, source_url, source_locator, last_verified_at, is_verified, is_active, sort_order
+)
+select occupation.id, 'practice', concat('Find supervised ', practice.role_phrase, ' experience'), concat('Search the National Job Bank for trainee, assistant, or supervised ', practice.role_phrase, ' opportunities. Keep a record of the tasks you complete and the feedback you receive.'), 'Supervised practice turns learning into work evidence without claiming that school results are a professional qualification.', 'Guyana National Job Bank', 'Guyana', null, 'https://jobs.gov.gy/', 'https://jobs.gov.gy/', 'Job seeker registration and search', date '2026-09-05', true, true, 2
+from practice
+join public.occupations occupation on occupation.slug = practice.slug
+on conflict (occupation_id, action_type) do update set
+  title = excluded.title, instruction = excluded.instruction, why_it_helps = excluded.why_it_helps,
+  organization_name = excluded.organization_name, location = excluded.location, url = excluded.url,
+  source_url = excluded.source_url, source_locator = excluded.source_locator, last_verified_at = excluded.last_verified_at,
+  is_verified = true, is_active = true, updated_at = timezone('utc', now());
+
+insert into public.occupation_pathway_actions (
+  occupation_id, action_type, title, instruction, why_it_helps, organization_name, location, contact_text, url, source_url, source_locator, last_verified_at, is_verified, is_active, sort_order
+)
+select occupation.id, 'register', 'Prepare your local-content profile', 'Review the Local Content Secretariat employment registration route and confirm which information is needed before submitting anything.', 'Registration can help you be visible in the local-content ecosystem, but it is not a job offer or eligibility decision.', 'Local Content Secretariat', 'Guyana', null, 'https://lcregister.petroleum.gov.gy/main/', 'https://lcregister.petroleum.gov.gy/main/', 'Supplier and employment registration', date '2026-09-05', true, true, 3
+from public.occupations occupation
+where occupation.is_active
+on conflict (occupation_id, action_type) do update set
+  title = excluded.title, instruction = excluded.instruction, why_it_helps = excluded.why_it_helps,
+  organization_name = excluded.organization_name, location = excluded.location, url = excluded.url,
+  source_url = excluded.source_url, source_locator = excluded.source_locator, last_verified_at = excluded.last_verified_at,
+  is_verified = true, is_active = true, updated_at = timezone('utc', now());
