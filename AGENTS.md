@@ -71,7 +71,7 @@ node --env-file=.env.local scripts/check-demo-readiness.mjs
 - Supabase Auth uses `https://skillsgap.gy` as its site URL. Its allow-list includes the canonical hostname, localhost URLs, and the current verified preview URL; add a newly created preview URL before testing an OAuth-style redirect there.
 - Keep `NEXT_PUBLIC_SITE_URL=https://skillsgap.gy` in Vercel Preview and Production. Keep local `.env.local` local-only; never run a command that overwrites it without a backup.
 - Keep the CV upload path direct from the browser to private Supabase Storage. Vercel serves the application; it must not proxy CV bytes, OCR, Qwen, or the Go processor.
-- Thunder Compute hosts the private processing stack: Go on `0.0.0.0:8080` via Thunder HTTPS forwarding, PP-Structure OCR on `127.0.0.1:8090`, and Qwen on `127.0.0.1:8000`. Do not add Caddy for this MVP and never forward ports `8000` or `8090`.
+- Thunder Compute hosts the private processing stack: Go on `0.0.0.0:8080` via Thunder HTTPS forwarding and Qwen on `127.0.0.1:8000`. The active MVP does not require PP-Structure OCR; keep port `8090` unbound and never forward ports `8000` or `8090`. Do not add Caddy.
 
 ## Commit checkpoints
 
@@ -82,12 +82,12 @@ node --env-file=.env.local scripts/check-demo-readiness.mjs
 - Review the staged file list and run the relevant checks before pushing each checkpoint.
 - Never commit `.env.local`, credentials, or other secrets. If a corrective follow-up is required, continue the sequence and state the concrete fix.
 
-## Thunder Qwen3.6 hybrid extraction
+## Thunder Qwen3.6 vision-only extraction
 
 - The Thunder vLLM endpoint is configured only in the local, ignored `.env.local` file through `VLLM_URL`, `VLLM_MODEL`, and `VLLM_API_KEY`. The chosen model is Qwen3.6-35B-A3B with vision support.
 - The API key is a bearer secret: never commit it, print it, paste it into issues, or include it in logs. Rotate it after testing or the hackathon.
 - Model discovery can be checked without exposing the key: `set -a; . ./.env.local; set +a; curl --fail --silent --show-error --max-time 30 "$VLLM_URL/models" -H "Authorization: Bearer $VLLM_API_KEY" | jq '{data: [.data[] | {id, object, owned_by}], object}'`.
-- Keep native PDF text as the fast path. Use PP-Structure OCR for unreadable documents, then use Qwen vision only to verify uncertain OCR pages, tables, or difficult layouts. The model extracts evidence-backed facts only; PostgreSQL calculates matches and applicant confirmation remains the eligibility gate.
+- Render every validated PDF page locally and send an instruction prompt plus ordered page images to Qwen vision. Do not send native PDF text or OCR text in the active MVP path. The model extracts evidence-backed facts only; PostgreSQL calculates matches and applicant confirmation remains the eligibility gate.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -20,7 +20,14 @@ The fallback scenario is deliberately transparent: it uses the curated demo taxo
 
 ## Live-processing add-on
 
-Once Thunder is healthy, use a synthetic CV from `services/processor/testdata/generated/`. Show the applicant upload → processing → evidence-backed review cards → confirmation flow. If Thunder is unavailable, return to the prepared fallback account and say plainly that the live inference demonstration is unavailable while the product’s deterministic, privacy-gated workflow remains live.
+Once Thunder is healthy, verify the Qwen model identifier and synthetic image/strict-JSON gate, then use a synthetic CV from `services/processor/testdata/generated/`. Every PDF page is rendered and sent to Qwen vision with the extraction prompt; show the applicant upload → processing → evidence-backed review cards → confirmation flow and point out the `vision` evidence method. OCR is not required for this path. If Thunder or Qwen is unavailable, return to the prepared fallback account and say plainly that the live inference demonstration is unavailable while the product’s deterministic, privacy-gated workflow remains live.
+
+Before uploading the fixture, confirm:
+
+- Go `/healthz` returns `{"status":"ok"}`.
+- Qwen `/v1/models` reports the exact `VLLM_MODEL` configured for the processor.
+- A synthetic page image is accepted with strict JSON output.
+- The active processor environment does not require `OCR_SERVICE_SECRET`.
 
 ## Quick recovery
 

@@ -59,6 +59,13 @@ func TestVisionExtractionUsesPrivateDataURLAndStrictSchema(t *testing.T) {
 		if payload.ResponseFormat.Type != "json_schema" || len(payload.Messages) != 2 {
 			t.Fatalf("payload = %#v", payload)
 		}
+		var instructions string
+		if err := json.Unmarshal(payload.Messages[0].Content, &instructions); err != nil {
+			t.Fatalf("decode instructions: %v", err)
+		}
+		if !strings.Contains(instructions, "untrusted evidence") || !strings.Contains(instructions, `evidence_method must be "vision"`) {
+			t.Fatalf("instructions = %s", instructions)
+		}
 		content := string(payload.Messages[1].Content)
 		if !strings.Contains(content, `"type":"image_url"`) || !strings.Contains(content, "data:image/jpeg;base64,aW1hZ2U=") || strings.Contains(content, "Page 1 text") {
 			t.Fatalf("vision content = %s", content)

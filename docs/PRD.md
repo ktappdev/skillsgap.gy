@@ -1,9 +1,9 @@
 # SkillsGap.gy Product Requirements Document
 
-**Version:** 1.2
+**Version:** 1.3
 **Build target:** 72-hour hackathon MVP
 **Product loop:** skills → opportunities → gaps → training → interview
-**Extraction decision:** Qwen3.6-35B-A3B for text and selective vision verification, with PP-StructureV3 as the OCR/layout fallback
+**Extraction decision:** Qwen3.6-35B-A3B vision-only extraction from locally rendered PDF pages
 
 ## 1. Product Summary
 
@@ -23,7 +23,7 @@ The MVP must demonstrate one complete outcome: a worker uploads a CV, receives t
 
 - Applicant, company, and super-admin workflows.
 - Private PDF CV uploads and asynchronous processing.
-- Native PDF text extraction, PP-StructureV3 OCR/layout fallback, selective local vision verification, and deterministic matching.
+- Private PDF page rendering, Qwen vision extraction, and deterministic matching.
 - Curated Guyana-focused demonstration data plus admin CRUD.
 - In-app interview invitations and 15-minute slot booking.
 
@@ -102,23 +102,22 @@ Use plain progress language such as `You are closer to Offshore Mechanical Techn
 - A database webhook sends only the processing-job identifier to the Go API. It must return HTTP `202` quickly.
 - The Go worker claims jobs atomically, retries transient failures up to three times, and records a safe failure message if processing cannot finish.
 - A claim older than 15 minutes is recoverable by the poller, which prevents a crashed worker from leaving a job stuck forever; the worker itself times out after 10 minutes.
-- The worker preserves page boundaries while attempting native PDF text extraction and applies deterministic quality checks for short, garbled, repetitive, or non-alphabetic output.
-- When a page's native text is unusable, the worker calls PP-StructureV3 to recover ordered Markdown/page text.
-- Qwen3.6-35B-A3B receives ordered text for the fast path. The worker selectively adds locally rendered page images when OCR is unusable, layout or table structure is risky, or the text-only extraction cannot produce adequately supported facts.
-- A vision pass returns one complete replacement extraction. The worker never merges competing model outputs blindly, and a failed optional verification may fall back only to a schema-valid text extraction that remains pending applicant review.
-- Processing rejects PDFs larger than 15 MB or eight pages, extracted text beyond 100,000 characters, and rendered vision payloads beyond 20 MB. It never scores a truncated CV.
-- OCR and raw CV text never appear in application logs. Temporary CV files are stored on the Thunder instance's ephemeral scratch path and deleted immediately after processing.
+- The worker validates PDF structure and page count with `pdfinfo`, then renders every page locally at 144 DPI.
+- Qwen3.6-35B-A3B receives an instruction prompt plus the ordered page images. The prompt is part of every request; native PDF text and OCR text are not sent to the model.
+- One vision request returns one complete replacement extraction. The worker never merges competing model outputs, and there is no OCR or text-extraction fallback in the active MVP path.
+- Processing rejects PDFs larger than 15 MB or eight pages and rendered vision payloads beyond 20 MB. It never scores a truncated CV.
+- Raw CV text, page images, prompts, and model responses never appear in application logs. Temporary CV files and rendered images are stored on the Thunder instance's ephemeral scratch path and deleted immediately after processing.
 
 ### Profile extraction and correction
 
-Qwen3.6-35B-A3B, served through vLLM, receives cleaned document text and, only when required, private page images. It returns strict JSON and must not calculate scores, decide eligibility, or invent qualifications.
+Qwen3.6-35B-A3B, served through vLLM, receives only a bounded extraction prompt and private rendered page images. It returns strict JSON and must not calculate scores, decide eligibility, or invent qualifications.
 
 The model boundary is deliberately narrow:
 
-- PP-StructureV3 is responsible for OCR, reading order, and layout reconstruction; it does not decide what a person's experience means.
+- The Go renderer is responsible for PDF validation, page order, and image-size limits; Qwen interprets the page images but does not decide what a person's experience means.
 - The LLM extracts the worker's original wording, work history, qualifications, certifications, education, page evidence, and confidence. For each possible qualification it preserves the original term (for example, `Minibus diesel repair`) beside a canonical candidate (for example, `Mechanical Maintenance`); PostgreSQL accepts it only when that candidate or an approved alias resolves through the taxonomy.
 - PostgreSQL is the single source of truth for canonical qualification mapping, weighted matching, mandatory gates, thresholds, and interview eligibility. Go only orchestrates extraction and submits validated facts.
-- Any CV text is untrusted data. The extraction prompt must instruct the LLM to ignore instructions found inside the document and to report missing evidence rather than infer a fact. Terms that do not resolve safely are bounded, stored only in the applicant's processing summary, and never reach matching or company views.
+- Every visible word in a CV image is untrusted data. The extraction prompt must instruct the LLM to ignore instructions found inside the document and to report missing evidence rather than infer a fact. Terms that do not resolve safely are bounded, stored only in the applicant's processing summary, and never reach matching or company views.
 
 ### Model-selection gate
 
@@ -127,11 +126,10 @@ The processor keeps the served model name configurable through `VLLM_MODEL`. It 
 | Gate | Pass condition | If it fails |
 | --- | --- | --- |
 | Model discovery | `GET /v1/models` reports the configured Qwen3.6-35B-A3B identifier. | Do not process live CVs until `VLLM_MODEL` agrees with the served model. |
-| Structured text smoke test | A non-sensitive text prompt returns schema-valid extraction JSON. | Do not process live CVs; inspect the vLLM request and response format. |
-| Vision smoke test | A synthetic page image is accepted through the OpenAI-compatible image request and returns schema-valid JSON. | Keep jobs queued and fix the multimodal serving configuration before processing scans. |
+| Vision smoke test | A synthetic page image plus the production-style instruction prompt is accepted through the OpenAI-compatible image request and returns schema-valid JSON. | Keep jobs queued and fix the multimodal serving configuration before processing CVs. |
 | Representative CV benchmark | Clean, scanned, mixed, two-column, and table-heavy fixtures meet the demo latency and accuracy bar without unsafe GPU memory pressure. | Use the prepared processed applicant while the private pipeline is repaired. |
 
-The working path is hybrid: clean native text stays text-only; unreadable pages use PP-StructureV3; only uncertain pages are rendered for Qwen vision.
+The working path is image-only: every validated PDF page is rendered and sent to Qwen vision in one ordered request. PP-StructureV3 remains documented as a dormant rollback option, not an active dependency.
 
 The extraction response contains:
 
@@ -179,16 +177,16 @@ The applicant can edit or remove extracted records and add qualifications. Every
 Next.js on Vercel
   └─ Supabase Auth, PostgreSQL, private Storage, Realtime
        └─ Database webhook → Thunder Go API :8080
-            ├─ OCR service :8090 (localhost only)
+            ├─ PDF validation and rendering (private Go process)
             ├─ vLLM / Qwen3.6-35B-A3B :8000 (localhost only)
             └─ Supabase service APIs
 ```
 
-Thunder port forwarding exposes only Go port `8080` using the generated HTTPS URL. The OCR and vLLM ports remain private. Services run under systemd, matching the existing Thunder runbooks:
+Thunder port forwarding exposes only Go port `8080` using the generated HTTPS URL. The vLLM port remains private, and the dormant OCR port stays unforwarded. Services run under systemd, matching the existing Thunder runbooks:
 
 - [Go API runbook](thundercompute/01-go-backend.md)
 - [vLLM runbook](thundercompute/02-qwen3.6-35b-vllm.md)
-- [OCR runbook](thundercompute/03-pp-structure-v3-ocr.md)
+- [OCR rollback runbook](thundercompute/03-pp-structure-v3-ocr.md)
 
 ### External Go API
 
@@ -203,10 +201,9 @@ The webhook never contains CV bytes. The Go worker retrieves the job and CV from
 
 | Service | Address | Contract |
 | --- | --- | --- |
-| PP-StructureV3 | `http://127.0.0.1:8090/parse` | Authenticated PDF input; returns ordered page text. |
-| vLLM | `http://127.0.0.1:8000/v1/chat/completions` | Local API-key-protected Qwen request using text and optional base64 page images. |
+| vLLM | `http://127.0.0.1:8000/v1/chat/completions` | Local API-key-protected Qwen request using the extraction prompt and ordered base64 page images. |
 
-Run one resume at a time until Qwen latency and GPU memory use are measured. Keep Qwen resident on the RTX 6000-class GPU and start PP-StructureV3 on CPU so the services do not compete for VRAM.
+Run one resume at a time until Qwen latency and GPU memory use are measured. Keep Qwen resident on the RTX 6000-class GPU. No OCR process is required for the active MVP deployment.
 
 Vercel hosts only the Next.js application. CV bytes upload directly from the browser to private Supabase Storage. Cloudflare remains authoritative for `skillsgap.gy` DNS, using the exact record Vercel reports; Thunder HTTPS forwarding exposes only Go port `8080`, so the MVP does not use Caddy.
 
@@ -247,7 +244,7 @@ Vercel hosts only the Next.js application. CV bytes upload directly from the bro
 
 - The current CV is private. A new upload becomes the current CV; older uploads remain owner-visible only and must be archived or removed during operator maintenance rather than exposed to companies.
 - Preserve only the minimum booking record required to show a confirmed interview after the CV is removed.
-- Do not persist raw OCR output beyond the processing job. Store structured facts, evidence snippets, and applicant corrections instead.
+- Do not persist raw rendered page images beyond the processing job. Store structured facts, evidence snippets, and applicant corrections instead.
 - Do not place names, email addresses, phone numbers, raw CV text, model prompts, or model responses in logs.
 
 ## 6. Seed Data
@@ -271,9 +268,9 @@ Seed data is for demonstration and must be visibly labeled as curated demo data 
 
 ### Day 2 — applicant intelligence loop
 
-- Implement the Go worker, job claiming, page-aware native extraction, OCR fallback, selective vision verification, structured extraction, and validation.
+- Implement the Go worker, job claiming, PDF validation/rendering, vision extraction, structured validation, and deterministic matching.
 - Build applicant upload, processing state, editable profile, matching, gaps, and training roadmap views.
-- Exercise four representative fixtures through the full pipeline: a clean single-column PDF, a scanned PDF, a two-column PDF, and a table-heavy PDF. Record whether each uses native text or OCR text, along with latency and peak GPU memory.
+- Exercise representative clean, scanned, mixed, two-column, and table-heavy fixtures through the full vision pipeline. Record page count, render size, latency, and peak GPU memory.
 
 ### Day 3 — company, interview, and demo readiness
 
@@ -287,18 +284,18 @@ Seed data is for demonstration and must be visibly labeled as curated demo data 
 
 - Unit-test matching weights, mandatory gates, top-three ordering, taxonomy aliasing, gap creation, training mappings, and slot-booking conflicts.
 - Test JSON-schema validation for malformed model outputs, unsupported qualifications, missing evidence, prompt-like instructions embedded in CV text or images, and oversized extraction output.
-- Test PDF-only, 15 MB, eight-page, 100,000-character, and 20 MB rendered-image limits; OCR/vision routing; retry behavior; duplicate webhooks; failed workers; unavailable OCR/vLLM; and temporary-file cleanup.
+- Test PDF-only, 15 MB, eight-page, and 20 MB rendered-image limits; page ordering; image-only prompt construction; strict vision provenance; retry behavior; duplicate webhooks; failed workers; unavailable vLLM; and temporary-file cleanup.
 - Test RLS as anonymous, applicant, company, admin, and service roles. Confirm a company cannot read another company's roles, any unconsented applicant PII, or arbitrary Storage objects.
 - Add end-to-end coverage for applicant upload-to-booking, company approval-to-candidate-view, and admin management flows.
 
 ### Manual acceptance checklist
 
 - Applicant: sign up, upload CV, see progress update, correct extracted data, receive three matches, inspect gaps and training, and book a valid slot.
-- Extraction routing: confirm a clean PDF uses native text and a scan invokes PP-StructureV3.
+- Extraction routing: confirm every valid PDF renders all pages and invokes Qwen vision once, regardless of whether the PDF contains selectable text.
 - Progression: confirm that upload, extraction, qualification confirmation, training-plan selection, and interview eligibility each produce a clear next-step message.
 - Company: request approval, become approved, publish a role, define mandatory and weighted requirements, create slots, and see only anonymized candidates before consent.
 - Admin: approve a company, create a qualification and training outcome, and confirm that a changed role recalculates matches.
-- Privacy: verify that browser network calls never contain a service-role key; verify no CV or PII appears in Go/OCR/vLLM logs.
+- Privacy: verify that browser network calls never contain a service-role key; verify no CV, page image, prompt, response, or PII appears in Go/vLLM logs.
 - Reliability: restart the Go process during a queued job and confirm the job can be retried safely.
 
 ## 9. Demo Script and Operations
@@ -317,8 +314,8 @@ The executable rehearsal, fallback setup, and recovery steps are in [`docs/demo-
 
 ### Health checklist before presentation
 
-- Thunder vLLM (Qwen3.6-35B-A3B), OCR, and Go systemd services are active.
-- `GET /healthz`, OCR health, vLLM model discovery, structured text, and synthetic image smoke tests succeed locally.
+- Thunder vLLM (Qwen3.6-35B-A3B) and the Go systemd service are active; OCR remains stopped unless rollback is intentionally enabled.
+- `GET /healthz`, vLLM model discovery, the production-style vision prompt, and synthetic image smoke tests succeed locally.
 - Thunder HTTPS forwarding reaches only the Go health endpoint.
 - Supabase Realtime is enabled for processing jobs and match/invitation updates.
 - The fallback applicant account has completed matches and an available slot.
@@ -328,10 +325,9 @@ The executable rehearsal, fallback setup, and recovery steps are in [`docs/demo-
 
 | Risk | Mitigation |
 | --- | --- |
-| OCR or vLLM fails during demo | Use the prepared processed applicant account; show health status and continue with live product data. |
+| Qwen fails during demo | Use the prepared processed applicant account; show health status and continue with live product data. |
 | LLM endpoint is unavailable or unstable | Use the prepared processed applicant account; resume processing records a safe failure state. |
-| GPU memory pressure | Keep one-worker concurrency and run OCR on CPU while Qwen remains resident on the RTX 6000-class GPU. |
-| OCR and vision disagree | Use one complete vision-verified replacement extraction and require applicant confirmation; never combine assertions additively. |
+| GPU memory pressure | Keep one-worker concurrency, retain the 20 MB rendered-image limit, and lower the model's memory utilization before changing the checkpoint. |
 | Malformed, encrypted, or excessive PDF | Reject safely without partial scoring and direct the applicant to upload an unlocked, shorter PDF or add qualifications manually. |
 | Webhook delivery fails | Poll queued jobs as a recovery mechanism; jobs remain durable in Supabase. |
 | Model extracts an incorrect fact | Require evidence and confidence, allow applicant correction, and keep scoring deterministic. |

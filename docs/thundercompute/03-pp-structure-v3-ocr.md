@@ -1,6 +1,6 @@
-# Thunder Compute: PP-StructureV3 OCR deployment
+# Thunder Compute: PP-StructureV3 OCR rollback deployment
 
-PP-StructureV3 is the private OCR/layout service used when a PDF has no usable native text. The production implementation is [`services/ocr/app.py`](../../services/ocr/app.py); it accepts authenticated PDFs, returns ordered page text, and deletes its temporary file after every request.
+PP-StructureV3 is retained as a private rollback option. The active vision-only processor does not call it; every CV page is rendered locally and sent to Qwen vision. If a future benchmark shows that OCR is needed, this runbook can restore the fallback without changing the public Go contract. The implementation is [`services/ocr/app.py`](../../services/ocr/app.py); it accepts authenticated PDFs, returns ordered page text, and deletes its temporary file after every request.
 
 ## Target layout
 
@@ -108,7 +108,8 @@ curl --fail --silent http://127.0.0.1:8090/healthz
 
 ## Operational rules
 
-- Native `pdftotext` runs first; OCR is the fallback for scans or unusable text.
+- This service is not required for the vision-only MVP and should remain stopped on the hackathon instance.
+- If rollback is enabled, OCR output must remain private and the Go pipeline must be deliberately reverted and retested before use.
 - Requests are PDF-only and capped at 15 MB.
 - Temporary PDFs use a private scratch directory and are deleted in a `finally` block.
 - Do not log CV contents, OCR text, request bodies, or service secrets.
