@@ -58,9 +58,10 @@ supabase db lint --linked --project-ref uljznzafpiamxmervxjb --schema public --f
 
 ## Hackathon deployment
 
-- The Next.js application deploys to Vercel from the repository root. It is not linked yet; the authenticated Vercel account is `ktad` under `ken-taylors-projects`.
-- The custom domain's DNS remains on Cloudflare. When deployment is explicitly approved: link/create the Vercel project, deploy a preview, verify it, add the chosen hostname in Vercel, then create exactly the DNS record Vercel reports in Cloudflare. Do not move nameservers or guess DNS targets.
-- Add the production Vercel URL and custom domain to Supabase Auth Redirect URLs and set `NEXT_PUBLIC_SITE_URL` to the final HTTPS hostname before testing login.
+- The Next.js application deploys from the repository root to Vercel project `skillsgap-gy`, authenticated as `ktad` under `ken-taylors-projects`. Promote a verified preview rather than rebuilding for production.
+- The custom domain's DNS remains on Cloudflare. `skillsgap.gy` is assigned in Vercel and awaits this DNS-only record: `A skillsgap.gy 76.76.21.21`. Do not move nameservers or add CNAME records for the apex.
+- Supabase Auth uses `https://skillsgap.gy` as its site URL. Its allow-list includes the canonical hostname, localhost URLs, and the current verified preview URL; add a newly created preview URL before testing an OAuth-style redirect there.
+- Keep `NEXT_PUBLIC_SITE_URL=https://skillsgap.gy` in Vercel Preview and Production. Keep local `.env.local` local-only; never run a command that overwrites it without a backup.
 - Keep the CV upload path direct from the browser to private Supabase Storage. Vercel serves the application; it must not proxy CV bytes, OCR, Qwen, or the Go processor.
 - Thunder Compute hosts the private processing stack: Go on `0.0.0.0:8080` via Thunder HTTPS forwarding, PP-Structure OCR on `127.0.0.1:8090`, and Qwen on `127.0.0.1:8000`. Do not add Caddy for this MVP and never forward ports `8000` or `8090`.
 

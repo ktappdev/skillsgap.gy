@@ -53,3 +53,4 @@ next-env.d.ts
 .claude
 services/processor/testdata/generated/oversized.pdf
 services/ocr/__pycache__/
+.env*.local
