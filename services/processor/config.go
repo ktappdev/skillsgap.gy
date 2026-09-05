@@ -32,7 +32,7 @@ func loadConfig() (config, error) {
 		ocrSecret:          strings.TrimSpace(os.Getenv("OCR_SERVICE_SECRET")),
 		vllmURL:            envOrDefault("VLLM_URL", "http://127.0.0.1:8000/v1"),
 		vllmAPIKey:         strings.TrimSpace(os.Getenv("VLLM_API_KEY")),
-		modelName:          envOrDefault("VLLM_MODEL", "gpt-oss-20b"),
+		modelName:          envOrDefault("VLLM_MODEL", "qwen3.6-35b-a3b"),
 		scratchDirectory:   envOrDefault("PROCESSOR_SCRATCH_DIR", "/ephemeral/skillsgap-processor"),
 		pollInterval:       20 * time.Second,
 		csecSlipSecret:     strings.TrimSpace(os.Getenv("CSEC_SLIP_PROCESSOR_SECRET")),

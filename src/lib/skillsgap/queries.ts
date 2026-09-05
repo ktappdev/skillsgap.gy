@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Match } from "@/lib/skillsgap-demo";
-import type { Database, Tables } from "@/lib/supabase/database.types";
+import type { Database, Json, Tables } from "@/lib/supabase/database.types";
 
 type Client = SupabaseClient<Database>;
 
@@ -9,6 +9,7 @@ export type ApplicantProgress = {
   latestResume: Tables<"resumes"> | null;
   processingStatus: Tables<"processing_jobs">["status"] | null;
   processingError: string | null;
+  unmappedTerms: string[];
   experience: Tables<"applicant_experience">[];
   matches: Match[];
   qualifications: ApplicantQualificationView[];
@@ -26,6 +27,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   ]);
 
   const currentMatches = matchesResult.data ?? [];
+  const unmappedTerms = getUnmappedTerms(jobResult.data?.result_summary);
   const currentRoleIds = currentMatches.map((row) => row.job_role_id);
   const activeRoleResult = currentRoleIds.length > 0
     ? await client.from("job_roles").select("id,company_id").in("id", currentRoleIds).eq("status", "active")
@@ -39,7 +41,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const activeRoleIds = new Set(activeRoles.filter((role) => approvedCompanyIds.has(role.company_id)).map((role) => role.id));
   const rows = currentMatches.filter((row) => activeRoleIds.has(row.job_role_id)).slice(0, 3);
   if (rows.length === 0) {
-    return { latestResume: resumeResult.data, processingStatus: jobResult.data?.status ?? null, processingError: jobResult.data?.error_message ?? null, experience: experienceResult.data ?? [], matches: [], qualifications: await getApplicantQualifications(client, applicantId), availableQualifications: await getAvailableQualifications(client) };
+    return { latestResume: resumeResult.data, processingStatus: jobResult.data?.status ?? null, processingError: jobResult.data?.error_message ?? null, unmappedTerms, experience: experienceResult.data ?? [], matches: [], qualifications: await getApplicantQualifications(client, applicantId), availableQualifications: await getAvailableQualifications(client) };
   }
 
   const roleIds = rows.map((row) => row.job_role_id);
@@ -68,6 +70,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
     latestResume: resumeResult.data,
     processingStatus: jobResult.data?.status ?? null,
     processingError: jobResult.data?.error_message ?? null,
+    unmappedTerms,
     experience: experienceResult.data ?? [],
     qualifications: await getApplicantQualifications(client, applicantId),
     availableQualifications: await getAvailableQualifications(client),
@@ -104,6 +107,13 @@ export async function getApplicantProgress(client: Client, applicantId: string):
       }];
     }),
   };
+}
+
+function getUnmappedTerms(summary: Json | undefined): string[] {
+  if (!summary || Array.isArray(summary) || typeof summary !== "object") return [];
+  const terms = summary.unmapped_terms;
+  if (!Array.isArray(terms)) return [];
+  return terms.filter((term): term is string => typeof term === "string");
 }
 
 export async function getApplicantQualifications(client: Client, applicantId: string): Promise<ApplicantQualificationView[]> {

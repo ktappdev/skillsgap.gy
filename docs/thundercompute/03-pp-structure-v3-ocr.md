@@ -25,7 +25,7 @@ fi
 uv venv --python 3.12 "$HOME/skillsgap/venvs/ocr"
 source "$HOME/skillsgap/venvs/ocr/bin/activate"
 uv pip install --upgrade pip
-uv pip install paddlepaddle-gpu==3.2.0 -i https://www.paddlepaddle.org.cn/packages/stable/cu126/
+uv pip install paddlepaddle==3.2.0
 uv pip install 'paddleocr[doc-parser]' fastapi uvicorn python-multipart
 python -c 'import paddle; print(paddle.__version__); print(paddle.device.get_device())'
 ```
@@ -41,6 +41,7 @@ export SKILLSGAP_APP_DIR="$HOME/skillsgap/app"
 cd "$SKILLSGAP_APP_DIR/services/ocr"
 export OCR_SERVICE_SECRET="$(openssl rand -hex 32)"
 export OCR_SCRATCH_DIR="/ephemeral/skillsgap-ocr"
+export OCR_DEVICE="cpu"
 mkdir -p "$OCR_SCRATCH_DIR"
 umask 077
 printf 'OCR_SERVICE_SECRET=%s\nOCR_SCRATCH_DIR=%s\n' "$OCR_SERVICE_SECRET" "$OCR_SCRATCH_DIR" > "$HOME/skillsgap/ocr.env"
@@ -70,7 +71,7 @@ Create `/etc/skillsgap/ocr.env` with mode `0600` containing:
 ```text
 OCR_SERVICE_SECRET=the-shared-secret
 OCR_SCRATCH_DIR=/ephemeral/skillsgap-ocr
-OCR_DEVICE=gpu
+OCR_DEVICE=cpu
 ```
 
 Create `/etc/systemd/system/skillsgap-ocr.service`:
@@ -111,4 +112,4 @@ curl --fail --silent http://127.0.0.1:8090/healthz
 - Requests are PDF-only and capped at 15 MB.
 - Temporary PDFs use a private scratch directory and are deleted in a `finally` block.
 - Do not log CV contents, OCR text, request bodies, or service secrets.
-- If GPU memory is exhausted while vLLM is loaded, lower vLLM utilization or set `OCR_DEVICE=cpu` for the fallback path.
+- Keep `OCR_DEVICE=cpu` for the hackathon while Qwen occupies the GPU. Move OCR to GPU only after measuring both services together.

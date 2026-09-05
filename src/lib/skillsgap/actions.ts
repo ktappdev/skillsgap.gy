@@ -100,6 +100,19 @@ export async function updateApplicantQualificationYears(qualificationId: string,
   return {};
 }
 
+export async function correctApplicantQualification(qualificationId: string, correctedQualificationId: string): Promise<{ error?: string }> {
+  const { supabase, user } = await requireUser();
+  if (!qualificationId || !correctedQualificationId) return { error: "Choose the correct transferable skill." };
+  const { error } = await supabase
+    .from("applicant_qualifications")
+    .update({ qualification_id: correctedQualificationId, source: "applicant_confirmed", review_status: "confirmed" })
+    .eq("applicant_id", user.id)
+    .eq("qualification_id", qualificationId);
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not correct that translation.") };
+  revalidatePath("/dashboard");
+  return {};
+}
+
 export async function updateApplicantExperience(
   experienceId: string,
   title: string,

@@ -21,17 +21,20 @@ func TestOCRClientSendsPDFContentType(t *testing.T) {
 		if header.Header.Get("Content-Type") != "application/pdf" {
 			t.Fatalf("part content type = %q", header.Header.Get("Content-Type"))
 		}
+		if request.FormValue("pages") != "2" {
+			t.Fatalf("pages = %q", request.FormValue("pages"))
+		}
 		writer.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(writer).Encode(map[string]string{"text": "readable resume text"})
+		_ = json.NewEncoder(writer).Encode(map[string]any{"pages": []map[string]any{{"page": 2, "text": "readable resume text"}}})
 	}))
 	defer server.Close()
 
 	client := newOCRClient(config{ocrURL: server.URL, ocrSecret: "secret"})
-	text, err := client.parse(context.Background(), []byte("%PDF-1.7"))
+	document, err := client.parse(context.Background(), []byte("%PDF-1.7"), []int{2})
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	if text != "readable resume text" {
-		t.Fatalf("text = %q", text)
+	if len(document.Pages) != 1 || document.Pages[0].Text != "readable resume text" || document.Pages[0].Method != methodOCR {
+		t.Fatalf("document = %#v", document)
 	}
 }
