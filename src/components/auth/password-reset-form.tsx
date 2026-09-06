@@ -15,9 +15,14 @@ export function PasswordResetForm({ mode }: { mode: "request" | "update" }) {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Account security</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-foreground">{isUpdate ? "Choose a new password" : "Reset your password"}</h1>
-        <p className="mt-3 text-sm leading-6 text-muted">{isUpdate ? "Use at least eight characters and keep it unique to SkillsGap.gy." : "Password recovery is the one auth action that still uses email. Enter your account email and we will send a secure reset link."}</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          {isUpdate ? "Choose a new password" : "Reset your password"}
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-muted">
+          {isUpdate
+            ? "Use at least eight characters, unique to SkillsGap.gy."
+            : "Enter your account email and we send a secure reset link."}
+        </p>
       </div>
       <form action={formAction} className="space-y-4">
         {isUpdate ? (
@@ -28,16 +33,16 @@ export function PasswordResetForm({ mode }: { mode: "request" | "update" }) {
         ) : (
           <label className="block space-y-2 text-sm font-semibold text-foreground" htmlFor="reset-email">
             Email
-            <input id="reset-email" name="email" type="email" autoComplete="email" required className="min-h-11 w-full rounded-xl border border-border bg-surface px-3.5 text-sm font-normal outline-none focus:border-accent" />
+            <input id="reset-email" name="email" type="email" autoComplete="email" required className="min-h-11 w-full rounded-md border border-border bg-surface px-3.5 text-sm font-normal outline-none focus:border-accent" />
           </label>
         )}
-        {state.error ? <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">{state.error}</p> : null}
-        {state.message ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800" role="status">{state.message}</p> : null}
-        <SubmitButton pendingLabel={isUpdate ? "Updating…" : "Sending…"} className="min-h-12 w-full rounded-xl bg-accent px-5 font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60">
+        {state.error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">{state.error}</p> : null}
+        {state.message ? <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800" role="status">{state.message}</p> : null}
+        <SubmitButton pendingLabel={isUpdate ? "Updating…" : "Sending…"} className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-accent px-5 font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60">
           {isUpdate ? "Update password" : "Send reset link"}
         </SubmitButton>
       </form>
-      {!isUpdate ? <p className="text-center text-sm"><Link href="/login" className="font-semibold text-accent underline-offset-4 hover:underline">Back to sign in</Link></p> : null}
+      {!isUpdate ? <p className="text-center text-sm"><Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">Back to sign in</Link></p> : null}
     </div>
   );
 }
@@ -46,7 +51,7 @@ function PasswordField({ id, name, label, autoComplete }: { id: string; name: st
   return (
     <label className="block space-y-2 text-sm font-semibold text-foreground" htmlFor={id}>
       {label}
-      <input id={id} name={name} type="password" autoComplete={autoComplete} minLength={8} required className="min-h-11 w-full rounded-xl border border-border bg-surface px-3.5 text-sm font-normal outline-none focus:border-accent" />
+      <input id={id} name={name} type="password" autoComplete={autoComplete} minLength={8} required className="min-h-11 w-full rounded-md border border-border bg-surface px-3.5 text-sm font-normal outline-none focus:border-accent" />
     </label>
   );
 }

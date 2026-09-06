@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type FormEvent } from "react";
+import { useLayoutEffect, useRef, type FormEvent } from "react";
 
 import { CareerPathwayPicker } from "@/components/i-want-to-become/career-pathway-picker";
 import { CareerResultsEditor } from "@/components/i-want-to-become/career-results-editor";
@@ -40,11 +40,16 @@ function InterestChoice({ interest, selected, onToggle }: { interest: string; se
 }
 
 export function CareerExplorerForm({ step, careerId, occupations, interests, selectedInterests, results, photoName, photoPreview, photoState, photoError, resultsReviewed, planLoading, onCareerChange, onInterestsChange, onToggleInterest, onFileSelected, onUpdateResult, onRemoveResult, onAddResult, onResultsReviewedChange, onStepChange, onShowResults }: CareerExplorerFormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const previousStepRef = useRef(step);
   const canContinue = step !== 1 || careerId.length > 0;
 
-  useEffect(() => {
-    headingRef.current?.focus();
+  useLayoutEffect(() => {
+    if (previousStepRef.current === step) return;
+    previousStepRef.current = step;
+    formRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
+    headingRef.current?.focus({ preventScroll: true });
   }, [step]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -57,14 +62,14 @@ export function CareerExplorerForm({ step, careerId, occupations, interests, sel
   }
 
   const stepCopy = step === 1
-    ? { eyebrow: "Step 1 of 3", title: "Choose a direction worth exploring.", description: "Start with the work you can picture yourself learning. You can change this choice before you build your route." }
+    ? { eyebrow: "Step 1 of 3", title: "Choose a direction.", description: "Start with work you can picture yourself learning. You can change it before building your route." }
     : step === 2
-      ? { eyebrow: "Step 2 of 3", title: "Add the clues that make you, you.", description: "Pick a few interests or write a note about your strengths. This is reflection, not a qualification test." }
-      : { eyebrow: "Step 3 of 3", title: "Share your starting point.", description: "Results help you spot preparation subjects. No results? You can still get a useful route today." };
+      ? { eyebrow: "Step 2 of 3", title: "What sounds like you?", description: "Pick a few interests, or write a note. This is reflection, not a test." }
+      : { eyebrow: "Step 3 of 3", title: "Share your starting point.", description: "Results suggest preparation subjects. None yet? You still get a useful route." };
 
   return (
-    <form id="career-explorer-form" onSubmit={handleSubmit} className="border border-border bg-surface p-5 shadow-sm sm:p-8" aria-labelledby="explorer-step-title">
-      <div className="flex flex-col justify-between gap-4 border-b border-border pb-6 sm:flex-row sm:items-start"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{stepCopy.eyebrow}</p><h2 ref={headingRef} id="explorer-step-title" tabIndex={-1} className="mt-3 max-w-2xl text-2xl font-semibold tracking-[-0.04em] text-foreground sm:text-3xl">{stepCopy.title}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{stepCopy.description}</p></div><span className="inline-flex w-fit items-center rounded-full bg-surface-muted px-3 py-1.5 text-xs font-bold text-accent">No account needed</span></div>
+    <form ref={formRef} id="career-explorer-form" onSubmit={handleSubmit} className="scroll-mt-4 rounded-lg border border-border bg-surface p-5 sm:scroll-mt-6 sm:p-8" aria-labelledby="explorer-step-title">
+      <div className="flex flex-col justify-between gap-4 border-b border-border pb-6 sm:flex-row sm:items-start"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{stepCopy.eyebrow}</p><h2 ref={headingRef} id="explorer-step-title" tabIndex={-1} className="mt-3 max-w-2xl text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{stepCopy.title}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{stepCopy.description}</p></div><span className="inline-flex w-fit items-center rounded-full bg-surface-muted px-3 py-1.5 text-xs font-bold text-accent">No account needed</span></div>
 
       <div className="mt-7">
         {step === 1 ? <fieldset><legend className="text-base font-semibold text-foreground">What would you like to become?</legend><p className="mt-1 text-sm text-muted">Browse the guided starter routes or the wider petroleum work catalogue.</p><CareerPathwayPicker occupations={occupations} selectedId={careerId} onSelect={onCareerChange} /></fieldset> : null}
@@ -74,7 +79,7 @@ export function CareerExplorerForm({ step, careerId, occupations, interests, sel
         {step === 3 ? <CareerResultsEditor results={results} photoName={photoName} photoPreview={photoPreview} photoState={photoState} photoError={photoError} resultsReviewed={resultsReviewed} onFileSelected={onFileSelected} onUpdateResult={onUpdateResult} onRemoveResult={onRemoveResult} onAddResult={onAddResult} onResultsReviewedChange={onResultsReviewedChange} /> : null}
       </div>
 
-      <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"><button type="button" onClick={() => onStepChange(step === 1 ? 1 : step === 2 ? 1 : 2)} disabled={step === 1} className="inline-flex min-h-11 w-fit items-center justify-center px-1 text-sm font-semibold text-muted underline-offset-4 transition hover:text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">← Back</button><div className="flex flex-col items-stretch gap-3 sm:items-end">{step === 3 && !resultsReviewed ? <p id="review-required" className="text-sm text-amber-800" role="alert">Review the fields above before building your route.</p> : null}{step < 3 ? <button type="submit" disabled={!canContinue} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Continue <span aria-hidden="true" className="ml-2">→</span></button> : <button type="submit" disabled={!resultsReviewed || planLoading} aria-describedby={!resultsReviewed ? "review-required" : undefined} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">{planLoading ? "Building your route…" : "Build my pathway"} <span aria-hidden="true" className="ml-2">→</span></button>}</div></div>
+      <div className="mt-6 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"><button type="button" onClick={() => onStepChange(step === 1 ? 1 : step === 2 ? 1 : 2)} disabled={step === 1} className="inline-flex min-h-11 w-fit items-center justify-center px-1 text-sm font-semibold text-muted underline-offset-4 transition hover:text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-0">← Back</button><div className="flex flex-col items-stretch gap-3 sm:items-end">{step === 3 && !resultsReviewed ? <p id="review-required" className="text-sm text-amber-800" role="alert">Review the fields above before building your route.</p> : null}{step < 3 ? <button type="submit" disabled={!canContinue} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">Continue <span aria-hidden="true" className="ml-2">→</span></button> : <button type="submit" disabled={!resultsReviewed || planLoading} aria-describedby={!resultsReviewed ? "review-required" : undefined} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">{planLoading ? "Building your route…" : "Build my pathway"} <span aria-hidden="true" className="ml-2">→</span></button>}</div></div>
     </form>
   );
 }

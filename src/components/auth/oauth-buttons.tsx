@@ -53,14 +53,14 @@ export function OAuthButtons({ next }: { next: string }) {
             type="button"
             disabled={pendingProvider !== null}
             onClick={() => void startOAuth(provider.id)}
-            className="min-h-11 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-60"
+            className="min-h-11 rounded-md border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-60"
           >
             {pendingProvider === provider.id ? "Connecting…" : provider.label}
           </button>
         ))}
       </div>
       {error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
+        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
           {error}
         </p>
       ) : null}

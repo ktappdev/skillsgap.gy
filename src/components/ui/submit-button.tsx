@@ -8,15 +8,20 @@ type SubmitButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   pendingLabel?: ReactNode;
 };
 
-export function SubmitButton({ children, pendingLabel = "Working…", ...props }: SubmitButtonProps) {
+const baseClasses =
+  "inline-flex items-center justify-center gap-2 transition-colors duration-150";
+
+export function SubmitButton({ children, pendingLabel = "Working…", className, ...props }: SubmitButtonProps) {
   const { pending } = useFormStatus();
+  const disabled = pending || props.disabled;
 
   return (
     <button
       {...props}
       type={props.type ?? "submit"}
-      disabled={pending || props.disabled}
-      aria-disabled={pending || props.disabled}
+      disabled={disabled}
+      aria-disabled={disabled}
+      className={className ? `${baseClasses} ${className}` : baseClasses}
     >
       {pending ? pendingLabel : children}
     </button>

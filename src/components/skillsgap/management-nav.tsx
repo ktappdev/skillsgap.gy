@@ -6,5 +6,5 @@ const providerLinks = [["/provider", "Overview"], ["/provider/programs", "Progra
 
 export function ManagementNav({ area }: { area: "company" | "admin" | "provider" }) {
   const links = area === "company" ? companyLinks : area === "admin" ? adminLinks : providerLinks;
-  return <nav className="flex gap-4 overflow-x-auto border-b border-border pb-4 text-sm font-semibold text-muted" aria-label={`${area} navigation`}>{links.map(([href, label]) => <Link key={href} href={href} className="whitespace-nowrap hover:text-accent">{label}</Link>)}</nav>;
+  return <nav className="flex gap-2 overflow-x-auto border-b border-border text-sm font-semibold text-muted" aria-label={`${area} navigation`}>{links.map(([href, label]) => <Link key={href} href={href} className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-md px-3 hover:bg-surface-muted hover:text-accent">{label}</Link>)}</nav>;
 }

@@ -30,7 +30,7 @@ export function DemoLoginButtons({ next }: DemoLoginButtonsProps) {
     <div className="space-y-3">
       <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted">
         <span className="h-px flex-1 bg-border" />
-        Demo access
+        Want to look around first?
         <span className="h-px flex-1 bg-border" />
       </div>
 
@@ -43,7 +43,7 @@ export function DemoLoginButtons({ next }: DemoLoginButtonsProps) {
               type="submit"
               name="role"
               value={role.id}
-              className="flex min-h-11 flex-col items-start gap-0.5 rounded-xl border border-border bg-surface px-3.5 py-2 text-left text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent"
+              className="flex min-h-11 flex-col items-start gap-0.5 rounded-md border border-dashed border-border bg-surface px-3.5 py-2 text-left text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent"
             >
               <span>{role.label}</span>
               <span className="font-normal text-xs text-muted">{role.hint}</span>
@@ -53,13 +53,13 @@ export function DemoLoginButtons({ next }: DemoLoginButtonsProps) {
       </form>
 
       {state.error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-danger" role="alert">
+        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-danger" role="alert">
           {state.error}
         </p>
       ) : null}
 
       <p className="text-center text-xs leading-5 text-muted">
-        Testing accounts use email and password behind the scenes. Do not use in production.
+        Demo accounts sign in behind the scenes. Not for production use.
       </p>
     </div>
   );

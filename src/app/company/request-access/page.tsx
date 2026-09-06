@@ -13,16 +13,27 @@ export default async function RequestAccessPage({ searchParams }: { searchParams
   if (company?.status === "approved") redirect("/company");
 
   const params = await searchParams;
-  const errorMessage = params.error === "duplicate" ? "That company already has a request." : params.error ? "Please check the company name and try again." : null;
+  const errorMessage = params.error === "duplicate" ? "That company already has a request." : params.error ? "Check the company name and try again." : null;
+
   return (
-    <main className="min-h-screen bg-background px-4 py-8 sm:px-6">
+    <main className="min-h-screen bg-background px-4 py-6 sm:px-6">
       <div className="mx-auto max-w-xl">
-        <Link href="/" className="font-semibold text-accent underline-offset-4 hover:underline">← skillsgap.gy</Link>
-        <section className="mt-10 border border-border bg-surface p-6 shadow-sm sm:p-8">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Company access</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">Join the trusted employer network.</h1>
-          <p className="mt-3 text-sm leading-6 text-muted">Tell us who you are. A platform administrator will verify your company before roles can be published.</p>
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline"
+        >
+          ← skillsgap.gy
+        </Link>
+        <section className="mt-6 rounded-lg border border-border bg-surface p-6">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Request company access</h1>
+          <p className="mt-3 text-sm leading-6 text-muted">
+            Tell us about your company. An administrator verifies each company
+            before roles can be published.
+          </p>
           {company ? <CompanyRequestStatus name={company.name} status={company.status} /> : <CompanyRequestForm errorMessage={errorMessage} />}
+          <p className="mt-6 text-sm leading-6 text-muted">
+            Once approved, you can post roles and see anonymized matches.
+          </p>
         </section>
       </div>
     </main>
@@ -32,24 +43,26 @@ export default async function RequestAccessPage({ searchParams }: { searchParams
 function CompanyRequestStatus({ name, status }: { name: string; status: "pending" | "rejected" }) {
   const pending = status === "pending";
   return (
-    <div className={`mt-7 border p-4 text-sm leading-6 ${pending ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900"}`} role="status">
+    <div className={`mt-6 rounded-lg border p-4 text-sm leading-6 ${pending ? "border-border bg-surface-muted text-foreground" : "border-amber-200 bg-amber-50 text-amber-900"}`} role="status">
       <p className="font-semibold">{name}</p>
-      <p>{pending ? "Your verification request is pending. You will enter the company workspace after a platform administrator approves it." : "This request was not approved. A platform administrator can review it again after the company details are clarified."}</p>
+      <p>{pending ? "Verification is pending. You enter the company workspace after approval." : "This request was not approved. Clarify the company details and an administrator can review it again."}</p>
     </div>
   );
 }
 
 function CompanyRequestForm({ errorMessage }: { errorMessage: string | null }) {
   return (
-    <form action={requestCompanyAccess} className="mt-7 space-y-4">
+    <form action={requestCompanyAccess} className="mt-6 space-y-4">
       <Field label="Company name" name="company" />
       <Field label="Company website (optional)" name="website" type="url" />
       <label className="block text-sm font-semibold text-foreground" htmlFor="company-description">
         What work do you do?
-        <textarea id="company-description" name="description" maxLength={2000} rows={4} className="mt-2 w-full border border-border bg-surface px-3 py-2 text-sm font-normal outline-none focus:border-accent" />
+        <textarea id="company-description" name="description" maxLength={2000} rows={4} className="mt-2 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm font-normal outline-none focus:border-accent" />
       </label>
       {errorMessage ? <p className="text-sm text-danger" role="alert">{errorMessage}</p> : null}
-      <button type="submit" className="min-h-11 w-full bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">Request access</button>
+      <button type="submit" className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">
+        Request access
+      </button>
     </form>
   );
 }
@@ -59,7 +72,7 @@ function Field({ label, name, type = "text" }: { label: string; name: string; ty
   return (
     <label className="block text-sm font-semibold text-foreground" htmlFor={id}>
       {label}
-      <input id={id} required={name === "company"} maxLength={name === "company" ? 160 : 2048} name={name} type={type} className="mt-2 min-h-11 w-full border border-border bg-surface px-3 text-sm font-normal outline-none focus:border-accent" />
+      <input id={id} required={name === "company"} maxLength={name === "company" ? 160 : 2048} name={name} type={type} className="mt-2 min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm font-normal outline-none focus:border-accent" />
     </label>
   );
 }

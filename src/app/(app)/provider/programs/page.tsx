@@ -27,13 +27,11 @@ export default async function ProviderProgramsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Training programs</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">{provider.name} programs</h1>
-      <p className="mt-3 text-sm leading-6 text-muted">
-        Add and manage the training programs you offer. Map each program to the qualifications it
-        delivers so applicants can find the right pathway.
+      <h1 className="text-3xl font-semibold tracking-tight">{provider.name} programs</h1>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+        Map each program to the qualifications it delivers so applicants find the right pathway.
       </p>
-      <div className="mt-7">
+      <div className="mt-6">
         <ManagementNav area="provider" />
       </div>
       <ProviderProgramManager

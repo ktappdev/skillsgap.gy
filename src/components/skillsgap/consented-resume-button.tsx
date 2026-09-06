@@ -22,7 +22,7 @@ export function ConsentedResumeButton({ applicantId, roleId }: { applicantId: st
 
   return (
     <div>
-      <button type="button" onClick={() => { void openResume(); }} disabled={loading} className="min-h-10 border border-accent px-3 text-sm font-semibold text-accent hover:bg-teal-50 disabled:cursor-wait disabled:opacity-60">
+      <button type="button" onClick={() => { void openResume(); }} disabled={loading} aria-busy={loading} className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60">
         {loading ? "Preparing CV…" : "Open consented CV"}
       </button>
       {error ? <p className="mt-2 text-xs text-danger" role="alert">{error}</p> : null}
