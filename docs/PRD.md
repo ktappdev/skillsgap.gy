@@ -264,18 +264,23 @@ Seed data is for demonstration and must be visibly labeled as curated demo data 
 The applicant dashboard makes that boundary explicit: seeded pathways carry a
 “Curated demo pathway” label, while company-created roles carry a
 “Company-published role” label. The dashboard shows the top three routes and
-the total number of approved active routes (for example, “Top 3 of 7 roles”),
+the total number of approved active routes (for example, “Top 3 of 18 roles”),
 and it never invents a strength when no qualification has been confirmed.
 Each gap may point to a verified training provider and official URL; the
 applicant is told to confirm current intake, cost, eligibility, and outcomes
 before spending money.
 
-- Three approved demonstration companies.
-- Seven active roles spanning mechanical, electrical, logistics, equipment, safety, trainee, and materials-handling pathways.
+- Seven approved demonstration companies. Their names and descriptions are fictional, curated presentation data and are never presented as live employers.
+- Eighteen active roles spanning mechanical, electrical, logistics, equipment,
+  safety, materials handling, fabrication, marine, facilities, procurement,
+  ICT, hospitality, transport, surveying, construction, and environmental pathways.
 - A broad canonical qualification taxonomy covering trades, offshore and
   onshore operations, technical services, logistics, hospitality, facilities,
   and office-support capabilities, with reviewed aliases.
-- Local training providers and programs mapped to BOSIET, hydraulic maintenance, heavy-equipment operations, electrical safety, and other seeded gaps.
+- Twenty active pathway pointers across 3t EnerMech Guyana, Government
+  Technical Institute, and Board of Industrial Training. Every qualification
+  required by a curated role has at least one active mapped pathway; the
+  provider must still confirm the exact intake, cost, eligibility, and outcome.
 - One approved company job fair with available 15-minute slots.
 - The operator creates or promotes one super-admin, one company owner, one processed applicant fallback account, and one live applicant account after Auth is available. The SQL seed intentionally contains no passwords or Auth users.
 

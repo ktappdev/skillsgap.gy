@@ -47,14 +47,47 @@ if (usersError) throw new Error("Could not read demo users.");
 const applicant = users.users.find((user) => user.email === required("DEMO_APPLICANT_EMAIL"));
 assert(applicant, "The fallback applicant is missing.");
 
-const [{ data: matches, error: matchesError }, { data: invitations, error: invitationsError }] = await Promise.all([
-  admin.from("job_matches").select("id,interview_eligible").eq("applicant_id", applicant.id).eq("status", "current"),
+const [
+  { data: matches, error: matchesError },
+  { data: invitations, error: invitationsError },
+  { data: demoRoles, error: demoRolesError },
+  { data: programs, error: programsError },
+  { data: providers, error: providersError },
+] = await Promise.all([
+  admin.from("job_matches").select("id,job_role_id,interview_eligible").eq("applicant_id", applicant.id).eq("status", "current"),
   admin.from("interview_invitations").select("id").eq("applicant_id", applicant.id).eq("status", "pending"),
+  admin.from("job_roles").select("id,title").eq("status", "active").eq("is_demo", true),
+  admin.from("training_programs").select("id,provider_id").eq("is_active", true),
+  admin.from("training_providers").select("id").eq("is_verified", true),
 ]);
-if (matchesError || invitationsError) throw new Error("Could not read fallback demo data.");
-assert((matches ?? []).length >= 3, "Fallback applicant needs at least three current matches.");
+if (matchesError || invitationsError || demoRolesError || programsError || providersError) {
+  throw new Error("Could not read fallback demo data.");
+}
+
+assert((demoRoles ?? []).length >= 18, "The expanded catalogue needs at least 18 active curated roles.");
+assert((programs ?? []).length >= 20, "The expanded catalogue needs at least 20 active training pathways.");
+const matchedRoleIds = new Set((matches ?? []).map((match) => match.job_role_id));
+const unmatchedDemoRoles = (demoRoles ?? []).filter((role) => !matchedRoleIds.has(role.id));
+assert(unmatchedDemoRoles.length === 0, `Fallback applicant is missing ${unmatchedDemoRoles.length} curated role matches.`);
 assert((matches ?? []).some((match) => match.interview_eligible), "Fallback applicant needs one eligible match.");
 assert((invitations ?? []).length >= 1, "Fallback applicant needs a pending interview invitation.");
+
+const verifiedProviderIds = new Set((providers ?? []).map((provider) => provider.id));
+const visibleProgramIds = (programs ?? [])
+  .filter((program) => verifiedProviderIds.has(program.provider_id))
+  .map((program) => program.id);
+assert(visibleProgramIds.length > 0, "No active program belongs to a verified provider.");
+
+const [{ data: requirements, error: requirementsError }, { data: outcomes, error: outcomesError }] = await Promise.all([
+  admin.from("job_requirements").select("qualification_id").in("job_role_id", (demoRoles ?? []).map((role) => role.id)),
+  admin.from("training_program_outcomes").select("qualification_id").in("training_program_id", visibleProgramIds),
+]);
+if (requirementsError || outcomesError) throw new Error("Could not verify training coverage for the curated roles.");
+
+const coveredQualificationIds = new Set((outcomes ?? []).map((outcome) => outcome.qualification_id));
+const uncoveredQualificationIds = [...new Set((requirements ?? []).map((requirement) => requirement.qualification_id))]
+  .filter((qualificationId) => !coveredQualificationIds.has(qualificationId));
+assert(uncoveredQualificationIds.length === 0, `Training coverage is missing for ${uncoveredQualificationIds.length} curated requirements.`);
 
 const processorUrl = process.env.PROCESSOR_URL?.replace(/\/$/, "");
 if (processorUrl) {
@@ -62,4 +95,4 @@ if (processorUrl) {
   assert(response.ok, "Thunder processor health check failed.");
 }
 
-console.log("Demo readiness passed: five logins, three or more matches, and an eligible interview invitation.");
+console.log(`Demo readiness passed: five logins, ${demoRoles?.length ?? 0} curated roles, complete training coverage, and an eligible interview invitation.`);

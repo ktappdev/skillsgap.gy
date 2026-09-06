@@ -11,13 +11,13 @@ export type Match = {
   threshold: number;
   eligible: boolean;
   strengths: string[];
-  gaps: Array<{ id?: string; name: string; type: "Certification" | "Technical skill" | "Experience"; training: string | null; trainingUrl?: string | null; status?: "unresolved" | "plan_started" | "completed" | "resolved" }>;
+  gaps: Array<{ id?: string; name: string; type: "Certification" | "Technical skill" | "Experience"; mandatory?: boolean; training: string | null; trainingUrl?: string | null; status?: "unresolved" | "plan_started" | "completed" | "resolved" }>;
 };
 
 export const demoMatches: Match[] = [
-  { id: "offshore-mechanical-technician", isDemo: true, title: "Trainee Offshore Mechanical Technician", company: "Guyana Offshore Operations", score: 65, threshold: 75, eligible: false, strengths: ["4 years mechanical maintenance", "Fault finding", "Workshop safety"], gaps: [{ name: "BOSIET", type: "Certification", training: "3T EnerMech · Georgetown", trainingUrl: "https://enermech.com/training" }, { name: "Hydraulics maintenance", type: "Technical skill", training: "Government Technical Institute · Georgetown", trainingUrl: "https://www.gtigeorgetown.com/" }] },
-  { id: "maintenance-electrician", isDemo: true, title: "Offshore Electrical Trainee", company: "Guyana Offshore Operations", score: 58, threshold: 75, eligible: false, strengths: ["Electrical repair experience", "Preventive maintenance"], gaps: [{ name: "Electrical safety", type: "Certification", training: "Government Technical Institute · Georgetown", trainingUrl: "https://www.gtigeorgetown.com/" }, { name: "1 year industrial experience", type: "Experience", training: null }] },
-  { id: "logistics-coordinator", isDemo: true, title: "Warehouse and Logistics Assistant", company: "Essequibo Logistics Partners", score: 52, threshold: 65, eligible: false, strengths: ["Vehicle scheduling", "Team coordination"], gaps: [{ name: "Forklift operations", type: "Technical skill", training: "Board of Industrial Training · Georgetown", trainingUrl: "https://srms.bit.gov.gy/" }] },
+  { id: "offshore-mechanical-technician", isDemo: true, title: "Trainee Offshore Mechanical Technician", company: "Guyana Offshore Operations", score: 82, threshold: 75, eligible: true, strengths: ["4 years diesel mechanics", "4 years mechanical maintenance", "BOSIET"], gaps: [{ name: "Hydraulic maintenance", type: "Technical skill", training: "Ask about mechanical, diesel, and hydraulic training · Government Technical Institute", trainingUrl: "https://www.gtigeorgetown.com/" }] },
+  { id: "maintenance-electrician", isDemo: true, title: "Offshore Electrical Trainee", company: "Guyana Offshore Operations", score: 36, threshold: 75, eligible: false, strengths: ["BOSIET"], gaps: [{ name: "Electrical safety", type: "Certification", mandatory: true, training: "Ask about electrical safety training · Government Technical Institute", trainingUrl: "https://www.gtigeorgetown.com/" }, { name: "Certified electrician", type: "Certification", training: "Ask about industrial electrical and controls training · Government Technical Institute", trainingUrl: "https://www.gtigeorgetown.com/" }] },
+  { id: "hydraulic-maintenance-assistant", isDemo: true, title: "Hydraulic Maintenance Assistant", company: "Demerara Industrial Services", score: 36, threshold: 70, eligible: false, strengths: ["4 years mechanical maintenance"], gaps: [{ name: "Hydraulic maintenance", type: "Technical skill", training: "Ask about mechanical, diesel, and hydraulic training · Government Technical Institute", trainingUrl: "https://www.gtigeorgetown.com/" }, { name: "HSE awareness", type: "Technical skill", training: "Ask about safety and emergency readiness · 3t EnerMech Guyana", trainingUrl: "https://www.3tglobal.com/about/our-locations/guyana/" }] },
 ];
 
 export function shouldUseDemoMatches({ isDemoApplicant, matchCount, hasResume }: { isDemoApplicant: boolean; matchCount: number; hasResume: boolean }): boolean {
@@ -30,9 +30,9 @@ export function getDemoMatch(matchId: string, isDemoApplicant: boolean): Match |
 }
 
 export const milestones = [
-  { title: "CV understood", detail: "We found 6 skills and 4 years of mechanical experience.", state: "complete" },
-  { title: "Strengths recognized", detail: "Your maintenance experience is already relevant to 3 roles.", state: "complete" },
-  { title: "2 requirements left", detail: "BOSIET and hydraulics are the shortest route to your closest match.", state: "current" },
-  { title: "Training plan started", detail: "Choose a local provider when you are ready.", state: "next" },
-  { title: "Interview unlocked", detail: "Reach 75% and meet mandatory requirements to choose a time.", state: "next" },
+  { title: "Profile ready", detail: "Three confirmed qualifications and four years of mechanical experience.", state: "complete" },
+  { title: "Strengths recognized", detail: "Your experience was compared with 18 curated routes.", state: "complete" },
+  { title: "1 requirement left", detail: "Hydraulic maintenance is the next step for your closest route.", state: "current" },
+  { title: "Training plan", detail: "Check the provider details and save this skill to your plan.", state: "next" },
+  { title: "Interview unlocked", detail: "Your closest route meets its 75% threshold and mandatory gate.", state: "complete" },
 ] as const;

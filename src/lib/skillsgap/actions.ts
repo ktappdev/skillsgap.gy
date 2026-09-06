@@ -793,7 +793,7 @@ export type ResetDemoFallbackResult = { error?: string; message?: string; matche
  * In-app ULTRA RESET for the hackathon demo. Rebuilds the prepared fallback
  * applicant from the admin dashboard without a laptop terminal. Mirrors
  * scripts/prepare-demo-fallback.mjs: curated qualifications, deterministic
- * matches from every active approved role, one pending interview invitation
+ * matches from every active curated role, one pending interview invitation
  * on the fallback role, cleared consent, and settled recalculation jobs.
  * Never creates a resume and never claims the results came from OCR or Qwen.
  *
@@ -869,7 +869,11 @@ export async function resetDemoFallback(password: string): Promise<ResetDemoFall
     .insert(fallbackRows.filter((row): row is NonNullable<typeof row> => row !== null));
   if (insertQualificationsError) return { error: getDatabaseErrorMessage(insertQualificationsError, "We could not add fallback qualifications.") };
 
-  const { data: roles, error: rolesError } = await adminClient.from("job_roles").select("id,eligibility_threshold").eq("status", "active");
+  const { data: roles, error: rolesError } = await adminClient
+    .from("job_roles")
+    .select("id,eligibility_threshold")
+    .eq("status", "active")
+    .eq("is_demo", true);
   if (rolesError) return { error: getDatabaseErrorMessage(rolesError, "We could not read active roles.") };
   if (!roles || roles.length === 0) return { error: "No active curated roles are available." };
 
@@ -882,6 +886,9 @@ export async function resetDemoFallback(password: string): Promise<ResetDemoFall
 
   const skillYears = new Map(fallbackSkills.map((skill) => [qualificationBySlug.get(skill.slug) as string, skill.years]));
   const requirementsByRole = new Map(roles.map((role) => [role.id, typedRequirements.filter((requirement) => requirement.job_role_id === role.id)]));
+
+  const { error: removeApplicationsError } = await adminClient.from("job_applications").delete().eq("applicant_id", applicant.id);
+  if (removeApplicationsError) return { error: getDatabaseErrorMessage(removeApplicationsError, "We could not reset fallback applications.") };
 
   const { error: removeInvitationsError } = await adminClient.from("interview_invitations").delete().eq("applicant_id", applicant.id);
   if (removeInvitationsError) return { error: getDatabaseErrorMessage(removeInvitationsError, "We could not reset fallback invitations.") };

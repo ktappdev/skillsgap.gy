@@ -5,7 +5,11 @@ insert into public.companies (id, name, description, status, reviewed_at)
 values
   ('10000000-0000-0000-0000-000000000001', 'Guyana Offshore Operations', 'Curated demo company for the SkillsGap.gy hackathon.', 'approved', timezone('utc', now())),
   ('10000000-0000-0000-0000-000000000002', 'Demerara Industrial Services', 'Curated demo company for the SkillsGap.gy hackathon.', 'approved', timezone('utc', now())),
-  ('10000000-0000-0000-0000-000000000003', 'Essequibo Logistics Partners', 'Curated demo company for the SkillsGap.gy hackathon.', 'approved', timezone('utc', now()))
+  ('10000000-0000-0000-0000-000000000003', 'Essequibo Logistics Partners', 'Curated demo company for the SkillsGap.gy hackathon.', 'approved', timezone('utc', now())),
+  ('10000000-0000-0000-0000-000000000004', 'Kaieteur Fabrication and Marine Services', 'Curated demo company for fabrication, marine, and surveying pathways. Not a live employer listing.', 'approved', timezone('utc', now())),
+  ('10000000-0000-0000-0000-000000000005', 'Berbice Industrial Facilities', 'Curated demo company for electrical, facilities, construction, and environmental pathways. Not a live employer listing.', 'approved', timezone('utc', now())),
+  ('10000000-0000-0000-0000-000000000006', 'Demerara Supply Chain and Technical Services', 'Curated demo company for procurement, administration, and ICT pathways. Not a live employer listing.', 'approved', timezone('utc', now())),
+  ('10000000-0000-0000-0000-000000000007', 'Coastal Camp and Site Services', 'Curated demo company for camp, hospitality, security, and transport pathways. Not a live employer listing.', 'approved', timezone('utc', now()))
 on conflict (id) do update set
   name = excluded.name,
   description = excluded.description,
@@ -67,23 +71,42 @@ from (
 join public.qualifications qualification on qualification.slug = alias_data.slug
 on conflict (normalized_alias) do nothing;
 
-insert into public.training_providers (id, name, location, description, is_verified)
+insert into public.training_providers (id, name, location, contact_url, description, is_verified)
 values
-  ('20000000-0000-0000-0000-000000000001', '3T EnerMech', 'Georgetown, Guyana', 'Curated demonstration provider listing.', true),
-  ('20000000-0000-0000-0000-000000000002', 'Government Technical Institute', 'Georgetown, Guyana', 'Curated demonstration provider listing.', true),
-  ('20000000-0000-0000-0000-000000000003', 'Board of Industrial Training', 'Georgetown, Guyana', 'Curated demonstration provider listing.', true)
+  ('20000000-0000-0000-0000-000000000001', '3t EnerMech Guyana', 'Lusignan, East Coast Demerara, Guyana', 'https://www.3tglobal.com/about/our-locations/guyana/', 'Curated provider pointer. Confirm the current Guyana offering, intake, cost, and credential directly with the provider.', true),
+  ('20000000-0000-0000-0000-000000000002', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Curated provider pointer. Confirm the current intake, entry requirements, cost, and credential directly with the provider.', true),
+  ('20000000-0000-0000-0000-000000000003', 'Board of Industrial Training', 'Georgetown, Guyana', 'https://srms.bit.gov.gy/', 'Curated provider pointer. Confirm the current intake, entry requirements, cost, and credential directly with the provider.', true)
 on conflict (id) do update set
   name = excluded.name,
   location = excluded.location,
-  description = excluded.description;
+  contact_url = excluded.contact_url,
+  description = excluded.description,
+  is_verified = excluded.is_verified;
 
 insert into public.training_programs (id, provider_id, name, description, duration_text, enrollment_url, is_active)
 values
-  ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Offshore Safety Preparation', 'Curated demo pathway for offshore safety preparation.', 'Confirm with provider', 'https://enermech.com/training', true),
-  ('30000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', 'Hydraulic Maintenance Fundamentals', 'Curated demo pathway for hydraulic maintenance.', 'Confirm with provider', 'https://www.gtigeorgetown.com/', true),
-  ('30000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000003', 'Heavy Equipment Operations', 'Curated demo pathway for heavy-equipment operations.', 'Confirm with provider', 'https://srms.bit.gov.gy/', true),
-  ('30000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', 'Electrical Safety Fundamentals', 'Curated demo pathway for electrical safety.', 'Confirm with provider', 'https://www.gtigeorgetown.com/', true)
+  ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Ask about offshore safety preparation', 'Curated demo pathway for offshore safety preparation.', 'Confirm with provider', 'https://www.3tglobal.com/about/our-locations/guyana/', true),
+  ('30000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', 'Ask about mechanical, diesel, and hydraulic training', 'Curated maintenance pathway pointer. Confirm current courses and practical outcomes directly with the provider.', 'Confirm with provider', 'https://www.gtigeorgetown.com/', true),
+  ('30000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000003', 'Ask about heavy-equipment operator training', 'Curated demo pathway for heavy-equipment operations.', 'Confirm with provider', 'https://srms.bit.gov.gy/', true),
+  ('30000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', 'Ask about electrical safety training', 'Curated demo pathway for electrical safety.', 'Confirm with provider', 'https://www.gtigeorgetown.com/', true),
+  ('30000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000003', 'Ask about materials handling and safe lifting', 'Curated materials-handling pathway pointer. Confirm current courses and practical outcomes directly with the provider.', 'Confirm with provider', 'https://srms.bit.gov.gy/', true),
+  ('30000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000001', 'Ask about safety and emergency readiness', 'Curated pathway covering common site-safety gaps. Confirm the exact outcomes directly with the provider.', 'Confirm with provider', 'https://www.3tglobal.com/about/our-locations/guyana/', true),
+  ('30000000-0000-0000-0000-000000000007', '20000000-0000-0000-0000-000000000002', 'Ask about fabrication and pipework training', 'Curated technical pathway pointer. Confirm current courses and practical outcomes directly with the provider.', 'Confirm with provider', 'https://www.gtigeorgetown.com/', true),
+  ('30000000-0000-0000-0000-000000000008', '20000000-0000-0000-0000-000000000001', 'Ask about marine deck, rigging, and cargo training', 'Curated marine pathway pointer. Confirm current courses and credentials directly with the provider.', 'Confirm with provider', 'https://www.3tglobal.com/about/our-locations/guyana/', true),
+  ('30000000-0000-0000-0000-000000000009', '20000000-0000-0000-0000-000000000002', 'Ask about industrial electrical and controls training', 'Curated electrical pathway pointer. Confirm current courses and credentials directly with the provider.', 'Confirm with provider', 'https://www.gtigeorgetown.com/', true),
+  ('30000000-0000-0000-0000-000000000010', '20000000-0000-0000-0000-000000000002', 'Ask about HVAC and facilities maintenance', 'Curated facilities pathway pointer. Confirm current courses and practical outcomes directly with the provider.', 'Confirm with provider', 'https://www.gtigeorgetown.com/', true),
+  ('30000000-0000-0000-0000-000000000011', '20000000-0000-0000-0000-000000000003', 'Ask about logistics and local-content administration', 'Curated business-support pathway pointer. Confirm current courses and practical outcomes directly with the provider.', 'Confirm with provider', 'https://srms.bit.gov.gy/', true),
+  ('30000000-0000-0000-0000-000000000012', '20000000-0000-0000-0000-000000000002', 'Ask about ICT and records support', 'Curated digital-support pathway pointer. Confirm current courses and practical outcomes directly with the provider.', 'Confirm with provider', 'https://www.gtigeorgetown.com/', true),
+  ('30000000-0000-0000-0000-000000000013', '20000000-0000-0000-0000-000000000003', 'Ask about camp services and food safety', 'Curated hospitality pathway pointer. Confirm current courses and credentials directly with the provider.', 'Confirm with provider', 'https://srms.bit.gov.gy/', true),
+  ('30000000-0000-0000-0000-000000000014', '20000000-0000-0000-0000-000000000003', 'Ask about environmental and waste practices', 'Curated environmental pathway pointer. Confirm current courses and practical outcomes directly with the provider.', 'Confirm with provider', 'https://srms.bit.gov.gy/', true),
+  ('30000000-0000-0000-0000-000000000015', '20000000-0000-0000-0000-000000000002', 'Ask about surveying and measurement', 'Curated technical pathway pointer. Confirm current courses and practical outcomes directly with the provider.', 'Confirm with provider', 'https://www.gtigeorgetown.com/', true),
+  ('30000000-0000-0000-0000-000000000016', '20000000-0000-0000-0000-000000000003', 'Ask about transport and defensive-driving training', 'Curated transport pathway pointer. Confirm current courses and credentials directly with the provider.', 'Confirm with provider', 'https://srms.bit.gov.gy/', true),
+  ('30000000-0000-0000-0000-000000000017', '20000000-0000-0000-0000-000000000002', 'Ask about construction and site trades', 'Curated construction pathway pointer. Confirm current courses and practical outcomes directly with the provider.', 'Confirm with provider', 'https://www.gtigeorgetown.com/', true),
+  ('30000000-0000-0000-0000-000000000018', '20000000-0000-0000-0000-000000000001', 'Ask about offshore operations and drilling support', 'Curated offshore pathway pointer. Confirm current courses and credentials directly with the provider.', 'Confirm with provider', 'https://www.3tglobal.com/about/our-locations/guyana/', true),
+  ('30000000-0000-0000-0000-000000000019', '20000000-0000-0000-0000-000000000003', 'Ask about security and site-access training', 'Curated security pathway pointer. Confirm current courses and practical outcomes directly with the provider.', 'Confirm with provider', 'https://srms.bit.gov.gy/', true),
+  ('30000000-0000-0000-0000-000000000020', '20000000-0000-0000-0000-000000000003', 'Ask about occupational-health support', 'Curated health-support pathway pointer. Confirm current courses and credentials directly with the provider.', 'Confirm with provider', 'https://srms.bit.gov.gy/', true)
 on conflict (id) do update set
+  provider_id = excluded.provider_id,
   name = excluded.name,
   description = excluded.description,
   duration_text = excluded.duration_text,
@@ -96,8 +119,66 @@ from (
   values
     ('30000000-0000-0000-0000-000000000001'::uuid, 'bosiet'),
     ('30000000-0000-0000-0000-000000000002'::uuid, 'hydraulic-maintenance'),
+    ('30000000-0000-0000-0000-000000000002'::uuid, 'diesel-mechanics'),
+    ('30000000-0000-0000-0000-000000000002'::uuid, 'automotive-mechanics'),
+    ('30000000-0000-0000-0000-000000000002'::uuid, 'mechanical-maintenance'),
     ('30000000-0000-0000-0000-000000000003'::uuid, 'heavy-equipment-operations'),
-    ('30000000-0000-0000-0000-000000000004'::uuid, 'electrical-safety')
+    ('30000000-0000-0000-0000-000000000003'::uuid, 'forklift-operations'),
+    ('30000000-0000-0000-0000-000000000004'::uuid, 'electrical-safety'),
+    ('30000000-0000-0000-0000-000000000006'::uuid, 'hse-awareness'),
+    ('30000000-0000-0000-0000-000000000006'::uuid, 'working-at-heights'),
+    ('30000000-0000-0000-0000-000000000006'::uuid, 'confined-space-entry'),
+    ('30000000-0000-0000-0000-000000000006'::uuid, 'first-aid-cpr'),
+    ('30000000-0000-0000-0000-000000000006'::uuid, 'fire-watch'),
+    ('30000000-0000-0000-0000-000000000007'::uuid, 'welding-fabrication'),
+    ('30000000-0000-0000-0000-000000000007'::uuid, 'pipefitting'),
+    ('30000000-0000-0000-0000-000000000007'::uuid, 'pipe-welding'),
+    ('30000000-0000-0000-0000-000000000008'::uuid, 'marine-deck-operations'),
+    ('30000000-0000-0000-0000-000000000008'::uuid, 'cargo-handling'),
+    ('30000000-0000-0000-0000-000000000008'::uuid, 'rigging-and-slinging'),
+    ('30000000-0000-0000-0000-000000000008'::uuid, 'marine-vessel-support'),
+    ('30000000-0000-0000-0000-000000000009'::uuid, 'industrial-electrical-maintenance'),
+    ('30000000-0000-0000-0000-000000000009'::uuid, 'electrical-safety'),
+    ('30000000-0000-0000-0000-000000000009'::uuid, 'instrumentation-basics'),
+    ('30000000-0000-0000-0000-000000000009'::uuid, 'certified-electrician'),
+    ('30000000-0000-0000-0000-000000000010'::uuid, 'refrigeration-and-air-conditioning'),
+    ('30000000-0000-0000-0000-000000000010'::uuid, 'ventilation-systems'),
+    ('30000000-0000-0000-0000-000000000010'::uuid, 'plumbing'),
+    ('30000000-0000-0000-0000-000000000010'::uuid, 'mechanical-maintenance'),
+    ('30000000-0000-0000-0000-000000000011'::uuid, 'procurement-and-logistics'),
+    ('30000000-0000-0000-0000-000000000011'::uuid, 'warehouse-operations'),
+    ('30000000-0000-0000-0000-000000000011'::uuid, 'office-administration'),
+    ('30000000-0000-0000-0000-000000000011'::uuid, 'local-content-compliance'),
+    ('30000000-0000-0000-0000-000000000011'::uuid, 'finance-and-accounting'),
+    ('30000000-0000-0000-0000-000000000012'::uuid, 'ict-network-support'),
+    ('30000000-0000-0000-0000-000000000012'::uuid, 'office-administration'),
+    ('30000000-0000-0000-0000-000000000012'::uuid, 'communications-and-public-relations'),
+    ('30000000-0000-0000-0000-000000000013'::uuid, 'catering-and-food-safety'),
+    ('30000000-0000-0000-0000-000000000013'::uuid, 'accommodation-services'),
+    ('30000000-0000-0000-0000-000000000013'::uuid, 'custodial-services'),
+    ('30000000-0000-0000-0000-000000000013'::uuid, 'domestic-services'),
+    ('30000000-0000-0000-0000-000000000014'::uuid, 'environmental-fieldwork'),
+    ('30000000-0000-0000-0000-000000000014'::uuid, 'waste-management'),
+    ('30000000-0000-0000-0000-000000000014'::uuid, 'hse-supervision'),
+    ('30000000-0000-0000-0000-000000000015'::uuid, 'surveying'),
+    ('30000000-0000-0000-0000-000000000015'::uuid, 'metrology'),
+    ('30000000-0000-0000-0000-000000000016'::uuid, 'transportation-and-personnel-driving'),
+    ('30000000-0000-0000-0000-000000000016'::uuid, 'defensive-driving'),
+    ('30000000-0000-0000-0000-000000000017'::uuid, 'carpentry'),
+    ('30000000-0000-0000-0000-000000000017'::uuid, 'masonry'),
+    ('30000000-0000-0000-0000-000000000017'::uuid, 'steel-fixing'),
+    ('30000000-0000-0000-0000-000000000017'::uuid, 'sandblasting-and-coating'),
+    ('30000000-0000-0000-0000-000000000017'::uuid, 'scaffolding'),
+    ('30000000-0000-0000-0000-000000000018'::uuid, 'offshore-operations'),
+    ('30000000-0000-0000-0000-000000000018'::uuid, 'onshore-operations'),
+    ('30000000-0000-0000-0000-000000000018'::uuid, 'drilling-support'),
+    ('30000000-0000-0000-0000-000000000018'::uuid, 'surf-operations'),
+    ('30000000-0000-0000-0000-000000000019'::uuid, 'security-operations'),
+    ('30000000-0000-0000-0000-000000000019'::uuid, 'first-aid-cpr'),
+    ('30000000-0000-0000-0000-000000000019'::uuid, 'hse-awareness'),
+    ('30000000-0000-0000-0000-000000000020'::uuid, 'medical-support'),
+    ('30000000-0000-0000-0000-000000000020'::uuid, 'first-aid-cpr'),
+    ('30000000-0000-0000-0000-000000000020'::uuid, 'office-administration')
 ) as outcome(program_id, qualification_slug)
 join public.qualifications qualification on qualification.slug = outcome.qualification_slug
 on conflict do nothing;
@@ -109,8 +190,20 @@ values
   ('40000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 'Hydraulic Maintenance Assistant', 'Curated demo maintenance pathway.', 'Georgetown, Guyana', 'Full time', 'draft', 70, null, true),
   ('40000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', 'HSE Support Trainee', 'Curated demo safety pathway.', 'Georgetown, Guyana', 'Full time', 'draft', 70, null, true),
   ('40000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000003', 'Heavy Equipment Operator Trainee', 'Curated demo equipment pathway.', 'Guyana', 'Full time', 'draft', 70, null, true),
-  ('40000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000003', 'Warehouse and Logistics Assistant', 'Curated demo logistics pathway.', 'Georgetown, Guyana', 'Full time', 'draft', 65, null, true)
+  ('40000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000003', 'Warehouse and Logistics Assistant', 'Curated demo logistics pathway.', 'Georgetown, Guyana', 'Full time', 'draft', 65, null, true),
+  ('40000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-000000000004', 'Fabrication and Pipework Assistant', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Georgetown, Guyana', 'Full time', 'draft', 75, null, true),
+  ('40000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-000000000004', 'Marine Deck and Cargo Assistant', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Georgetown / Offshore', 'Full time', 'draft', 75, null, true),
+  ('40000000-0000-0000-0000-000000000010', '10000000-0000-0000-0000-000000000005', 'Industrial Electrical and Controls Assistant', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Berbice, Guyana', 'Full time', 'draft', 75, null, true),
+  ('40000000-0000-0000-0000-000000000011', '10000000-0000-0000-0000-000000000005', 'HVAC and Facilities Technician', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Guyana', 'Full time', 'draft', 70, null, true),
+  ('40000000-0000-0000-0000-000000000012', '10000000-0000-0000-0000-000000000006', 'Procurement and Logistics Coordinator', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Georgetown, Guyana', 'Full time', 'draft', 75, null, true),
+  ('40000000-0000-0000-0000-000000000013', '10000000-0000-0000-0000-000000000006', 'ICT and Records Support Officer', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Georgetown, Guyana', 'Full time', 'draft', 75, null, true),
+  ('40000000-0000-0000-0000-000000000014', '10000000-0000-0000-0000-000000000007', 'Camp Services and Catering Assistant', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Guyana', 'Full time', 'draft', 70, null, true),
+  ('40000000-0000-0000-0000-000000000015', '10000000-0000-0000-0000-000000000007', 'Security and Transport Assistant', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Guyana', 'Full time', 'draft', 70, null, true),
+  ('40000000-0000-0000-0000-000000000016', '10000000-0000-0000-0000-000000000004', 'Survey and Measurement Technician', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Guyana', 'Full time', 'draft', 75, null, true),
+  ('40000000-0000-0000-0000-000000000017', '10000000-0000-0000-0000-000000000005', 'Construction Site Support Worker', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Guyana', 'Full time', 'draft', 70, null, true),
+  ('40000000-0000-0000-0000-000000000018', '10000000-0000-0000-0000-000000000005', 'Environmental and HSE Field Assistant', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Guyana', 'Full time', 'draft', 75, null, true)
 on conflict (id) do update set
+  company_id = excluded.company_id,
   title = excluded.title,
   description = excluded.description,
   location = excluded.location,
@@ -142,7 +235,60 @@ from (
     ('40000000-0000-0000-0000-000000000005'::uuid, 'defensive-driving', 3::smallint, null::numeric, true),
     ('40000000-0000-0000-0000-000000000006'::uuid, 'warehouse-operations', 5::smallint, 1::numeric, false),
     ('40000000-0000-0000-0000-000000000006'::uuid, 'forklift-operations', 4::smallint, null::numeric, false),
-    ('40000000-0000-0000-0000-000000000006'::uuid, 'hse-awareness', 2::smallint, null::numeric, false)
+    ('40000000-0000-0000-0000-000000000006'::uuid, 'hse-awareness', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000008'::uuid, 'welding-fabrication', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000008'::uuid, 'pipefitting', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000008'::uuid, 'pipe-welding', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000008'::uuid, 'hse-awareness', 3::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000008'::uuid, 'working-at-heights', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000009'::uuid, 'marine-deck-operations', 5::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000009'::uuid, 'cargo-handling', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000009'::uuid, 'rigging-and-slinging', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000009'::uuid, 'bosiet', 5::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000009'::uuid, 'hse-awareness', 3::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000010'::uuid, 'industrial-electrical-maintenance', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000010'::uuid, 'electrical-safety', 4::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000010'::uuid, 'instrumentation-basics', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000010'::uuid, 'hse-awareness', 3::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000011'::uuid, 'refrigeration-and-air-conditioning', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000011'::uuid, 'ventilation-systems', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000011'::uuid, 'plumbing', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000011'::uuid, 'hse-awareness', 3::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000011'::uuid, 'working-at-heights', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000012'::uuid, 'procurement-and-logistics', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000012'::uuid, 'office-administration', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000012'::uuid, 'warehouse-operations', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000012'::uuid, 'local-content-compliance', 4::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000012'::uuid, 'finance-and-accounting', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000013'::uuid, 'ict-network-support', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000013'::uuid, 'office-administration', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000013'::uuid, 'communications-and-public-relations', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000013'::uuid, 'local-content-compliance', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000014'::uuid, 'catering-and-food-safety', 5::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000014'::uuid, 'accommodation-services', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000014'::uuid, 'custodial-services', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000014'::uuid, 'first-aid-cpr', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000014'::uuid, 'hse-awareness', 2::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000015'::uuid, 'security-operations', 5::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000015'::uuid, 'transportation-and-personnel-driving', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000015'::uuid, 'defensive-driving', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000015'::uuid, 'first-aid-cpr', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000015'::uuid, 'hse-awareness', 3::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000016'::uuid, 'surveying', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000016'::uuid, 'metrology', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000016'::uuid, 'onshore-operations', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000016'::uuid, 'hse-awareness', 3::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000017'::uuid, 'carpentry', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000017'::uuid, 'masonry', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000017'::uuid, 'steel-fixing', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000017'::uuid, 'sandblasting-and-coating', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000017'::uuid, 'hse-awareness', 3::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000017'::uuid, 'heavy-equipment-operations', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000018'::uuid, 'environmental-fieldwork', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000018'::uuid, 'waste-management', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000018'::uuid, 'hse-supervision', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000018'::uuid, 'hse-awareness', 3::smallint, null::numeric, true),
+    ('40000000-0000-0000-0000-000000000018'::uuid, 'first-aid-cpr', 2::smallint, null::numeric, false)
 ) as requirement(role_id, qualification_slug, weight, minimum_years, mandatory)
 join public.qualifications qualification on qualification.slug = requirement.qualification_slug
 on conflict (job_role_id, qualification_id) do update set
@@ -159,7 +305,18 @@ where id in (
   '40000000-0000-0000-0000-000000000003',
   '40000000-0000-0000-0000-000000000004',
   '40000000-0000-0000-0000-000000000005',
-  '40000000-0000-0000-0000-000000000006'
+  '40000000-0000-0000-0000-000000000006',
+  '40000000-0000-0000-0000-000000000008',
+  '40000000-0000-0000-0000-000000000009',
+  '40000000-0000-0000-0000-000000000010',
+  '40000000-0000-0000-0000-000000000011',
+  '40000000-0000-0000-0000-000000000012',
+  '40000000-0000-0000-0000-000000000013',
+  '40000000-0000-0000-0000-000000000014',
+  '40000000-0000-0000-0000-000000000015',
+  '40000000-0000-0000-0000-000000000016',
+  '40000000-0000-0000-0000-000000000017',
+  '40000000-0000-0000-0000-000000000018'
 );
 
 insert into public.job_fairs (id, company_id, name, location, starts_at, ends_at, status)
@@ -258,7 +415,19 @@ where (role.id, occupation.slug) in (
   ('40000000-0000-0000-0000-000000000003'::uuid, 'machinery-mechanics-and-repairers'),
   ('40000000-0000-0000-0000-000000000004'::uuid, 'environmental-and-occupational-health-professionals'),
   ('40000000-0000-0000-0000-000000000005'::uuid, 'mining-and-construction-labourers'),
-  ('40000000-0000-0000-0000-000000000006'::uuid, 'administration-professionals')
+  ('40000000-0000-0000-0000-000000000006'::uuid, 'administration-professionals'),
+  ('40000000-0000-0000-0000-000000000007'::uuid, 'administration-professionals'),
+  ('40000000-0000-0000-0000-000000000008'::uuid, 'sheet-structural-metal-workers-and-welders'),
+  ('40000000-0000-0000-0000-000000000009'::uuid, 'ships-deck-crews'),
+  ('40000000-0000-0000-0000-000000000010'::uuid, 'physical-and-engineering-science-technicians'),
+  ('40000000-0000-0000-0000-000000000011'::uuid, 'machinery-mechanics-and-repairers'),
+  ('40000000-0000-0000-0000-000000000012'::uuid, 'administration-professionals'),
+  ('40000000-0000-0000-0000-000000000013'::uuid, 'process-control-technicians'),
+  ('40000000-0000-0000-0000-000000000014'::uuid, 'cooks'),
+  ('40000000-0000-0000-0000-000000000015'::uuid, 'heavy-truck-and-bus-drivers'),
+  ('40000000-0000-0000-0000-000000000016'::uuid, 'architects-planners-surveyors-and-designers'),
+  ('40000000-0000-0000-0000-000000000017'::uuid, 'mining-and-construction-labourers'),
+  ('40000000-0000-0000-0000-000000000018'::uuid, 'environmental-and-occupational-health-professionals')
 );
 
 -- Guyana Local Content Act 2021 First Schedule categories. Targets are the

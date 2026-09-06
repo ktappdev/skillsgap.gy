@@ -93,11 +93,12 @@ export async function getApplicantProgress(client: Client, applicantId: string):
           id: gap.id,
           name: qualificationNames.get(requirement.qualification_id) ?? "Qualification to verify",
           type: requirement.kind === "certification" ? "Certification" as const : requirement.kind === "experience" ? "Experience" as const : "Technical skill" as const,
+          mandatory: requirement.mandatory,
           training: trainingByQualification.get(requirement.qualification_id)?.label ?? null,
           trainingUrl: trainingByQualification.get(requirement.qualification_id)?.url ?? null,
           status: gap.status,
         }];
-      });
+      }).sort((first, second) => Number(second.mandatory) - Number(first.mandatory));
       const strengths = allRequirements
         .filter((requirement) => requirement.job_role_id === role.id && applicantQualificationIds.has(requirement.qualification_id))
         .map((requirement) => qualificationNames.get(requirement.qualification_id))

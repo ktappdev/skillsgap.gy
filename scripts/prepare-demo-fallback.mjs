@@ -62,7 +62,6 @@ const fallbackSkills = [
   { slug: "diesel-mechanics", years: 4, originalTerm: "Minibus diesel repair" },
   { slug: "mechanical-maintenance", years: 4, originalTerm: "Mechanical maintenance" },
   { slug: "bosiet", years: 0, originalTerm: "BOSIET certificate" },
-  { slug: "hydraulic-maintenance", years: 0, originalTerm: "Hydraulics maintenance" },
 ];
 
 const { data: qualifications, error: qualificationsError } = await supabase
@@ -98,7 +97,8 @@ failIfError(insertQualificationsError, "Could not add fallback qualifications");
 const { data: roles, error: rolesError } = await supabase
   .from("job_roles")
   .select("id,eligibility_threshold")
-  .eq("status", "active");
+  .eq("status", "active")
+  .eq("is_demo", true);
 failIfError(rolesError, "Could not read active roles");
 if (!roles || roles.length === 0) throw new Error("No active curated roles are available.");
 
