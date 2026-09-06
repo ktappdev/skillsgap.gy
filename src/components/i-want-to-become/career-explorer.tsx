@@ -6,14 +6,18 @@ import { ExplorerProgress, ExplorerSummary } from "@/components/i-want-to-become
 import { OccupationPathwayReport } from "@/components/i-want-to-become/occupation-pathway-report";
 import { useCareerExplorer } from "@/components/i-want-to-become/use-career-explorer";
 import { occupationCatalog, type PublicOccupation } from "@/lib/i-want-to-become/occupations";
+import type { PathwaySaveViewer } from "@/lib/i-want-to-become/pathway-plan";
 
-type CareerExplorerProps = { initialOccupations?: PublicOccupation[] };
+type CareerExplorerProps = {
+  initialOccupations?: PublicOccupation[];
+  viewer?: PathwaySaveViewer;
+};
 
 function PlanError({ onEdit }: { onEdit: () => void }) {
   return <section className="border border-border bg-surface p-6 shadow-sm sm:p-8" aria-labelledby="plan-error-title"><p className="text-xs font-bold uppercase tracking-[0.18em] text-danger">Pathway unavailable</p><h2 id="plan-error-title" className="mt-3 text-2xl font-semibold tracking-tight text-foreground">We could not load that route right now.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted">Your direction and starting point are still here. Try again in a moment or edit your starting point to choose another route.</p><button type="button" onClick={onEdit} className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white transition hover:bg-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Back to my starting point</button></section>;
 }
 
-export function CareerExplorer({ initialOccupations = occupationCatalog }: CareerExplorerProps) {
+export function CareerExplorer({ initialOccupations = occupationCatalog, viewer = "anonymous" }: CareerExplorerProps) {
   const explorer = useCareerExplorer(initialOccupations);
   const { careerId, interests, selectedInterests, results, photoName, photoPreview, photoState, photoError, resultsReviewed, step, showPlan, occupations, occupationPlan, planSource, planLoading, planError, draftReady, draftRestored, guidedPathway, selectedOccupation, completedResults, selectedTitle, selectedDetail, updateResult, toggleInterest, selectCareer, readSlip, showResults, editStartingPoint, resetDraft, canVisitStep, setResults, setResultsReviewed, setStep } = explorer;
 
@@ -30,8 +34,8 @@ export function CareerExplorer({ initialOccupations = occupationCatalog }: Caree
   if (!draftReady) return <section className="border border-border bg-surface p-6 shadow-sm sm:p-8" aria-busy="true"><div className="h-3 w-28 animate-pulse bg-surface-muted" /><div className="mt-4 h-8 max-w-md animate-pulse bg-surface-muted" /><p className="mt-4 text-sm text-muted">Restoring your starting point…</p></section>;
 
   if (showPlan) {
-    if (guidedPathway) return <GuidedPathwayPlan pathway={guidedPathway} results={completedResults} onEdit={editStartingPoint} />;
-    if (selectedOccupation && occupationPlan) return <div>{planLoading ? <p className="mb-3 text-sm text-muted" role="status">Refreshing the verified pathway catalogue…</p> : null}<OccupationPathwayReport pathway={occupationPlan} interests={interests} selectedInterests={selectedInterests} results={completedResults} source={planSource} onEdit={editStartingPoint} /></div>;
+    if (guidedPathway) return <GuidedPathwayPlan pathway={guidedPathway} interests={interests} selectedInterests={selectedInterests} results={completedResults} viewer={viewer} onEdit={editStartingPoint} />;
+    if (selectedOccupation && occupationPlan) return <div>{planLoading ? <p className="mb-3 text-sm text-muted" role="status">Refreshing the verified pathway catalogue…</p> : null}<OccupationPathwayReport pathway={occupationPlan} interests={interests} selectedInterests={selectedInterests} results={completedResults} source={planSource} viewer={viewer} onEdit={editStartingPoint} /></div>;
     if (planError) return <PlanError onEdit={editStartingPoint} />;
   }
 

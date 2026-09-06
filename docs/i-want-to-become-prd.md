@@ -1,6 +1,6 @@
 # I Want to Become — Product Requirements Document
 
-**Status:** implemented pathway catalogue (checkpoints 28–33)
+**Status:** implemented pathway catalogue with private applicant save handoff
 **Audience:** Guyanese secondary-school leavers and CSEC/CXC students without a CV
 **Product loop:** aspiration → starting point → transferable strength → next actions → official route → account handoff
 
@@ -20,12 +20,12 @@ It extends rather than replaces the CV-based applicant journey. CSEC/CXC results
 - A role-specific result: real platform requirements, useful education-preparation signals, and verified training where available.
 - A role-specific pathway report for all 18 curated occupations: transfer summary, local-content context, example titles, preparation subjects, and three ordered actions with official links.
 - Verification dates and source locations for every public action, with a visible warning when a source needs checking.
-- A clear account-creation handoff when a learner is ready to build a verified applicant profile.
+- A clear, consent-based account handoff that saves one private planning route to the applicant dashboard.
 - Manual entry that is fully functional even when the image/AI service is unavailable.
 
 ### Excluded
 
-- Public profile storage, tracking a minor, applications, employer access, interview eligibility, or CV upload.
+- Public profile storage, tracking a minor, applications, employer access to planning routes, interview eligibility, or CV upload.
 - Saving a result-slip image in Storage, Postgres, analytics, or logs.
 - Treating CSEC/CXC grades as professional certificates or employer approval.
 - Automatic career choice from free text.
@@ -44,7 +44,7 @@ The explorer uses the existing small-win language and visual system, but labels 
 3. **Add results:** manually add subject/grade pairs or photograph a CSEC/CXC result slip.
 4. **Review:** the learner confirms, edits, adds, or removes every extracted subject and grade.
 5. **See a pathway report:** separate what the learner entered from how that experience can transfer, then list preparation subjects and the next three concrete actions. Every public action links to an official source and shows when it was last checked.
-6. **Continue when ready:** invite account creation to build a full verified profile. Do not silently transfer public responses into employment records.
+6. **Continue when ready:** explicitly offer to save the planning draft to a private applicant account. Keep it visibly separate from verified qualifications and employment records.
 
 ## Result-slip privacy and fallback
 
@@ -116,7 +116,9 @@ The current processor documents text-only `gpt-oss-20b`, while `AGENTS.md` recor
 
 ### State and handoff
 
-Keep form progress/results in browser `sessionStorage`, not Supabase. Account creation is an explicit handoff; public responses are not copied into verified career data.
+Keep anonymous form progress/results in browser `sessionStorage`. When the learner explicitly chooses “Create account and save this plan,” copy the reviewed text fields—not the result-slip image—into a versioned `localStorage` handoff that expires after 24 hours. After authentication, validate and upsert one owner-only `applicant_pathway_plans` row, then clear the browser copies only after the database save succeeds.
+
+Saved interests and CSEC/CXC entries remain private planning signals. They never populate applicant qualifications, matches, CV processing, consent, applications, or employer-visible records. Saving a new route replaces the applicant's previous active route, and clearing all pathway data removes it.
 
 ## Delivery plan
 
@@ -142,6 +144,8 @@ Both inputs belong in the first release. Slice A is built first so infrastructur
 - A visitor uploads/takes a valid result-slip photo, corrects extracted values, and gets the same pathway.
 - If image processing fails, the visitor completes the manual route without losing their chosen role or entries.
 - No public action creates a profile, CV, applicant qualification, match, consent, processing job, Storage object, or exposed secret.
+- An explicit save action survives signup or email confirmation in another tab, stores one private route, and shows it on the applicant dashboard.
+- Anonymous users and other applicants cannot read or modify a saved route, and company/provider/admin accounts cannot save one.
 - Only active approved roles and verified training appear.
 - Only active HTTPS action cards marked verified by an administrator appear in the public pathway projection.
 - A stale source shows a freshness warning, and missing course evidence is described as “ask about current intake,” never as a guaranteed offering.

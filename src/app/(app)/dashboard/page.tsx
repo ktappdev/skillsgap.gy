@@ -7,6 +7,7 @@ import { MatchCard } from "@/components/skillsgap/match-card";
 import { MilestonePath, StatusPill } from "@/components/skillsgap/milestone-path";
 import { QualificationReview } from "@/components/skillsgap/qualification-review";
 import { RealtimeSync } from "@/components/dashboard/realtime-sync";
+import { SavedCareerRoute } from "@/components/dashboard/saved-career-route";
 import { isDemoApplicantMetadata } from "@/lib/auth/demo";
 import { requireApplicant } from "@/lib/auth/queries";
 import { getApplicantProgress } from "@/lib/skillsgap/queries";
@@ -14,9 +15,13 @@ import { demoMatches, shouldUseDemoMatches } from "@/lib/skillsgap-demo";
 
 export const metadata: Metadata = { title: "My pathway" };
 
-export default async function DashboardPage() {
+type DashboardPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const { supabase, user } = await requireApplicant();
-  const progress = await getApplicantProgress(supabase, user.id);
+  const [progress, params] = await Promise.all([getApplicantProgress(supabase, user.id), searchParams]);
   const usingDemoMatches = shouldUseDemoMatches({
     isDemoApplicant: isDemoApplicantMetadata(user.user_metadata),
     matchCount: progress.matches.length,
@@ -47,8 +52,11 @@ export default async function DashboardPage() {
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">We start with what you can already do, then focus only on the steps that move you closer.</p>
       </header>
 
+      {params.pathway === "saved" ? <p className="mt-6 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status">Your career route is saved privately to this dashboard.</p> : null}
+
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="space-y-8">
+          <SavedCareerRoute plan={progress.pathwayPlan} />
           <CvUpload key={progress.latestResume?.id ?? "no-resume"} userId={user.id} hasUploadedCv={Boolean(progress.latestResume)} />
           <ProcessingNotice status={progress.processingStatus} error={progress.processingError} />
           <QualificationReview key={[...progress.findings.map((item) => `${item.id}-${item.updated_at}`), ...progress.qualifications.map((item) => `${item.id}-${item.updated_at}`)].join(",")} applicantId={user.id} initialFindings={progress.findings} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} unmappedTerms={progress.unmappedTerms} />

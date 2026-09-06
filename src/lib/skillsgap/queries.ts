@@ -6,6 +6,7 @@ import type { Database, Json, Tables } from "@/lib/supabase/database.types";
 type Client = SupabaseClient<Database>;
 
 export type ApplicantProgress = {
+  pathwayPlan: Tables<"applicant_pathway_plans"> | null;
   latestResume: Tables<"resumes"> | null;
   processingStatus: Tables<"processing_jobs">["status"] | null;
   processingError: string | null;
@@ -24,7 +25,8 @@ export type ApplicantExtractionFindingView = Tables<"resume_extraction_findings"
 };
 
 export async function getApplicantProgress(client: Client, applicantId: string): Promise<ApplicantProgress> {
-  const [resumeResult, jobResult, matchesResult, experienceResult] = await Promise.all([
+  const [pathwayResult, resumeResult, jobResult, matchesResult, experienceResult] = await Promise.all([
+    client.from("applicant_pathway_plans").select("*").eq("applicant_id", applicantId).maybeSingle(),
     client.from("resumes").select("*").eq("applicant_id", applicantId).is("deleted_at", null).order("uploaded_at", { ascending: false }).limit(1).maybeSingle(),
     client.from("processing_jobs").select("*").eq("applicant_id", applicantId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     client.from("job_matches").select("*").eq("applicant_id", applicantId).eq("status", "current").order("score", { ascending: false }).order("calculated_at", { ascending: false }).order("id", { ascending: true }),
@@ -46,7 +48,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const activeRoleIds = new Set(activeRoles.filter((role) => approvedCompanyIds.has(role.company_id)).map((role) => role.id));
   const rows = currentMatches.filter((row) => activeRoleIds.has(row.job_role_id)).slice(0, 3);
   if (rows.length === 0) {
-    return { latestResume: resumeResult.data, processingStatus: jobResult.data?.status ?? null, processingError: jobResult.data?.error_message ?? null, unmappedTerms, experience: experienceResult.data ?? [], matches: [], visibleRoleCount: activeRoleIds.size, findings: await getApplicantFindings(client, applicantId), qualifications: await getApplicantQualifications(client, applicantId), availableQualifications: await getAvailableQualifications(client) };
+    return { pathwayPlan: pathwayResult.data, latestResume: resumeResult.data, processingStatus: jobResult.data?.status ?? null, processingError: jobResult.data?.error_message ?? null, unmappedTerms, experience: experienceResult.data ?? [], matches: [], visibleRoleCount: activeRoleIds.size, findings: await getApplicantFindings(client, applicantId), qualifications: await getApplicantQualifications(client, applicantId), availableQualifications: await getAvailableQualifications(client) };
   }
 
   const roleIds = rows.map((row) => row.job_role_id);
@@ -77,6 +79,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const trainingByQualification = await getTrainingPathways(client, qualificationIds);
 
   return {
+    pathwayPlan: pathwayResult.data,
     latestResume: resumeResult.data,
     processingStatus: jobResult.data?.status ?? null,
     processingError: jobResult.data?.error_message ?? null,

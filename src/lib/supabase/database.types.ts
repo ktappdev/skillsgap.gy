@@ -34,6 +34,7 @@ export type ConsentStatus = "active" | "revoked";
 export type FairStatus = "draft" | "open" | "closed";
 export type InvitationStatus = "pending" | "accepted" | "declined" | "expired" | "invited";
 export type BookingStatus = "confirmed" | "cancelled";
+export type PathwayKind = "guided" | "occupation";
 
 type Profile = {
   avatar_url: string | null;
@@ -58,6 +59,7 @@ type LocalContentCategory = Timestamps & { id: string; is_active: boolean; name:
 type OccupationLocalContentCategory = { created_at: string; local_content_category_id: string; occupation_id: string; relevance_note: string };
 type CareerPreparationSubject = Timestamps & { id: string; is_active: boolean; last_verified_at: string; minimum_grade: string | null; occupation_id: string; guidance_note: string; source_locator: string; source_url: string; subject_name: string };
 type OccupationPathwayAction = Timestamps & { action_type: "learn" | "practice" | "register" | "find_work" | "guidance"; contact_text: string | null; id: string; instruction: string; is_active: boolean; is_verified: boolean; last_verified_at: string; location: string | null; occupation_id: string; organization_name: string; sort_order: number; source_locator: string; source_url: string; title: string; training_program_id: string | null; url: string; why_it_helps: string };
+type ApplicantPathwayPlan = Timestamps & { applicant_id: string; pathway_kind: PathwayKind; pathway_key: string; pathway_title: string; interests_note: string; selected_interests: string[]; csec_results: Json; planned_requirement_names: string[]; completed_action_ids: string[] };
 type JobRole = Timestamps & { company_id: string; created_by: string | null; description: string; eligibility_threshold: number; employment_type: string | null; id: string; is_demo: boolean; location: string; occupation_id: string | null; published_at: string | null; status: JobStatus; title: string };
 type JobRequirement = Timestamps & { id: string; job_role_id: string; kind: RequirementKind; mandatory: boolean; minimum_years: number | null; qualification_id: string; weight: number };
 type TrainingProvider = Timestamps & { contact_phone: string | null; contact_url: string | null; description: string | null; id: string; is_verified: boolean; location: string; name: string; owner_user_id: string | null };
@@ -96,6 +98,7 @@ export type Database = {
       occupation_local_content_categories: Table<OccupationLocalContentCategory, InsertOf<OccupationLocalContentCategory> & Pick<OccupationLocalContentCategory, "occupation_id" | "local_content_category_id" | "relevance_note">, Partial<OccupationLocalContentCategory>>;
       career_preparation_subjects: Table<CareerPreparationSubject, InsertOf<CareerPreparationSubject> & Pick<CareerPreparationSubject, "occupation_id" | "subject_name" | "guidance_note" | "source_url" | "source_locator" | "last_verified_at">, Partial<CareerPreparationSubject>>;
       occupation_pathway_actions: Table<OccupationPathwayAction, InsertOf<OccupationPathwayAction> & Pick<OccupationPathwayAction, "occupation_id" | "action_type" | "title" | "instruction" | "why_it_helps" | "organization_name" | "url" | "source_url" | "source_locator" | "last_verified_at">, Partial<OccupationPathwayAction>>;
+      applicant_pathway_plans: Table<ApplicantPathwayPlan, InsertOf<ApplicantPathwayPlan> & Pick<ApplicantPathwayPlan, "applicant_id" | "pathway_kind" | "pathway_key" | "pathway_title">, Partial<ApplicantPathwayPlan>>;
       job_roles: Table<JobRole, InsertOf<JobRole> & Pick<JobRole, "company_id" | "title">, Partial<JobRole>>;
       job_requirements: Table<JobRequirement, InsertOf<JobRequirement> & Pick<JobRequirement, "job_role_id" | "qualification_id" | "kind">, Partial<JobRequirement>>;
       training_providers: Table<TrainingProvider, InsertOf<TrainingProvider> & Pick<TrainingProvider, "name" | "location">, Partial<TrainingProvider>>;
