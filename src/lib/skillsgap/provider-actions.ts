@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requireTrainingProvider, requireUser } from "@/lib/auth/queries";
 import { getDatabaseErrorMessage } from "@/lib/errors";
 import { getTrimmedFormString } from "@/lib/validation";
+import type { RequirementKind } from "@/lib/supabase/database.types";
 
 const NAME_MIN = 2;
 const NAME_MAX = 160;
@@ -332,6 +333,63 @@ export async function removeProviderOutcome(formData: FormData): Promise<Provide
     .eq("qualification_id", qualificationId);
 
   if (error) return { error: getDatabaseErrorMessage(error, "We could not remove that outcome.") };
+
+  revalidatePath("/provider");
+  return {};
+}
+
+/**
+ * Verified providers can create a new qualification (auto-generating the slug)
+ * and immediately map it as an outcome to one of their programs. RLS allows
+ * verified providers to insert qualifications with `is_active = true`; this
+ * action never sets `is_verified` on the provider.
+ */
+export async function createProviderQualification(formData: FormData): Promise<ProviderActionResult> {
+  const { supabase, provider } = await requireTrainingProvider();
+  if (!provider.is_verified) return { error: "Only verified training providers can add new qualifications." };
+
+  const programId = getTrimmedFormString(formData, "programId");
+  const name = getTrimmedFormString(formData, "name");
+  const category = getTrimmedFormString(formData, "category");
+  const description = getTrimmedFormString(formData, "description");
+
+  if (!programId || !name) return { error: "Choose a program and qualification name." };
+  if (name.length < NAME_MIN || name.length > NAME_MAX) return { error: "Add a qualification name between 2 and 160 characters." };
+  const allowedCategories: RequirementKind[] = ["technical_skill", "certification", "compliance", "experience"];
+  if (!category || !allowedCategories.includes(category as RequirementKind)) return { error: "Choose a valid category." };
+  if (description.length > 500) return { error: "Descriptions must be 500 characters or fewer." };
+
+  // Auto-generate a kebab-case slug from the name.
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return { error: "Could not generate a valid slug from that name. Use letters and numbers only." };
+
+  // Verify the program belongs to this provider before mapping an outcome.
+  const { data: owned, error: ownershipError } = await supabase
+    .from("training_programs")
+    .select("id")
+    .eq("id", programId)
+    .eq("provider_id", provider.id)
+    .maybeSingle();
+  if (ownershipError || !owned) return { error: "That program is not part of your provider workspace." };
+
+  const { data: qualification, error: qualError } = await supabase
+    .from("qualifications")
+    .insert({ name, slug, category: category as RequirementKind, description: description || null, is_active: true })
+    .select("id")
+    .single();
+  if (qualError) {
+    if (qualError.code === "23505") return { error: "A qualification with that slug already exists. Try searching for it above." };
+    return { error: getDatabaseErrorMessage(qualError, "We could not create that qualification.") };
+  }
+
+  const { error: outcomeError } = await supabase.from("training_program_outcomes").insert({
+    training_program_id: programId,
+    qualification_id: qualification.id,
+  });
+  // 23505 means the outcome is already mapped — treat as success.
+  if (outcomeError && outcomeError.code !== "23505") {
+    return { error: getDatabaseErrorMessage(outcomeError, "The qualification was created but could not be mapped to the program.") };
+  }
 
   revalidatePath("/provider");
   return {};
