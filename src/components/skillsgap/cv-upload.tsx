@@ -2,17 +2,19 @@
 
 import { useRef, useState } from "react";
 
+import { ClearPathwayButton } from "@/components/dashboard/clear-pathway-button";
 import { queueResumeProcessing } from "@/lib/skillsgap/actions";
 import { createClient } from "@/lib/supabase/client";
 
 const fileLimit = 15 * 1024 * 1024;
 type UploadStatus = "idle" | "uploading" | "queued" | "error";
 
-export function CvUpload({ userId }: { userId: string }) {
+export function CvUpload({ userId, hasUploadedCv }: { userId: string; hasUploadedCv: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
+  const [hasCv, setHasCv] = useState(hasUploadedCv);
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
@@ -53,6 +55,7 @@ export function CvUpload({ userId }: { userId: string }) {
     }
 
     setStatus("queued");
+    setHasCv(true);
     setMessage("CV received. We are identifying your strengths now.");
   };
 
@@ -87,6 +90,7 @@ export function CvUpload({ userId }: { userId: string }) {
         <span className="mt-1 text-sm text-muted">{fileName ? "Upload another CV" : "We will identify skills, certifications, and experience."}</span>
       </button>
       {message ? <p className="mt-3 text-sm leading-6 text-muted" role={status === "error" ? "alert" : "status"}>{message}</p> : null}
+      {hasCv ? <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-foreground">Want to start over?</p><p className="mt-1 max-w-lg text-sm leading-6 text-muted">Clear your uploaded CV and all generated pathway data, then upload a fresh CV.</p></div><ClearPathwayButton onCleared={() => { setHasCv(false); setFileName(null); setStatus("idle"); setMessage(null); }} /></div> : null}
     </section>
   );
 }

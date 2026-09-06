@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { clearApplicantPathway } from "@/lib/skillsgap/actions";
 
-export function ClearPathwayButton() {
+export function ClearPathwayButton({ onCleared }: { onCleared?: () => void }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -20,7 +22,8 @@ export function ClearPathwayButton() {
         setError(result.error);
         return;
       }
-      setMessage("Your pathway is clear. Upload a new CV whenever you are ready.");
+      onCleared?.();
+      router.refresh();
     });
   }
 
