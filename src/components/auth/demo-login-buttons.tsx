@@ -2,13 +2,13 @@
 
 import { useActionState } from "react";
 
+import { SubmitButton } from "@/components/ui/submit-button";
 import { signInAsDemo, type AuthActionState } from "@/lib/auth/actions";
 
 const demoRoles = [
   { id: "applicant", label: "Applicant", hint: "Browse jobs and skill gaps" },
   { id: "owner", label: "Company Owner", hint: "Manage company and roles" },
   { id: "recruiter", label: "Recruiter", hint: "Review candidates and matches" },
-  { id: "admin", label: "Platform Admin", hint: "Oversee the platform" },
   { id: "provider", label: "Training Provider", hint: "Manage courses and programs" },
 ] as const;
 
@@ -19,8 +19,8 @@ type DemoLoginButtonsProps = {
 };
 
 /**
- * Testing-phase convenience: one-click sign-in per stakeholder role.
- * The browser only sends a role label; credentials stay server-side.
+ * Testing-phase convenience: one-click sign-in for shared demo roles, with
+ * password re-entry required for the privileged platform-admin account.
  * Rendered only when NEXT_PUBLIC_DEMO_LOGIN_ENABLED is true.
  */
 export function DemoLoginButtons({ next }: DemoLoginButtonsProps) {
@@ -50,6 +50,32 @@ export function DemoLoginButtons({ next }: DemoLoginButtonsProps) {
             </button>
           ))}
         </div>
+      </form>
+
+      <form action={formAction} className="rounded-md border border-border bg-surface p-3.5">
+        <input type="hidden" name="next" value={next} />
+        <input type="hidden" name="role" value="admin" />
+        <div>
+          <p className="text-sm font-semibold text-foreground">Platform Admin</p>
+          <p className="mt-0.5 text-xs leading-5 text-muted">Private operator access for managing the demo.</p>
+        </div>
+        <label className="mt-3 block text-xs font-semibold text-foreground" htmlFor="demo-admin-password">
+          Admin password
+          <input
+            id="demo-admin-password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            className="mt-2 min-h-11 w-full rounded-md border border-border bg-surface px-3.5 text-sm font-normal outline-none transition focus:border-accent"
+          />
+        </label>
+        <SubmitButton
+          pendingLabel="Signing in…"
+          className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-md border border-accent px-4 text-sm font-semibold text-accent transition hover:bg-teal-50 disabled:cursor-wait disabled:opacity-60"
+        >
+          Sign in as admin
+        </SubmitButton>
       </form>
 
       {state.error ? (

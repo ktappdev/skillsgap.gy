@@ -153,9 +153,9 @@ export async function updatePassword(
 }
 
 /**
- * One-click demo login for the testing phase. The browser sends only a role
- * label; credentials are resolved server-side and never returned to the client.
- * Hard-gated by the demoLoginEnabled flag so it is inert in production builds.
+ * Demo login for the testing phase. Shared roles resolve their credentials on
+ * the server; platform-admin access requires the operator to re-enter the
+ * account password. Hard-gated by the demoLoginEnabled flag.
  *
  * Each role lands on its own home page (applicant → /dashboard, company roles →
  * /company, admin → /admin). A safe `next` param from the query string still
@@ -182,10 +182,17 @@ export async function signInAsDemo(
     return { error: "Demo login is not configured. Ask your operator to run the setup script." };
   }
 
+  const password = role === "admin"
+    ? getFormString(formData, "password")
+    : credentials.password;
+  if (!password) {
+    return { error: "Enter the admin password." };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
     email: credentials.email,
-    password: credentials.password,
+    password,
   });
 
   if (error) {
