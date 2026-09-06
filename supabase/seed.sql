@@ -9,7 +9,8 @@ values
   ('10000000-0000-0000-0000-000000000004', 'Kaieteur Fabrication and Marine Services', 'Curated demo company for fabrication, marine, and surveying pathways. Not a live employer listing.', 'approved', timezone('utc', now())),
   ('10000000-0000-0000-0000-000000000005', 'Berbice Industrial Facilities', 'Curated demo company for electrical, facilities, construction, and environmental pathways. Not a live employer listing.', 'approved', timezone('utc', now())),
   ('10000000-0000-0000-0000-000000000006', 'Demerara Supply Chain and Technical Services', 'Curated demo company for procurement, administration, and ICT pathways. Not a live employer listing.', 'approved', timezone('utc', now())),
-  ('10000000-0000-0000-0000-000000000007', 'Coastal Camp and Site Services', 'Curated demo company for camp, hospitality, security, and transport pathways. Not a live employer listing.', 'approved', timezone('utc', now()))
+  ('10000000-0000-0000-0000-000000000007', 'Coastal Camp and Site Services', 'Curated demo company for camp, hospitality, security, and transport pathways. Not a live employer listing.', 'approved', timezone('utc', now())),
+  ('10000000-0000-0000-0000-000000000008', 'Guyana Digital Infrastructure Services', 'Curated demo company for software, data, cloud, server, network, cybersecurity, and IoT pathways. Not a live employer listing.', 'approved', timezone('utc', now()))
 on conflict (id) do update set
   name = excluded.name,
   description = excluded.description,
@@ -39,7 +40,17 @@ values
   ('defensive-driving', 'Defensive Driving', 'certification', 'Applies defensive driving practice.'),
   ('local-content-registration', 'Local Content Registration', 'compliance', 'Required local-content registration where applicable.'),
   ('mechanical-maintenance', 'Mechanical Maintenance', 'technical_skill', 'Performs planned and corrective mechanical maintenance.'),
-  ('instrumentation-basics', 'Instrumentation Basics', 'technical_skill', 'Understands basic industrial instrumentation.')
+  ('instrumentation-basics', 'Instrumentation Basics', 'technical_skill', 'Understands basic industrial instrumentation.'),
+  ('software-development', 'Software Development', 'technical_skill', 'Designs, builds, tests, and maintains software applications.'),
+  ('web-application-development', 'Web Application Development', 'technical_skill', 'Builds accessible frontend, backend, or full-stack web applications.'),
+  ('database-and-sql', 'Database and SQL', 'technical_skill', 'Designs, queries, and maintains relational databases using SQL.'),
+  ('server-administration', 'Server Administration', 'technical_skill', 'Configures, secures, monitors, and troubleshoots Linux or Windows servers.'),
+  ('cloud-and-devops', 'Cloud and DevOps', 'technical_skill', 'Deploys and operates applications using cloud, container, and delivery tooling.'),
+  ('iot-systems', 'Internet of Things Systems', 'technical_skill', 'Builds or supports connected sensors, devices, gateways, and IoT data flows.'),
+  ('cybersecurity', 'Cybersecurity', 'technical_skill', 'Protects systems, networks, applications, and data from security threats.'),
+  ('data-analysis', 'Data Analysis', 'technical_skill', 'Cleans, analyses, visualises, and communicates insights from data.'),
+  ('api-development-and-integration', 'API Development and Integration', 'technical_skill', 'Builds and integrates reliable application programming interfaces.'),
+  ('version-control', 'Version Control', 'technical_skill', 'Uses source-control workflows to collaborate safely on software changes.')
 on conflict (slug) do update set
   name = excluded.name,
   category = excluded.category,
@@ -66,16 +77,85 @@ from (
     ('welding-fabrication', 'Welder Fabricator'),
     ('warehouse-operations', 'Storekeeper'),
     ('warehouse-operations', 'Storekeeping and inventory control'),
-    ('hse-awareness', 'Workshop health and safety')
+    ('hse-awareness', 'Workshop health and safety'),
+    ('ict-network-support', 'Network Administration'),
+    ('ict-network-support', 'Network Engineering'),
+    ('ict-network-support', 'TCP/IP'),
+    ('ict-network-support', 'Cisco Networking'),
+    ('ict-network-support', 'Help Desk Support'),
+    ('software-development', 'Software Engineer'),
+    ('software-development', 'Software Developer'),
+    ('software-development', 'Application Developer'),
+    ('software-development', 'Programming'),
+    ('software-development', 'Python'),
+    ('software-development', 'Java'),
+    ('software-development', 'C#'),
+    ('software-development', 'C++'),
+    ('software-development', 'PHP'),
+    ('web-application-development', 'Web Developer'),
+    ('web-application-development', 'Full Stack Developer'),
+    ('web-application-development', 'Frontend Developer'),
+    ('web-application-development', 'Backend Developer'),
+    ('web-application-development', 'JavaScript'),
+    ('web-application-development', 'TypeScript'),
+    ('web-application-development', 'React'),
+    ('web-application-development', 'Next.js'),
+    ('web-application-development', 'Node.js'),
+    ('database-and-sql', 'SQL'),
+    ('database-and-sql', 'PostgreSQL'),
+    ('database-and-sql', 'MySQL'),
+    ('database-and-sql', 'Microsoft SQL Server'),
+    ('database-and-sql', 'Database Administrator'),
+    ('database-and-sql', 'Database Management'),
+    ('server-administration', 'Systems Administrator'),
+    ('server-administration', 'Linux Administration'),
+    ('server-administration', 'Windows Server'),
+    ('server-administration', 'Active Directory'),
+    ('server-administration', 'VMware'),
+    ('cloud-and-devops', 'DevOps'),
+    ('cloud-and-devops', 'Amazon Web Services'),
+    ('cloud-and-devops', 'AWS'),
+    ('cloud-and-devops', 'Microsoft Azure'),
+    ('cloud-and-devops', 'Google Cloud Platform'),
+    ('cloud-and-devops', 'Docker'),
+    ('cloud-and-devops', 'Kubernetes'),
+    ('cloud-and-devops', 'CI/CD'),
+    ('cloud-and-devops', 'Terraform'),
+    ('iot-systems', 'IoT'),
+    ('iot-systems', 'Internet of Things'),
+    ('iot-systems', 'Arduino'),
+    ('iot-systems', 'Raspberry Pi'),
+    ('iot-systems', 'MQTT'),
+    ('iot-systems', 'Embedded Systems'),
+    ('iot-systems', 'Sensor Networks'),
+    ('cybersecurity', 'Information Security'),
+    ('cybersecurity', 'Network Security'),
+    ('cybersecurity', 'Security Analyst'),
+    ('cybersecurity', 'Cyber Security'),
+    ('data-analysis', 'Data Analyst'),
+    ('data-analysis', 'Power BI'),
+    ('data-analysis', 'Tableau'),
+    ('data-analysis', 'Pandas'),
+    ('api-development-and-integration', 'REST API'),
+    ('api-development-and-integration', 'API Development'),
+    ('api-development-and-integration', 'API Integration'),
+    ('api-development-and-integration', 'GraphQL'),
+    ('version-control', 'Git'),
+    ('version-control', 'GitHub'),
+    ('version-control', 'GitLab'),
+    ('version-control', 'Source Control')
 ) as alias_data(slug, alias)
 join public.qualifications qualification on qualification.slug = alias_data.slug
 on conflict (normalized_alias) do nothing;
 
+-- University of Guyana programme catalogue and course details checked 2026-09-06:
+-- https://registry.uog.edu.gy/srms/departments/7/programmes
 insert into public.training_providers (id, name, location, contact_url, description, is_verified)
 values
   ('20000000-0000-0000-0000-000000000001', '3t EnerMech Guyana', 'Lusignan, East Coast Demerara, Guyana', 'https://www.3tglobal.com/about/our-locations/guyana/', 'Curated provider pointer. Confirm the current Guyana offering, intake, cost, and credential directly with the provider.', true),
   ('20000000-0000-0000-0000-000000000002', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Curated provider pointer. Confirm the current intake, entry requirements, cost, and credential directly with the provider.', true),
-  ('20000000-0000-0000-0000-000000000003', 'Board of Industrial Training', 'Georgetown, Guyana', 'https://srms.bit.gov.gy/', 'Curated provider pointer. Confirm the current intake, entry requirements, cost, and credential directly with the provider.', true)
+  ('20000000-0000-0000-0000-000000000003', 'Board of Industrial Training', 'Georgetown, Guyana', 'https://srms.bit.gov.gy/', 'Curated provider pointer. Confirm the current intake, entry requirements, cost, and credential directly with the provider.', true),
+  ('20000000-0000-0000-0000-000000000004', 'University of Guyana Department of Computer Science', 'Turkeyen, Greater Georgetown, Guyana', 'https://registry.uog.edu.gy/srms/departments/7/programmes', 'Official programme pointer. Confirm the current intake, delivery mode, entry requirements, cost, and curriculum directly with the university.', true)
 on conflict (id) do update set
   name = excluded.name,
   location = excluded.location,
@@ -104,7 +184,10 @@ values
   ('30000000-0000-0000-0000-000000000017', '20000000-0000-0000-0000-000000000002', 'Construction Site Trades Foundation', 'Weekday workshop sessions. Demo intake: 18 Jan 2027. Illustrative cost: GYD 95,000.', '10 weeks', 'https://www.gtigeorgetown.com/', true),
   ('30000000-0000-0000-0000-000000000018', '20000000-0000-0000-0000-000000000001', 'Offshore Operations and Drilling Support', 'Blended theory and practical sessions. Demo intake: 11 Jan 2027. Illustrative cost: GYD 120,000.', '6 weeks', 'https://www.3tglobal.com/about/our-locations/guyana/', true),
   ('30000000-0000-0000-0000-000000000019', '20000000-0000-0000-0000-000000000003', 'Security and Site Access Readiness', 'Evening practical sessions. Demo intake: 16 Nov 2026. Illustrative cost: GYD 35,000.', '3 weeks', 'https://srms.bit.gov.gy/', true),
-  ('30000000-0000-0000-0000-000000000020', '20000000-0000-0000-0000-000000000003', 'Occupational Health Support', 'Blended evening classes. Demo intake: 18 Jan 2027. Illustrative cost: GYD 45,000.', '4 weeks', 'https://srms.bit.gov.gy/', true)
+  ('30000000-0000-0000-0000-000000000020', '20000000-0000-0000-0000-000000000003', 'Occupational Health Support', 'Blended evening classes. Demo intake: 18 Jan 2027. Illustrative cost: GYD 45,000.', '4 weeks', 'https://srms.bit.gov.gy/', true),
+  ('30000000-0000-0000-0000-000000000021', '20000000-0000-0000-0000-000000000004', 'Associate of Science (Computer Science)', 'Official University of Guyana programme pointer covering programming, software engineering, database systems, networks, and information security. Confirm the current curriculum and intake directly with the university.', 'Confirm with provider', 'https://registry.uog.edu.gy/srms/departments/7/programmes/801/details', true),
+  ('30000000-0000-0000-0000-000000000022', '20000000-0000-0000-0000-000000000004', 'Associate of Science (Information Technology)', 'Official University of Guyana programme pointer for broad information technology study. Confirm the current curriculum and intake directly with the university.', 'Confirm with provider', 'https://registry.uog.edu.gy/srms/departments/7/programmes/802/details', true),
+  ('30000000-0000-0000-0000-000000000023', '20000000-0000-0000-0000-000000000004', 'Bachelor of Science (Information Systems)', 'Official University of Guyana programme pointer for information systems study. Confirm the current curriculum and intake directly with the university.', 'Confirm with provider', 'https://registry.uog.edu.gy/srms/departments/7/programmes/805/details', true)
 on conflict (id) do update set
   provider_id = excluded.provider_id,
   name = excluded.name,
@@ -178,7 +261,19 @@ from (
     ('30000000-0000-0000-0000-000000000019'::uuid, 'hse-awareness'),
     ('30000000-0000-0000-0000-000000000020'::uuid, 'medical-support'),
     ('30000000-0000-0000-0000-000000000020'::uuid, 'first-aid-cpr'),
-    ('30000000-0000-0000-0000-000000000020'::uuid, 'office-administration')
+    ('30000000-0000-0000-0000-000000000020'::uuid, 'office-administration'),
+    ('30000000-0000-0000-0000-000000000021'::uuid, 'software-development'),
+    ('30000000-0000-0000-0000-000000000021'::uuid, 'database-and-sql'),
+    ('30000000-0000-0000-0000-000000000021'::uuid, 'ict-network-support'),
+    ('30000000-0000-0000-0000-000000000021'::uuid, 'cybersecurity'),
+    ('30000000-0000-0000-0000-000000000021'::uuid, 'web-application-development'),
+    ('30000000-0000-0000-0000-000000000022'::uuid, 'ict-network-support'),
+    ('30000000-0000-0000-0000-000000000022'::uuid, 'web-application-development'),
+    ('30000000-0000-0000-0000-000000000022'::uuid, 'database-and-sql'),
+    ('30000000-0000-0000-0000-000000000022'::uuid, 'cybersecurity'),
+    ('30000000-0000-0000-0000-000000000023'::uuid, 'database-and-sql'),
+    ('30000000-0000-0000-0000-000000000023'::uuid, 'data-analysis'),
+    ('30000000-0000-0000-0000-000000000023'::uuid, 'software-development')
 ) as outcome(program_id, qualification_slug)
 join public.qualifications qualification on qualification.slug = outcome.qualification_slug
 on conflict do nothing;
@@ -201,7 +296,12 @@ values
   ('40000000-0000-0000-0000-000000000015', '10000000-0000-0000-0000-000000000007', 'Security and Transport Assistant', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Guyana', 'Full time', 'draft', 70, null, true),
   ('40000000-0000-0000-0000-000000000016', '10000000-0000-0000-0000-000000000004', 'Survey and Measurement Technician', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Guyana', 'Full time', 'draft', 75, null, true),
   ('40000000-0000-0000-0000-000000000017', '10000000-0000-0000-0000-000000000005', 'Construction Site Support Worker', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Guyana', 'Full time', 'draft', 70, null, true),
-  ('40000000-0000-0000-0000-000000000018', '10000000-0000-0000-0000-000000000005', 'Environmental and HSE Field Assistant', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Guyana', 'Full time', 'draft', 75, null, true)
+  ('40000000-0000-0000-0000-000000000018', '10000000-0000-0000-0000-000000000005', 'Environmental and HSE Field Assistant', 'Curated demo role. Employer-specific requirements must be verified before this is presented as a live vacancy.', 'Guyana', 'Full time', 'draft', 75, null, true),
+  ('40000000-0000-0000-0000-000000000019', '10000000-0000-0000-0000-000000000008', 'Full-Stack Application Developer', 'Curated demo role building web applications and digital services for Guyana-based industrial operations. Not a live vacancy.', 'Georgetown / Hybrid', 'Full time', 'draft', 65, null, true),
+  ('40000000-0000-0000-0000-000000000020', '10000000-0000-0000-0000-000000000008', 'Network and Server Administrator', 'Curated demo role supporting business networks, servers, identity, and infrastructure security. Not a live vacancy.', 'Georgetown, Guyana', 'Full time', 'draft', 65, null, true),
+  ('40000000-0000-0000-0000-000000000021', '10000000-0000-0000-0000-000000000008', 'IoT Field Systems Technician', 'Curated demo role deploying connected sensors, gateways, and networks for remote operational monitoring. Not a live vacancy.', 'Guyana / Field based', 'Full time', 'draft', 60, null, true),
+  ('40000000-0000-0000-0000-000000000022', '10000000-0000-0000-0000-000000000008', 'Cloud and DevOps Support Engineer', 'Curated demo role supporting cloud infrastructure, deployments, containers, servers, and secure delivery workflows. Not a live vacancy.', 'Georgetown / Hybrid', 'Full time', 'draft', 65, null, true),
+  ('40000000-0000-0000-0000-000000000023', '10000000-0000-0000-0000-000000000008', 'Database and Data Analyst', 'Curated demo role maintaining operational data, writing SQL, analysing trends, and building decision-support reports. Not a live vacancy.', 'Georgetown, Guyana', 'Full time', 'draft', 60, null, true)
 on conflict (id) do update set
   company_id = excluded.company_id,
   title = excluded.title,
@@ -288,7 +388,30 @@ from (
     ('40000000-0000-0000-0000-000000000018'::uuid, 'waste-management', 4::smallint, null::numeric, false),
     ('40000000-0000-0000-0000-000000000018'::uuid, 'hse-supervision', 4::smallint, null::numeric, false),
     ('40000000-0000-0000-0000-000000000018'::uuid, 'hse-awareness', 3::smallint, null::numeric, true),
-    ('40000000-0000-0000-0000-000000000018'::uuid, 'first-aid-cpr', 2::smallint, null::numeric, false)
+    ('40000000-0000-0000-0000-000000000018'::uuid, 'first-aid-cpr', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000019'::uuid, 'software-development', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000019'::uuid, 'web-application-development', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000019'::uuid, 'database-and-sql', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000019'::uuid, 'api-development-and-integration', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000019'::uuid, 'version-control', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000020'::uuid, 'ict-network-support', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000020'::uuid, 'server-administration', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000020'::uuid, 'cybersecurity', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000020'::uuid, 'cloud-and-devops', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000021'::uuid, 'iot-systems', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000021'::uuid, 'ict-network-support', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000021'::uuid, 'software-development', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000021'::uuid, 'instrumentation-basics', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000021'::uuid, 'cybersecurity', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000022'::uuid, 'cloud-and-devops', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000022'::uuid, 'server-administration', 4::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000022'::uuid, 'version-control', 3::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000022'::uuid, 'software-development', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000022'::uuid, 'cybersecurity', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000023'::uuid, 'data-analysis', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000023'::uuid, 'database-and-sql', 5::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000023'::uuid, 'software-development', 2::smallint, null::numeric, false),
+    ('40000000-0000-0000-0000-000000000023'::uuid, 'version-control', 1::smallint, null::numeric, false)
 ) as requirement(role_id, qualification_slug, weight, minimum_years, mandatory)
 join public.qualifications qualification on qualification.slug = requirement.qualification_slug
 on conflict (job_role_id, qualification_id) do update set
@@ -316,7 +439,12 @@ where id in (
   '40000000-0000-0000-0000-000000000015',
   '40000000-0000-0000-0000-000000000016',
   '40000000-0000-0000-0000-000000000017',
-  '40000000-0000-0000-0000-000000000018'
+  '40000000-0000-0000-0000-000000000018',
+  '40000000-0000-0000-0000-000000000019',
+  '40000000-0000-0000-0000-000000000020',
+  '40000000-0000-0000-0000-000000000021',
+  '40000000-0000-0000-0000-000000000022',
+  '40000000-0000-0000-0000-000000000023'
 );
 
 insert into public.job_fairs (id, company_id, name, location, starts_at, ends_at, status)
