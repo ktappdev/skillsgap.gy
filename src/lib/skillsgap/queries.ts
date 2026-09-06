@@ -68,8 +68,12 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const qualifications = qualificationResult.data ?? [];
   const qualificationNames = new Map(qualifications.map((qualification) => [qualification.id, qualification.name]));
   const requirementById = new Map(requirements.map((requirement) => [requirement.id, requirement]));
-  const applicantQualificationResult = await client.from("applicant_qualifications").select("qualification_id").eq("applicant_id", applicantId).eq("review_status", "confirmed");
-  const applicantQualificationIds = new Set((applicantQualificationResult.data ?? []).map((item) => item.qualification_id));
+  const applicantQualificationResult = await client.from("applicant_qualifications").select("qualification_id,years_experience").eq("applicant_id", applicantId).eq("review_status", "confirmed");
+  const applicantQualificationYears = new Map((applicantQualificationResult.data ?? []).map((item) => [item.qualification_id, item.years_experience ?? 0]));
+  const requirementIsSatisfied = (requirement: Tables<"job_requirements">) => {
+    const years = applicantQualificationYears.get(requirement.qualification_id);
+    return years !== undefined && (requirement.minimum_years === null || years >= requirement.minimum_years);
+  };
   const trainingByQualification = await getTrainingPathways(client, qualificationIds);
 
   return {
@@ -86,6 +90,9 @@ export async function getApplicantProgress(client: Client, applicantId: string):
       const role = roles.find((item) => item.id === row.job_role_id);
       if (!role || !approvedCompanyIds.has(role.company_id)) return [];
       const roleGaps = gaps.filter((gap) => gap.match_id === row.id);
+      const roleRequirements = allRequirements.filter((requirement) => requirement.job_role_id === role.id);
+      const totalRoleWeight = roleRequirements.reduce((total, requirement) => total + requirement.weight, 0);
+      const satisfiedRoleWeight = roleRequirements.filter(requirementIsSatisfied).reduce((total, requirement) => total + requirement.weight, 0);
       const mappedGaps = roleGaps.flatMap((gap) => {
         const requirement = requirementById.get(gap.job_requirement_id);
         if (!requirement) return [];
@@ -95,12 +102,15 @@ export async function getApplicantProgress(client: Client, applicantId: string):
           type: requirement.kind === "certification" ? "Certification" as const : requirement.kind === "experience" ? "Experience" as const : "Technical skill" as const,
           mandatory: requirement.mandatory,
           training: trainingByQualification.get(requirement.qualification_id)?.label ?? null,
+          trainingDescription: trainingByQualification.get(requirement.qualification_id)?.description ?? null,
+          trainingDuration: trainingByQualification.get(requirement.qualification_id)?.duration ?? null,
           trainingUrl: trainingByQualification.get(requirement.qualification_id)?.url ?? null,
+          projectedScore: totalRoleWeight === 0 ? row.score : Math.round(((satisfiedRoleWeight + requirement.weight) * 100) / totalRoleWeight),
           status: gap.status,
         }];
       }).sort((first, second) => Number(second.mandatory) - Number(first.mandatory));
       const strengths = allRequirements
-        .filter((requirement) => requirement.job_role_id === role.id && applicantQualificationIds.has(requirement.qualification_id))
+        .filter((requirement) => requirement.job_role_id === role.id && requirementIsSatisfied(requirement))
         .map((requirement) => qualificationNames.get(requirement.qualification_id))
         .filter((name): name is string => Boolean(name));
       return [{
@@ -172,7 +182,7 @@ async function getAvailableQualifications(client: Client): Promise<Tables<"quali
   return data ?? [];
 }
 
-type TrainingPathway = { label: string; url: string | null };
+type TrainingPathway = { label: string; description: string | null; duration: string | null; url: string | null };
 
 async function getTrainingPathways(client: Client, qualificationIds: string[]): Promise<Map<string, TrainingPathway>> {
   if (qualificationIds.length === 0) return new Map();
@@ -185,7 +195,7 @@ async function getTrainingPathways(client: Client, qualificationIds: string[]): 
   if (programIds.length === 0) return new Map();
 
   const [{ data: programs }, { data: providers }] = await Promise.all([
-    client.from("training_programs").select("id,name,provider_id,enrollment_url").in("id", programIds).eq("is_active", true),
+    client.from("training_programs").select("id,name,description,duration_text,provider_id,enrollment_url").in("id", programIds).eq("is_active", true),
     client.from("training_providers").select("id,name,contact_url").eq("is_verified", true),
   ]);
   const providerById = new Map((providers ?? []).map((provider) => [provider.id, provider]));
@@ -196,6 +206,8 @@ async function getTrainingPathways(client: Client, qualificationIds: string[]): 
     if (program && provider && !pathways.has(outcome.qualification_id)) {
       pathways.set(outcome.qualification_id, {
         label: `${program.name} · ${provider.name}`,
+        description: program.description,
+        duration: program.duration_text,
         url: program.enrollment_url ?? provider.contact_url,
       });
     }

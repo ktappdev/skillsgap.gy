@@ -281,6 +281,8 @@ before spending money.
   Technical Institute, and Board of Industrial Training. Every qualification
   required by a curated role has at least one active mapped pathway; the
   provider must still confirm the exact intake, cost, eligibility, and outcome.
+  Program names, durations, schedules, demo intake dates, and costs are
+  illustrative presentation data and carry an “Illustrative demo program” label.
 - One approved company job fair with available 15-minute slots.
 - The operator creates or promotes one super-admin, one company owner, one processed applicant fallback account, and one live applicant account after Auth is available. The SQL seed intentionally contains no passwords or Auth users.
 

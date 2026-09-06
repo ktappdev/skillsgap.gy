@@ -33,6 +33,7 @@ const demoCredentials = [
   ["DEMO_ADMIN_EMAIL", "DEMO_ADMIN_PASSWORD"],
   ["DEMO_PROVIDER_EMAIL", "DEMO_PROVIDER_PASSWORD"],
 ];
+const demoProgramIds = Array.from({ length: 20 }, (_, index) => `30000000-0000-0000-0000-${String(index + 1).padStart(12, "0")}`);
 
 for (const [emailName, passwordName] of demoCredentials) {
   const { data, error } = await publicClient.auth.signInWithPassword({
@@ -57,7 +58,7 @@ const [
   admin.from("job_matches").select("id,job_role_id,interview_eligible").eq("applicant_id", applicant.id).eq("status", "current"),
   admin.from("interview_invitations").select("id").eq("applicant_id", applicant.id).eq("status", "pending"),
   admin.from("job_roles").select("id,title").eq("status", "active").eq("is_demo", true),
-  admin.from("training_programs").select("id,provider_id").eq("is_active", true),
+  admin.from("training_programs").select("id,provider_id,name,description,duration_text").in("id", demoProgramIds).eq("is_active", true),
   admin.from("training_providers").select("id").eq("is_verified", true),
 ]);
 if (matchesError || invitationsError || demoRolesError || programsError || providersError) {
@@ -66,6 +67,8 @@ if (matchesError || invitationsError || demoRolesError || programsError || provi
 
 assert((demoRoles ?? []).length >= 18, "The expanded catalogue needs at least 18 active curated roles.");
 assert((programs ?? []).length >= 20, "The expanded catalogue needs at least 20 active training pathways.");
+const incompleteDemoPrograms = (programs ?? []).filter((program) => !program.name || !program.duration_text || !program.description?.includes("Illustrative cost:"));
+assert(incompleteDemoPrograms.length === 0, `${incompleteDemoPrograms.length} training pathways are missing illustrative demo details.`);
 const matchedRoleIds = new Set((matches ?? []).map((match) => match.job_role_id));
 const unmatchedDemoRoles = (demoRoles ?? []).filter((role) => !matchedRoleIds.has(role.id));
 assert(unmatchedDemoRoles.length === 0, `Fallback applicant is missing ${unmatchedDemoRoles.length} curated role matches.`);

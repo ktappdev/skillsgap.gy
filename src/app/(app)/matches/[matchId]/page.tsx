@@ -69,7 +69,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ ma
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">A practical route forward</p>
         <h2 id="gaps-heading" className="mt-2 text-2xl font-semibold tracking-tight">{match.gaps.length} requirements left</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">Start with the first requirement. Open the provider, confirm the details, then save it to your plan.</p>
-        <GapActionList gaps={match.gaps} />
+        <GapActionList gaps={match.gaps} isDemo={match.isDemo} />
       </section>
     </div>
   );
