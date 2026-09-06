@@ -8,6 +8,14 @@ describe("account spaces", () => {
     expect(getAccountNavigation("admin")).toEqual([{ href: "/admin", label: "Admin" }]);
   });
 
+  it("gives applicants a dashboard, pathway, and interview entry point", () => {
+    expect(getAccountNavigation("applicant")).toEqual([
+      { href: "/dashboard/overview", label: "Dashboard" },
+      { href: "/dashboard", label: "My pathway" },
+      { href: "/interviews", label: "Interviews" },
+    ]);
+  });
+
   it("routes each account to its highest-priority workspace", () => {
     expect(getAccountHome(resolveAccountSpace(true, ["approved"], false))).toBe("/admin");
     expect(getAccountHome(resolveAccountSpace(false, ["approved"], false))).toBe("/company");

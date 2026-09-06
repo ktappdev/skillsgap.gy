@@ -6,7 +6,9 @@ import { PublicContentHeader } from "@/components/shareable/public-content-heade
 import { ShareButton } from "@/components/shareable/share-button";
 import { buildCourseShareText } from "@/lib/share/messages";
 import { getPublicCourse } from "@/lib/share/public-content";
+import { resolveUserHome } from "@/lib/auth/queries";
 import { env } from "@/lib/env";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +45,11 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const course = await getPublicCourse(programId);
   if (!course) notFound();
 
+  const supabase = await createClient();
+  const { data: userResult } = await supabase.auth.getUser();
+  const accountHome = userResult.user ? await resolveUserHome(supabase, userResult.user.id) : null;
+  const isApplicant = accountHome === "/dashboard";
+
   const courseUrl = `/training/${course.id}`;
   const shareText = buildCourseShareText({ name: course.name, provider: course.provider.name });
   const enrollmentUrl = course.enrollmentUrl?.startsWith("https://") ? course.enrollmentUrl : null;
@@ -51,6 +58,15 @@ export default async function CoursePage({ params }: CoursePageProps) {
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <PublicContentHeader active="training" />
+
+        {isApplicant ? (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border border-accent/30 bg-teal-50/40 px-4 py-3 text-sm">
+            <p className="text-muted">This course is part of your SkillsGap.gy pathway.</p>
+            <Link href="/dashboard" className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">
+              ← Back to my pathway
+            </Link>
+          </div>
+        ) : null}
 
         <section className="mt-6 max-w-3xl" aria-labelledby="course-title">
           <p className="text-sm font-semibold text-muted">Training</p>

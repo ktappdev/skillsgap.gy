@@ -222,7 +222,7 @@ Vercel hosts only the Next.js application. CV bytes upload directly from the bro
 | Area | Routes | Purpose |
 | --- | --- | --- |
 | Public | `/`, `/login`, `/signup`, `/signup/company`, `/forgot-password`, `/update-password` | Explain the product and complete applicant, company, and recovery authentication. |
-| Applicant | `/dashboard`, `/matches/[matchId]`, `/interviews` | Upload CV, review profile, explore recommendations, and book interviews. |
+| Applicant | `/dashboard/overview`, `/dashboard`, `/matches/[matchId]`, `/interviews` | See the pathway snapshot, upload CV, review profile, explore recommendations, and book interviews. |
 | Company | `/company/request-access`, `/company`, `/company/jobs`, `/company/candidates`, `/company/job-fairs`, `/company/team`, `/company/invitations/[token]` | Request approval, manage the shared workspace and recruiters, and browse authorized candidate data. |
 | Admin | `/admin`, `/admin/companies`, `/admin/qualifications`, `/admin/training` | Approve companies and maintain trusted data. |
 

@@ -24,6 +24,7 @@ export function getAccountNavigation(space: AccountSpace) {
   if (space === "provider") return [{ href: "/provider", label: "Provider" }] as const;
   if (space === "company-pending") return [{ href: "/company/request-access", label: "Company access" }] as const;
   return [
+    { href: "/dashboard/overview", label: "Dashboard" },
     { href: "/dashboard", label: "My pathway" },
     { href: "/interviews", label: "Interviews" },
   ] as const;

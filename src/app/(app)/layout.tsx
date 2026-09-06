@@ -1,19 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { AppNavigation } from "@/components/app/app-navigation";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { getAccountNavigation } from "@/lib/auth/account-space";
 import { signOut } from "@/lib/auth/actions";
 import { resolveUserHome } from "@/lib/auth/queries";
 import { createClient } from "@/lib/supabase/server";
 
-const desktopLink = "inline-flex min-h-11 items-center hover:text-accent";
-const desktopActiveLink = "inline-flex min-h-11 items-center text-accent";
-const mobileLink = "inline-flex min-h-11 items-center whitespace-nowrap hover:text-accent";
-const mobileActiveLink = "inline-flex min-h-11 items-center whitespace-nowrap text-accent";
-
 export default async function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const { home, navigation, activeHref } = await getAppShell();
+  const { home, navigation } = await getAppShell();
 
   return (
     <div className="min-h-screen bg-background">
@@ -29,18 +25,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
               className="h-7 w-auto object-contain sm:h-8"
             />
           </Link>
-          <nav className="hidden items-center gap-6 text-sm font-semibold text-muted md:flex" aria-label="Main navigation">
-            {navigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={item.href === activeHref ? desktopActiveLink : desktopLink}
-                aria-current={item.href === activeHref ? "page" : undefined}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <AppNavigation items={navigation} />
           <form action={signOut}>
             <SubmitButton
               pendingLabel="Signing out…"
@@ -51,18 +36,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
           </form>
         </div>
         <div className="border-t border-border md:hidden">
-          <nav className="mx-auto flex max-w-6xl gap-6 overflow-x-auto px-4 py-1 text-sm font-semibold text-muted sm:px-6" aria-label="Mobile navigation">
-            {navigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={item.href === activeHref ? mobileActiveLink : mobileLink}
-                aria-current={item.href === activeHref ? "page" : undefined}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <AppNavigation items={navigation} mobile />
         </div>
       </header>
       <main>{children}</main>
@@ -73,9 +47,9 @@ export default async function AppLayout({ children }: Readonly<{ children: React
 async function getAppShell() {
   const supabase = await createClient();
   const { data: userResult } = await supabase.auth.getUser();
-  if (!userResult.user) return { home: "/login", navigation: [], activeHref: "/login" };
+  if (!userResult.user) return { home: "/login", navigation: [] as const };
 
   const home = await resolveUserHome(supabase, userResult.user.id);
   const space = home === "/admin" ? "admin" : home === "/company" ? "company" : home === "/provider" ? "provider" : home === "/company/request-access" ? "company-pending" : "applicant";
-  return { home, navigation: getAccountNavigation(space), activeHref: home };
+  return { home, navigation: getAccountNavigation(space) };
 }
