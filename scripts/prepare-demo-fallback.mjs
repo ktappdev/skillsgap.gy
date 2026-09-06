@@ -62,6 +62,10 @@ const fallbackSkills = [
   { slug: "diesel-mechanics", years: 4, originalTerm: "Minibus diesel repair" },
   { slug: "mechanical-maintenance", years: 4, originalTerm: "Mechanical maintenance" },
   { slug: "bosiet", years: 0, originalTerm: "BOSIET certificate" },
+  { slug: "ict-network-support", years: 4, originalTerm: "Network administration" },
+  { slug: "server-administration", years: 4, originalTerm: "Server administration" },
+  { slug: "database-and-sql", years: 4, originalTerm: "Database and SQL" },
+  { slug: "data-analysis", years: 4, originalTerm: "Data analysis" },
 ];
 
 const { data: qualifications, error: qualificationsError } = await supabase

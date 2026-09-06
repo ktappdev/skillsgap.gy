@@ -150,12 +150,16 @@ on conflict (normalized_alias) do nothing;
 
 -- University of Guyana programme catalogue and course details checked 2026-09-06:
 -- https://registry.uog.edu.gy/srms/departments/7/programmes
+-- https://www.registry.uog.edu.gy/srms/departments/240/programmes/914/details
+-- Official GitHub Skills exercise checked 2026-09-06:
+-- https://github.com/skills/introduction-to-git
 insert into public.training_providers (id, name, location, contact_url, description, is_verified)
 values
   ('20000000-0000-0000-0000-000000000001', '3t EnerMech Guyana', 'Lusignan, East Coast Demerara, Guyana', 'https://www.3tglobal.com/about/our-locations/guyana/', 'Curated provider pointer. Confirm the current Guyana offering, intake, cost, and credential directly with the provider.', true),
   ('20000000-0000-0000-0000-000000000002', 'Government Technical Institute', 'Georgetown, Guyana', 'https://www.gtigeorgetown.com/', 'Curated provider pointer. Confirm the current intake, entry requirements, cost, and credential directly with the provider.', true),
   ('20000000-0000-0000-0000-000000000003', 'Board of Industrial Training', 'Georgetown, Guyana', 'https://srms.bit.gov.gy/', 'Curated provider pointer. Confirm the current intake, entry requirements, cost, and credential directly with the provider.', true),
-  ('20000000-0000-0000-0000-000000000004', 'University of Guyana Department of Computer Science', 'Turkeyen, Greater Georgetown, Guyana', 'https://registry.uog.edu.gy/srms/departments/7/programmes', 'Official programme pointer. Confirm the current intake, delivery mode, entry requirements, cost, and curriculum directly with the university.', true)
+  ('20000000-0000-0000-0000-000000000004', 'University of Guyana', 'Turkeyen, Greater Georgetown, Guyana', 'https://registry.uog.edu.gy/', 'Official programme pointer. Confirm the current intake, delivery mode, entry requirements, cost, and curriculum directly with the university.', true),
+  ('20000000-0000-0000-0000-000000000005', 'GitHub Skills', 'Online', 'https://github.com/skills', 'Official GitHub interactive training pointer. Confirm the current exercise and access requirements directly with GitHub.', true)
 on conflict (id) do update set
   name = excluded.name,
   location = excluded.location,
@@ -187,7 +191,9 @@ values
   ('30000000-0000-0000-0000-000000000020', '20000000-0000-0000-0000-000000000003', 'Occupational Health Support', 'Blended evening classes. Demo intake: 18 Jan 2027. Illustrative cost: GYD 45,000.', '4 weeks', 'https://srms.bit.gov.gy/', true),
   ('30000000-0000-0000-0000-000000000021', '20000000-0000-0000-0000-000000000004', 'Associate of Science (Computer Science)', 'Official University of Guyana programme pointer covering programming, software engineering, database systems, networks, and information security. Confirm the current curriculum and intake directly with the university.', 'Confirm with provider', 'https://registry.uog.edu.gy/srms/departments/7/programmes/801/details', true),
   ('30000000-0000-0000-0000-000000000022', '20000000-0000-0000-0000-000000000004', 'Associate of Science (Information Technology)', 'Official University of Guyana programme pointer for broad information technology study. Confirm the current curriculum and intake directly with the university.', 'Confirm with provider', 'https://registry.uog.edu.gy/srms/departments/7/programmes/802/details', true),
-  ('30000000-0000-0000-0000-000000000023', '20000000-0000-0000-0000-000000000004', 'Bachelor of Science (Information Systems)', 'Official University of Guyana programme pointer for information systems study. Confirm the current curriculum and intake directly with the university.', 'Confirm with provider', 'https://registry.uog.edu.gy/srms/departments/7/programmes/805/details', true)
+  ('30000000-0000-0000-0000-000000000023', '20000000-0000-0000-0000-000000000004', 'Bachelor of Science (Information Systems)', 'Official University of Guyana programme pointer covering information systems, databases, networks, software engineering, cybersecurity, and IT infrastructure. Confirm the current curriculum and intake directly with the university.', 'Confirm with provider', 'https://registry.uog.edu.gy/srms/departments/7/programmes/805/details', true),
+  ('30000000-0000-0000-0000-000000000024', '20000000-0000-0000-0000-000000000004', 'Bachelor of Science (Computing, Information Technology and Business)', 'Official University of Guyana programme pointer covering programming, databases, web and internet technologies, IoT, cloud computing, and cybersecurity. Confirm the current curriculum and intake directly with the university.', 'Confirm with provider', 'https://www.registry.uog.edu.gy/srms/departments/240/programmes/914/details', true),
+  ('30000000-0000-0000-0000-000000000025', '20000000-0000-0000-0000-000000000005', 'Introduction to Git', 'Official GitHub Skills exercise covering repositories, commits, branches, history, and collaboration basics.', 'Less than 1 hour', 'https://github.com/skills/introduction-to-git', true)
 on conflict (id) do update set
   provider_id = excluded.provider_id,
   name = excluded.name,
@@ -273,7 +279,16 @@ from (
     ('30000000-0000-0000-0000-000000000022'::uuid, 'cybersecurity'),
     ('30000000-0000-0000-0000-000000000023'::uuid, 'database-and-sql'),
     ('30000000-0000-0000-0000-000000000023'::uuid, 'data-analysis'),
-    ('30000000-0000-0000-0000-000000000023'::uuid, 'software-development')
+    ('30000000-0000-0000-0000-000000000023'::uuid, 'software-development'),
+    ('30000000-0000-0000-0000-000000000023'::uuid, 'server-administration'),
+    ('30000000-0000-0000-0000-000000000024'::uuid, 'software-development'),
+    ('30000000-0000-0000-0000-000000000024'::uuid, 'web-application-development'),
+    ('30000000-0000-0000-0000-000000000024'::uuid, 'database-and-sql'),
+    ('30000000-0000-0000-0000-000000000024'::uuid, 'cloud-and-devops'),
+    ('30000000-0000-0000-0000-000000000024'::uuid, 'iot-systems'),
+    ('30000000-0000-0000-0000-000000000024'::uuid, 'cybersecurity'),
+    ('30000000-0000-0000-0000-000000000024'::uuid, 'api-development-and-integration'),
+    ('30000000-0000-0000-0000-000000000025'::uuid, 'version-control')
 ) as outcome(program_id, qualification_slug)
 join public.qualifications qualification on qualification.slug = outcome.qualification_slug
 on conflict do nothing;
