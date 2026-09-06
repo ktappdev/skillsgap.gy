@@ -19,6 +19,7 @@ type IWantToBecomePageProps = {
 export default async function IWantToBecomePage({ searchParams }: IWantToBecomePageProps) {
   const [params, supabase] = await Promise.all([searchParams, createClient()]);
   const { data } = await supabase.auth.getUser();
+  const initialCareerId = typeof params.pathway === "string" ? params.pathway : undefined;
   let viewer: PathwaySaveViewer = "anonymous";
   let accountHref = "/login";
   let accountLabel = "Sign in";
@@ -61,7 +62,7 @@ export default async function IWantToBecomePage({ searchParams }: IWantToBecomeP
 
         <div className="mt-10">
           {isSavingPathway ? <PathwaySaveHandoff viewer={viewer} /> : null}
-          <CareerExplorer viewer={viewer} />
+          <CareerExplorer viewer={viewer} initialCareerId={initialCareerId} autoOpenPathway={Boolean(initialCareerId)} />
         </div>
 
         <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-6 text-muted">Career and training information is curated for this SkillsGap.gy demonstration. Confirm current entry requirements directly with a guidance counsellor, provider, or employer.</p>

@@ -10,6 +10,8 @@ import type { PathwaySaveViewer } from "@/lib/i-want-to-become/pathway-plan";
 
 type CareerExplorerProps = {
   initialOccupations?: PublicOccupation[];
+  initialCareerId?: string;
+  autoOpenPathway?: boolean;
   viewer?: PathwaySaveViewer;
 };
 
@@ -17,8 +19,8 @@ function PlanError({ onEdit }: { onEdit: () => void }) {
   return <section className="border border-border bg-surface p-6 shadow-sm sm:p-8" aria-labelledby="plan-error-title"><p className="text-xs font-bold uppercase tracking-[0.18em] text-danger">Pathway unavailable</p><h2 id="plan-error-title" className="mt-3 text-2xl font-semibold tracking-tight text-foreground">We could not load that route right now.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted">Your direction and starting point are still here. Try again in a moment or edit your starting point to choose another route.</p><button type="button" onClick={onEdit} className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white transition hover:bg-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Back to my starting point</button></section>;
 }
 
-export function CareerExplorer({ initialOccupations = occupationCatalog, viewer = "anonymous" }: CareerExplorerProps) {
-  const explorer = useCareerExplorer(initialOccupations);
+export function CareerExplorer({ initialOccupations = occupationCatalog, initialCareerId, autoOpenPathway = false, viewer = "anonymous" }: CareerExplorerProps) {
+  const explorer = useCareerExplorer(initialOccupations, initialCareerId, autoOpenPathway);
   const { careerId, interests, selectedInterests, results, photoName, photoPreview, photoState, photoError, resultsReviewed, step, showPlan, occupations, occupationPlan, planSource, planLoading, planError, draftReady, draftRestored, guidedPathway, selectedOccupation, completedResults, selectedTitle, selectedDetail, updateResult, toggleInterest, selectCareer, readSlip, showResults, editStartingPoint, resetDraft, canVisitStep, setResults, setResultsReviewed, setStep } = explorer;
 
   function removeResult(index: number) {

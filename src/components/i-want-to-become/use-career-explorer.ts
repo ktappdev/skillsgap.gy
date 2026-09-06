@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ExplorerDraft, ExplorerStep, PhotoState, PlanSource } from "@/components/i-want-to-become/explorer-types";
 import { findCareerPathway, isValidCsecResult, type CsecResult } from "@/lib/i-want-to-become/catalog";
@@ -49,8 +49,9 @@ function parseDraft(value: string | null): ExplorerDraft | null {
   }
 }
 
-export function useCareerExplorer(initialOccupations: PublicOccupation[] = occupationCatalog) {
-  const [careerId, setCareerId] = useState("");
+export function useCareerExplorer(initialOccupations: PublicOccupation[] = occupationCatalog, initialCareerId?: string, autoOpenPathway = false) {
+  const initialOccupationPlan = initialCareerId ? getStaticOccupationPathway(initialCareerId) : null;
+  const [careerId, setCareerId] = useState(initialCareerId ?? "");
   const [interests, setInterests] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [results, setResults] = useState<CsecResult[]>(initialResults);
@@ -60,9 +61,9 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [resultsReviewed, setResultsReviewed] = useState(false);
   const [step, setStep] = useState<ExplorerStep>(1);
-  const [showPlan, setShowPlan] = useState(false);
+  const [showPlan, setShowPlan] = useState(() => Boolean(autoOpenPathway && initialCareerId && (findCareerPathway(initialCareerId) || initialOccupationPlan)));
   const [occupations, setOccupations] = useState(initialOccupations);
-  const [occupationPlan, setOccupationPlan] = useState<PublicOccupationPathway | null>(null);
+  const [occupationPlan, setOccupationPlan] = useState<PublicOccupationPathway | null>(initialOccupationPlan);
   const [planSource, setPlanSource] = useState<PlanSource>("fallback");
   const [planLoading, setPlanLoading] = useState(false);
   const [planError, setPlanError] = useState(false);
@@ -78,7 +79,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
   const selectedDetail = guidedPathway?.location ?? selectedOccupation?.roleFamily ?? null;
 
   useEffect(() => {
-    const draft = parseDraft(window.sessionStorage.getItem(draftStorageKey));
+    const draft = initialCareerId ? null : parseDraft(window.sessionStorage.getItem(draftStorageKey));
     queueMicrotask(() => {
       if (draft) {
         setCareerId(draft.careerId);
@@ -89,7 +90,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
       }
       setDraftReady(true);
     });
-  }, []);
+  }, [initialCareerId]);
 
   useEffect(() => {
     if (!draftReady) return;
@@ -187,7 +188,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     }
   }
 
-  async function showResults() {
+  const showResults = useCallback(async () => {
     if (guidedPathway) {
       setShowPlan(true);
       return;
@@ -222,7 +223,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
         planRequest.current = null;
       }
     }
-  }
+  }, [guidedPathway, selectedOccupation]);
 
   function editStartingPoint() {
     planRequest.current?.abort();
