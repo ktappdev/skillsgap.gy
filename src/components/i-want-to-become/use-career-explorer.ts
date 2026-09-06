@@ -15,10 +15,11 @@ function parseOccupationResponse(value: unknown): PublicOccupation[] | null {
   return Array.isArray(occupations) && occupations.every(isPublicOccupation) ? occupations : null;
 }
 
-function parsePathwayResponse(value: unknown): PublicOccupationPathway | null {
+function parsePathwayResponse(value: unknown): { pathway: PublicOccupationPathway; source: "live" | "fallback" } | null {
   if (typeof value !== "object" || value === null) return null;
-  const pathway = (value as { pathway?: unknown }).pathway;
-  return isPublicOccupationPathway(pathway) ? pathway : null;
+  const response = value as { pathway?: unknown; source?: unknown };
+  if (response.source !== "live" && response.source !== "fallback") return null;
+  return isPublicOccupationPathway(response.pathway) ? { pathway: response.pathway, source: response.source } : null;
 }
 
 function parseSlipResponse(value: unknown): CsecResult[] {
@@ -208,10 +209,10 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     planRequest.current = controller;
     try {
       const response = await fetch(`/api/i-want-to-become/occupations/${selectedOccupation.slug}`, { signal: controller.signal });
-      const pathway = response.ok ? parsePathwayResponse(await response.json() as unknown) : null;
-      if (pathway) {
-        setOccupationPlan(pathway);
-        setPlanSource("live");
+      const result = response.ok ? parsePathwayResponse(await response.json() as unknown) : null;
+      if (result) {
+        setOccupationPlan(result.pathway);
+        setPlanSource(result.source);
       }
     } catch {
       // The reviewed static pathway remains on screen when the API is unavailable.

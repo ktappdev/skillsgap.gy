@@ -18,7 +18,7 @@ function isSafeSlug(slug: string) {
 function fallbackResponse(slug: string) {
   const pathway = getStaticOccupationPathway(slug);
   if (!pathway) return NextResponse.json({ message: "That occupation is not in the public catalogue." }, { status: 404 });
-  return NextResponse.json({ pathway }, { headers: cacheHeaders });
+  return NextResponse.json({ pathway, source: "fallback" }, { headers: cacheHeaders });
 }
 
 export async function GET(
@@ -33,7 +33,7 @@ export async function GET(
     const { data, error } = await supabase.rpc("get_public_occupation_pathway", { occupation_slug: slug });
     const row = Array.isArray(data) && data.length === 1 ? data[0] : null;
     if (!error && row && isPublicOccupationPathwayRpcRow(row)) {
-      return NextResponse.json({ pathway: normalizePublicOccupationPathway(row) }, { headers: cacheHeaders });
+      return NextResponse.json({ pathway: normalizePublicOccupationPathway(row), source: "live" }, { headers: cacheHeaders });
     }
     if (process.env.NODE_ENV !== "production" && error) console.warn("[pdbg] occupation pathway RPC unavailable; using static fallback", error);
     return fallbackResponse(slug);
