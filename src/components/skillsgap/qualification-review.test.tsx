@@ -1,11 +1,18 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { MatchRecalculationProvider } from "@/components/dashboard/match-recalculation-context";
 import { confirmExtractionFindings } from "@/lib/skillsgap/actions";
 
 import { QualificationReview } from "./qualification-review";
 
 const refresh = vi.fn();
+const scrollIntoView = vi.fn();
+
+Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+  configurable: true,
+  value: scrollIntoView,
+});
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh }),
@@ -61,13 +68,19 @@ describe("QualificationReview", () => {
       gains: [{ roleId: "role-1", roleTitle: "Process Technician", points: 10 }],
     });
 
-    render(<QualificationReview applicantId="applicant-1" initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />);
+    render(
+      <MatchRecalculationProvider>
+        <QualificationReview applicantId="applicant-1" initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />
+        <section id="matches-area" tabIndex={-1}>Matches</section>
+      </MatchRecalculationProvider>,
+    );
 
     expect(screen.getAllByRole("button", { name: /Confirm selected/i })).toHaveLength(1);
     fireEvent.click(screen.getByRole("radio", { name: /Industrial Safety/i }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm selected (1)" }));
 
     await waitFor(() => expect(confirmExtractionFindings).toHaveBeenCalledWith([{ findingId: finding.id, qualificationId: qualification.id }]));
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
     expect(await screen.findByText("+10% to Process Technician")).not.toBeNull();
     expect(screen.queryByText("No match")).toBeNull();
   });

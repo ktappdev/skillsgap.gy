@@ -10,6 +10,7 @@ export type ApplicantProgress = {
   latestResume: Tables<"resumes"> | null;
   processingStatus: Tables<"processing_jobs">["status"] | null;
   processingError: string | null;
+  matchRecalculation: MatchRecalculationView | null;
   unmappedTerms: string[];
   experience: Tables<"applicant_experience">[];
   matches: Match[];
@@ -19,16 +20,19 @@ export type ApplicantProgress = {
   availableQualifications: Tables<"qualifications">[];
 };
 
+export type MatchRecalculationView = Pick<Tables<"processing_jobs">, "id" | "status" | "error_message" | "updated_at">;
+
 export type ApplicantQualificationView = Tables<"applicant_qualifications"> & { qualificationName: string };
 export type ApplicantExtractionFindingView = Tables<"resume_extraction_findings"> & {
   candidates: Array<Tables<"resume_extraction_finding_candidates"> & { qualificationName: string; category: Tables<"qualifications">["category"] }>;
 };
 
 export async function getApplicantProgress(client: Client, applicantId: string): Promise<ApplicantProgress> {
-  const [pathwayResult, resumeResult, jobResult, matchesResult, experienceResult] = await Promise.all([
+  const [pathwayResult, resumeResult, jobResult, matchJobResult, matchesResult, experienceResult] = await Promise.all([
     client.from("applicant_pathway_plans").select("*").eq("applicant_id", applicantId).maybeSingle(),
     client.from("resumes").select("*").eq("applicant_id", applicantId).is("deleted_at", null).order("uploaded_at", { ascending: false }).limit(1).maybeSingle(),
     client.from("processing_jobs").select("*").eq("applicant_id", applicantId).eq("kind", "resume_analysis").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    client.from("processing_jobs").select("id,status,error_message,updated_at").eq("applicant_id", applicantId).eq("kind", "recalculate_matches").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     client.from("job_matches").select("*").eq("applicant_id", applicantId).eq("status", "current").order("score", { ascending: false }).order("calculated_at", { ascending: false }).order("id", { ascending: true }),
     client.from("applicant_experience").select("*").eq("applicant_id", applicantId).order("created_at", { ascending: false }),
   ]);
@@ -48,7 +52,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const activeRoleIds = new Set(activeRoles.filter((role) => approvedCompanyIds.has(role.company_id)).map((role) => role.id));
   const rows = currentMatches.filter((row) => activeRoleIds.has(row.job_role_id)).slice(0, 3);
   if (rows.length === 0) {
-    return { pathwayPlan: pathwayResult.data, latestResume: resumeResult.data, processingStatus: jobResult.data?.status ?? null, processingError: jobResult.data?.error_message ?? null, unmappedTerms, experience: experienceResult.data ?? [], matches: [], visibleRoleCount: activeRoleIds.size, findings: await getApplicantFindings(client, applicantId), qualifications: await getApplicantQualifications(client, applicantId), availableQualifications: await getAvailableQualifications(client) };
+    return { pathwayPlan: pathwayResult.data, latestResume: resumeResult.data, processingStatus: jobResult.data?.status ?? null, processingError: jobResult.data?.error_message ?? null, matchRecalculation: matchJobResult.data, unmappedTerms, experience: experienceResult.data ?? [], matches: [], visibleRoleCount: activeRoleIds.size, findings: await getApplicantFindings(client, applicantId), qualifications: await getApplicantQualifications(client, applicantId), availableQualifications: await getAvailableQualifications(client) };
   }
 
   const roleIds = rows.map((row) => row.job_role_id);
@@ -83,6 +87,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
     latestResume: resumeResult.data,
     processingStatus: jobResult.data?.status ?? null,
     processingError: jobResult.data?.error_message ?? null,
+    matchRecalculation: matchJobResult.data,
     unmappedTerms,
     experience: experienceResult.data ?? [],
     findings: await getApplicantFindings(client, applicantId),

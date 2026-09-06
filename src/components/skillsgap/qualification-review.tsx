@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useMatchRecalculation } from "@/components/dashboard/match-recalculation-context";
 import {
   addApplicantQualification,
   confirmExtractionFindings,
@@ -25,6 +26,7 @@ type Props = {
 
 export function QualificationReview({ applicantId, initialFindings, initialQualifications, availableQualifications, unmappedTerms }: Props) {
   const router = useRouter();
+  const matchRecalculation = useMatchRecalculation();
   const [findings, setFindings] = useState(initialFindings);
   const [qualifications, setQualifications] = useState(initialQualifications);
   const [years, setYears] = useState<Record<string, string>>(() => Object.fromEntries(initialQualifications.map((item) => [item.id, item.years_experience?.toString() ?? ""])));
@@ -45,7 +47,17 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
     setIsConfirming(true);
     setMessage(null);
     setMatchGains([]);
-    const result = await confirmExtractionFindings(selections);
+    matchRecalculation?.begin();
+    let result: Awaited<ReturnType<typeof confirmExtractionFindings>>;
+    try {
+      result = await confirmExtractionFindings(selections);
+    } catch {
+      const failureMessage = "We could not confirm those skills. Please try again.";
+      setIsConfirming(false);
+      setMessage(failureMessage);
+      matchRecalculation?.fail(failureMessage);
+      return;
+    }
     setFindings((current) => current.filter((finding) => !result.confirmedFindingIds.includes(finding.id)));
     setIsConfirming(false);
     const confirmedItems = result.confirmedFindingIds.flatMap((findingId) => {
@@ -77,6 +89,7 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
     ]);
     if (result.error) {
       setMessage(result.error);
+      if (result.confirmedFindingIds.length === 0) matchRecalculation?.fail(result.error);
       router.refresh();
       return;
     }
