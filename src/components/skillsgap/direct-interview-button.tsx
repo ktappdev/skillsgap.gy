@@ -37,8 +37,8 @@ export function DirectInterviewButton({ applicantId, roleId, initialInvitationId
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {invitationId ? <span className="bg-amber-50 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-amber-800">Interview invited</span> : <button type="button" disabled={saving} onClick={() => { void submit(); }} className="min-h-10 border border-accent px-3 text-sm font-semibold text-accent hover:bg-teal-50 disabled:cursor-wait disabled:opacity-60">{saving ? "Sending…" : "Initiate interview"}</button>}
-      {invitationId ? <button type="button" disabled={saving} onClick={() => { void submit(); }} className="text-sm font-semibold text-danger underline-offset-4 hover:underline disabled:cursor-wait disabled:opacity-60">{saving ? "Cancelling…" : "Cancel invitation"}</button> : null}
+      {invitationId ? <span className="inline-flex items-center rounded-md border border-accent px-2.5 py-1 text-xs font-semibold text-accent">Interview invited</span> : <button type="button" disabled={saving} onClick={() => { void submit(); }} aria-busy={saving} className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60">{saving ? "Sending…" : "Invite to interview"}</button>}
+      {invitationId ? <button type="button" disabled={saving} onClick={() => { void submit(); }} aria-busy={saving} className="inline-flex min-h-11 items-center text-sm font-semibold text-danger underline-offset-4 hover:underline disabled:cursor-wait disabled:opacity-60">{saving ? "Cancelling…" : "Cancel invitation"}</button> : null}
       {message ? <span className="text-xs text-muted" role="status">{message}</span> : null}
     </div>
   );

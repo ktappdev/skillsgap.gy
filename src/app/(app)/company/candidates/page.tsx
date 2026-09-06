@@ -51,18 +51,17 @@ export default async function CandidatesPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Company workspace</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">Matched candidates</h1>
-      <p className="mt-3 text-sm leading-6 text-muted">Identity is hidden until an applicant shares their profile or confirms a fair-based interview.</p>
-      <div className="mt-7"><ManagementNav area="company" /></div>
+      <h1 className="text-3xl font-semibold tracking-tight">Matched candidates</h1>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Identity is hidden until an applicant shares their profile or confirms a fair-based interview.</p>
+      <div className="mt-6"><ManagementNav area="company" /></div>
       {matchRows.length === 0 ? (
-        <section className="mt-8 border border-border bg-surface p-6 shadow-sm">
+        <section className="mt-6 rounded-lg border border-border bg-surface p-6">
           <h2 className="text-xl font-semibold">No matches yet</h2>
-          <p className="mt-2 text-sm leading-6 text-muted">Publish an active role with weighted requirements. Applicants will appear here after their CVs are processed.</p>
-          <Link href="/company/jobs" className="mt-5 inline-flex text-sm font-semibold text-accent underline-offset-4 hover:underline">Manage roles →</Link>
+          <p className="mt-2 text-sm leading-6 text-muted">Publish an active role with weighted requirements. Applicants appear here after their CVs are processed.</p>
+          <Link href="/company/jobs" className="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">Manage roles →</Link>
         </section>
       ) : (
-        <div className="mt-8 space-y-3">
+        <ul className="mt-6 space-y-3" aria-label="Matched candidates">
           {matchRows.map((match, index) => {
             const role = roleRows.find((item) => item.id === match.job_role_id);
             const key = candidateKey(match.applicant_id, match.job_role_id);
@@ -71,20 +70,18 @@ export default async function CandidatesPage() {
             const isConsented = consentedMatches.has(key);
             const profile = profileByConsent.get(key);
             return (
-              <article key={match.id} className="flex flex-col justify-between gap-4 border border-border bg-surface p-5 shadow-sm sm:flex-row sm:items-center">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted">Candidate {String(index + 1).padStart(2, "0")} · {role?.title ?? "Active role"}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {isApplied ? <span className="bg-teal-50 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent">Applied</span> : null}
-                  </div>
+              <li key={match.id} className="flex flex-col justify-between gap-4 rounded-lg border border-border bg-surface p-5 sm:flex-row sm:items-center">
+                <div className="min-w-0">
+                  <p className="text-sm text-muted">Candidate {String(index + 1).padStart(2, "0")} · {role?.title ?? "Active role"}</p>
+                  {isApplied ? <span className="mt-2 inline-flex items-center rounded-md border border-accent px-2.5 py-1 text-xs font-semibold text-accent">Applied</span> : null}
                   {isConsented ? <><p className="mt-2 text-sm font-semibold text-foreground">{profile?.full_name || "Applicant profile shared"}</p><p className="mt-1 text-sm text-muted">Profile shared for this role{profile?.phone_number ? ` · ${profile.phone_number}` : ""}</p><div className="mt-3"><ConsentedResumeButton applicantId={match.applicant_id} roleId={match.job_role_id} /></div></> : <><p className="mt-2 text-sm font-semibold text-foreground">{match.interview_eligible ? "Eligible for invitation" : `${gapCounts.get(match.id) ?? 0} requirement${gapCounts.get(match.id) === 1 ? "" : "s"} remaining`}</p><p className="mt-1 text-sm text-muted">Anonymized profile · consent required for identity and CV</p></>}
                   {(isApplied || directInvitationId) && role ? <div className="mt-4"><DirectInterviewButton applicantId={match.applicant_id} roleId={role.id} initialInvitationId={directInvitationId} /></div> : null}
                 </div>
-                <span className="w-fit bg-teal-50 px-3 py-1.5 text-sm font-semibold text-accent">{match.score}% match</span>
-              </article>
+                <span className="w-fit shrink-0 rounded-md bg-surface-muted px-3 py-1.5 text-sm font-semibold text-accent">{match.score}% match</span>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );

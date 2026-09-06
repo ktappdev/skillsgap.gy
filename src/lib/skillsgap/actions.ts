@@ -88,7 +88,7 @@ export async function queueResumeProcessing(
   }
   if (existingResume) {
     await supabase.storage.from("resumes").remove([cleanPath]);
-    return { error: "This is a demo — clear your previous CV first." };
+    return { error: "Clear your previous CV before uploading a replacement." };
   }
 
   const { data: resume, error: resumeError } = await supabase
@@ -107,7 +107,7 @@ export async function queueResumeProcessing(
   if (resumeError || !resume) {
     await supabase.storage.from("resumes").remove([cleanPath]);
     if (resumeError?.code === "23505") {
-      return { error: "This is a demo — clear your previous CV first." };
+      return { error: "Clear your previous CV before uploading a replacement." };
     }
     return { error: getDatabaseErrorMessage(resumeError, "We could not save your private CV.") };
   }

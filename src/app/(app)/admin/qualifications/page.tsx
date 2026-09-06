@@ -8,5 +8,5 @@ export default async function QualificationsPage() {
     supabase.from("qualifications").select("*").order("name"),
     supabase.from("qualification_aliases").select("*").order("alias"),
   ]);
-  return <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"><p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Platform administration</p><h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">Qualification taxonomy</h1><p className="mt-3 text-sm leading-6 text-muted">Use canonical names and aliases so a CV term maps to the right requirement.</p><div className="mt-7"><ManagementNav area="admin" /></div><TaxonomyManager initialItems={qualifications ?? []} initialAliases={aliases ?? []} /></div>;
+  return <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"><h1 className="text-3xl font-semibold tracking-tight">Qualification taxonomy</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Canonical names and aliases decide how a CV term maps to a requirement. Edit carefully.</p><div className="mt-6"><ManagementNav area="admin" /></div><TaxonomyManager initialItems={qualifications ?? []} initialAliases={aliases ?? []} /></div>;
 }

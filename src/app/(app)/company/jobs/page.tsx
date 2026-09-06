@@ -11,5 +11,5 @@ export default async function CompanyJobsPage() {
   ]);
   const roleRows = roles ?? [];
   const { data: requirements } = roleRows.length > 0 ? await supabase.from("job_requirements").select("*").in("job_role_id", roleRows.map((role) => role.id)) : { data: [] };
-  return <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"><p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Company workspace</p><h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">Roles and requirements</h1><div className="mt-7"><ManagementNav area="company" /></div><RoleEditor companyName={company?.name ?? "your company"} initialRoles={roleRows} initialRequirements={requirements ?? []} qualifications={qualifications ?? []} /></div>;
+  return <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"><h1 className="text-3xl font-semibold tracking-tight">Roles and requirements</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Draft a role, add weighted requirements, then publish it for matching.</p><div className="mt-6"><ManagementNav area="company" /></div><RoleEditor companyName={company?.name ?? "your company"} initialRoles={roleRows} initialRequirements={requirements ?? []} qualifications={qualifications ?? []} /></div>;
 }

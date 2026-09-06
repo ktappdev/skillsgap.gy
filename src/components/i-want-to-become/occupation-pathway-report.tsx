@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
+import { SavePathwayControl } from "@/components/i-want-to-become/save-pathway-control";
 import { normalizeSubjectName, type CsecResult } from "@/lib/i-want-to-become/catalog";
 import type { OccupationPathwayAction } from "@/lib/i-want-to-become/guidance";
 import type { PublicOccupationPathway } from "@/lib/i-want-to-become/occupations";
+import type { PathwaySaveViewer } from "@/lib/i-want-to-become/pathway-plan";
 
 type OccupationPathwayReportProps = {
   pathway: PublicOccupationPathway;
@@ -13,6 +14,7 @@ type OccupationPathwayReportProps = {
   selectedInterests: string[];
   results: CsecResult[];
   source: "live" | "fallback";
+  viewer: PathwaySaveViewer;
   onEdit: () => void;
 };
 
@@ -69,7 +71,7 @@ function VerificationNotice({ source }: { source: "live" | "fallback" }) {
   return <aside className="mt-8 border border-amber-200 bg-amber-50 p-5" aria-labelledby="verification-title"><h3 id="verification-title" className="text-sm font-semibold text-amber-950">Before you spend money or make a move</h3><p className="mt-2 text-sm leading-6 text-amber-900">Training dates, fees, entry requirements, medical checks, offshore safety rules, and vacancies can change. Confirm the current details directly with the provider or employer. {source === "fallback" ? "You are viewing the locally reviewed catalogue while the live catalogue is unavailable." : "Each action includes the date it was last checked by SkillsGap.gy."}</p></aside>;
 }
 
-export function OccupationPathwayReport({ pathway, interests, selectedInterests, results, source, onEdit }: OccupationPathwayReportProps) {
+export function OccupationPathwayReport({ pathway, interests, selectedInterests, results, source, viewer, onEdit }: OccupationPathwayReportProps) {
   const primaryActions = pathway.actions.filter((action) => action.isActive).slice(0, 3);
   const additionalActions = pathway.actions.filter((action) => action.isActive).slice(3);
   const storageKey = `skillsgap:i-want-to-become:completed-actions:${pathway.slug}`;
@@ -121,6 +123,6 @@ export function OccupationPathwayReport({ pathway, interests, selectedInterests,
     {additionalActions.length > 0 ? <section className="mt-8" aria-labelledby="more-actions-title"><p className="text-xs font-bold uppercase tracking-[0.15em] text-muted">More official places to continue</p><h3 id="more-actions-title" className="mt-2 text-xl font-semibold tracking-tight">Keep exploring when you are ready</h3><ul className="mt-5 space-y-3">{additionalActions.map((action, index) => <ActionCard key={action.id} action={action} position={index + 4} completed={completedActionIds.has(action.id)} onToggle={() => toggleAction(action.id)} />)}</ul></section> : null}
 
     <VerificationNotice source={source} />
-    <div className="mt-8 border-t border-border pt-6"><p className="text-sm leading-6 text-muted">Source: {pathway.sourceSummary}, {pathway.sourceLocator ?? "occupation classification"}. Read the source and confirm current requirements before making education or training decisions.</p><div className="mt-4 flex flex-wrap gap-3"><a href={pathway.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Read the source ↗</a><Link href="/signup" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Build my verified profile</Link><button type="button" onClick={onEdit} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Edit my starting point</button></div></div>
+    <div className="mt-8 border-t border-border pt-6"><p className="text-sm leading-6 text-muted">Source: {pathway.sourceSummary}, {pathway.sourceLocator ?? "occupation classification"}. Read the source and confirm current requirements before making education or training decisions.</p><p className="mt-4 max-w-2xl text-sm leading-6 text-muted">Save this planning draft privately. Your interests and CSEC/CXC entries stay unverified and do not become qualifications.</p><div className="mt-4 flex flex-wrap gap-3"><a href={pathway.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Read the source ↗</a><SavePathwayControl viewer={viewer} plan={{ pathwayKind: "occupation", pathwayKey: pathway.slug, interests, selectedInterests, results, plannedRequirementNames: [], completedActionIds: [...completedActionIds] }} /><button type="button" onClick={onEdit} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Edit my starting point</button></div></div>
   </section>;
 }

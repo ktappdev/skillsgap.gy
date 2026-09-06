@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
+import { SavePathwayControl } from "@/components/i-want-to-become/save-pathway-control";
 import { supportingSubjects, type CareerPathway, type CsecResult } from "@/lib/i-want-to-become/catalog";
+import type { PathwaySaveViewer } from "@/lib/i-want-to-become/pathway-plan";
 
 type GuidedPathwayPlanProps = {
   pathway: CareerPathway;
+  interests: string;
+  selectedInterests: string[];
   results: CsecResult[];
+  viewer: PathwaySaveViewer;
   onEdit: () => void;
 };
 
@@ -23,7 +27,7 @@ function RequirementCard({ requirement, position, planned, onToggle }: { require
   return <li className={`border p-4 transition ${planned ? "border-accent/50 bg-teal-50/30" : "border-border"}`}><div className="flex gap-3"><span className={`grid size-7 shrink-0 place-items-center rounded-full text-sm font-bold ${planned ? "bg-accent text-white" : "bg-surface-muted text-accent"}`} aria-hidden="true">{planned ? "✓" : position}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h4 className="font-semibold text-foreground">{requirement.name}</h4>{requirement.mandatory ? <span className="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold text-accent">Required for this role</span> : null}</div><p className="mt-1 text-sm leading-6 text-muted">{requirement.detail}</p>{requirement.minimumYears ? <p className="mt-2 text-sm font-medium text-foreground">Plan for at least {requirement.minimumYears} year{requirement.minimumYears === 1 ? "" : "s"} of relevant experience.</p> : null}{requirement.training ? <p className="mt-2 text-sm font-medium text-accent">Training to explore: {requirement.training}</p> : <p className="mt-2 text-sm text-muted">Ask a recognised provider about the current route before enrolling.</p>}<button type="button" aria-pressed={planned} onClick={onToggle} className={`mt-4 inline-flex min-h-10 items-center rounded-xl border px-3 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${planned ? "border-accent bg-white text-accent" : "border-border bg-surface text-foreground hover:border-accent hover:text-accent"}`}>{planned ? "On my list" : "Add to my list"}</button></div></div></li>;
 }
 
-export function GuidedPathwayPlan({ pathway, results, onEdit }: GuidedPathwayPlanProps) {
+export function GuidedPathwayPlan({ pathway, interests, selectedInterests, results, viewer, onEdit }: GuidedPathwayPlanProps) {
   const subjects = supportingSubjects(pathway, results);
   const storageKey = `skillsgap:i-want-to-become:planned-requirements:${pathway.id}`;
   const [plannedRequirementNames, setPlannedRequirementNames] = useState<Set<string>>(() => new Set());
@@ -72,6 +76,6 @@ export function GuidedPathwayPlan({ pathway, results, onEdit }: GuidedPathwayPla
 
     <section className="mt-8" aria-labelledby="provider-links-title"><p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Official places to continue</p><h3 id="provider-links-title" className="mt-2 text-xl font-semibold tracking-tight">Confirm the current route directly</h3><div className="mt-4 grid gap-3 sm:grid-cols-3">{providerLinks.map(([name, url]) => <a key={name} href={url} target="_blank" rel="noreferrer" className="border border-border bg-surface p-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">{name} <span aria-hidden="true">↗</span></a>)}</div><p className="mt-4 text-sm leading-6 text-muted">Training availability and entry requirements can change. Ask the provider about intake, cost, duration, and any medical or safety requirements before spending money.</p></section>
 
-    <section className="mt-8 border border-border bg-surface-muted p-5" aria-labelledby="account-title"><h3 id="account-title" className="text-lg font-semibold tracking-tight">Ready to build your full pathway?</h3><p className="mt-2 max-w-xl text-sm leading-6 text-muted">Create an account when you are ready to add verified training, experience, and a CV. We have not saved this plan or your result slip.</p><div className="mt-4 flex flex-wrap gap-3"><Link href="/signup" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white transition hover:bg-accent-strong">Create an account when I&apos;m ready</Link><button type="button" onClick={onEdit} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent">Edit my starting point</button></div></section>
+    <section className="mt-8 border border-border bg-surface-muted p-5" aria-labelledby="account-title"><h3 id="account-title" className="text-lg font-semibold tracking-tight">Keep this career route</h3><p className="mt-2 max-w-xl text-sm leading-6 text-muted">Save this planning draft privately. Your interests and CSEC/CXC entries stay unverified and do not become qualifications.</p><div className="mt-4 flex flex-wrap gap-3"><SavePathwayControl viewer={viewer} plan={{ pathwayKind: "guided", pathwayKey: pathway.id, interests, selectedInterests, results, plannedRequirementNames: [...plannedRequirementNames], completedActionIds: [] }} /><button type="button" onClick={onEdit} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent">Edit my starting point</button></div></section>
   </section>;
 }

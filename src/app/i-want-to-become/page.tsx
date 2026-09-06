@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CareerExplorer } from "@/components/i-want-to-become/career-explorer";
+import { PathwaySaveHandoff } from "@/components/i-want-to-become/pathway-save-handoff";
+import { resolveUserHome } from "@/lib/auth/queries";
+import type { PathwaySaveViewer } from "@/lib/i-want-to-become/pathway-plan";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Build your career route",
@@ -14,7 +18,24 @@ const promises = [
   ["03", "Make a next move", "Leave with official places to learn, practise, or get guidance."],
 ] as const;
 
-export default function IWantToBecomePage() {
+type IWantToBecomePageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function IWantToBecomePage({ searchParams }: IWantToBecomePageProps) {
+  const [params, supabase] = await Promise.all([searchParams, createClient()]);
+  const { data } = await supabase.auth.getUser();
+  let viewer: PathwaySaveViewer = "anonymous";
+  let accountHref = "/login";
+  let accountLabel = "Sign in";
+  if (data.user) {
+    const accountHome = await resolveUserHome(supabase, data.user.id);
+    viewer = accountHome === "/dashboard" ? "applicant" : "other";
+    accountHref = accountHome;
+    accountLabel = "My account";
+  }
+  const isSavingPathway = params.save === "pathway";
+
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
@@ -25,7 +46,7 @@ export default function IWantToBecomePage() {
           </Link>
           <div className="flex items-center gap-4">
             <span className="hidden text-xs font-semibold uppercase tracking-[0.14em] text-muted sm:inline">No CV required</span>
-            <Link href="/login" className="text-sm font-semibold text-foreground underline-offset-4 hover:text-accent hover:underline">Sign in</Link>
+            <Link href={accountHref} className="text-sm font-semibold text-foreground underline-offset-4 hover:text-accent hover:underline">{accountLabel}</Link>
           </div>
         </header>
 
@@ -65,7 +86,8 @@ export default function IWantToBecomePage() {
         </section>
 
         <div className="mt-12">
-          <CareerExplorer />
+          {isSavingPathway ? <PathwaySaveHandoff viewer={viewer} /> : null}
+          <CareerExplorer viewer={viewer} />
         </div>
 
         <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-6 text-muted">Career and training information is curated for this SkillsGap.gy demonstration. Confirm current entry requirements directly with a guidance counsellor, provider, or employer.</p>

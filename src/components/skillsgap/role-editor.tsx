@@ -22,6 +22,8 @@ const requirementKinds: Array<{ value: RequirementKind; label: string }> = [
   { value: "experience", label: "Experience" },
 ];
 
+const inputClass = "mt-2 min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm font-normal text-foreground outline-none focus:border-accent";
+
 export function RoleEditor({ companyName, initialRoles, initialRequirements, qualifications }: RoleEditorProps) {
   const [roles, setRoles] = useState(initialRoles);
   const [requirements, setRequirements] = useState(initialRequirements);
@@ -73,38 +75,38 @@ export function RoleEditor({ companyName, initialRoles, initialRequirements, qua
   }
 
   return (
-    <section className="mt-8 space-y-5">
-      <div className="border border-border bg-surface p-5 shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Small win</p>
-        <h2 className="mt-2 text-xl font-semibold">Create a role the matcher can understand</h2>
+    <section className="mt-6 space-y-6" aria-label="Role management">
+      <div className="rounded-lg border border-border bg-surface p-5 sm:p-6">
+        <h2 className="text-xl font-semibold">Create a role</h2>
+        <p className="mt-2 text-sm leading-6 text-muted">Start as a draft, list what the hire needs, then publish for matching.</p>
         <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_8rem_auto]">
-          <label className="text-xs font-semibold text-muted">
+          <label className="text-sm font-semibold text-foreground">
             Role title
-            <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Trainee Offshore Technician" className="mt-1 min-h-11 w-full border border-border px-3 text-sm font-normal text-foreground outline-none focus:border-accent" />
+            <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Trainee Offshore Technician" className={inputClass} />
           </label>
-          <label className="text-xs font-semibold text-muted">
+          <label className="text-sm font-semibold text-foreground">
             Threshold %
-            <input type="number" min={1} max={100} value={threshold} onChange={(event) => setThreshold(event.target.value === "" ? "" : Number(event.target.value))} placeholder={String(DEFAULT_ELIGIBILITY_THRESHOLD)} className="mt-1 min-h-11 w-full border border-border px-3 text-sm font-normal text-foreground outline-none focus:border-accent" />
+            <input type="number" min={1} max={100} value={threshold} onChange={(event) => setThreshold(event.target.value === "" ? "" : Number(event.target.value))} placeholder={String(DEFAULT_ELIGIBILITY_THRESHOLD)} className={inputClass} />
             <span className="mt-1 block text-xs font-normal text-muted">Optional · defaults to {DEFAULT_ELIGIBILITY_THRESHOLD}%</span>
           </label>
-          <button type="button" onClick={() => { void createRole(); }} className="min-h-11 self-end bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">Create draft</button>
+          <button type="button" onClick={() => { void createRole(); }} className="min-h-11 self-end rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">Create draft</button>
         </div>
         {message ? <p className="mt-3 text-sm text-muted" role="status">{message}</p> : null}
       </div>
 
-      {roles.length === 0 ? <div className="border border-border bg-surface p-6 text-sm text-muted">No roles yet. Create the first one above.</div> : roles.map((role) => {
+      {roles.length === 0 ? <div className="rounded-lg border border-border bg-surface p-6 text-sm text-muted">No roles yet. Create the first one above.</div> : roles.map((role) => {
         const roleRequirements = requirements.filter((requirement) => requirement.job_role_id === role.id);
         return (
-          <article key={role.id} className="border border-border bg-surface p-5 shadow-sm">
+          <article key={role.id} className="rounded-lg border border-border bg-surface p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted">{role.status === "active" ? "Published role" : "Draft role"}</p>
+              <div className="min-w-0">
+                <p className="text-sm text-muted">{role.status === "active" ? "Published role" : "Draft role"}</p>
                 <h2 className="mt-2 text-xl font-semibold">{role.title}</h2>
                 <p className="mt-1 text-sm text-muted">Interview threshold: {role.eligibility_threshold}%</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {role.status === "active" ? <ShareButton url={`/opportunities/${role.id}`} title={role.title} text={buildPositionShareText({ title: role.title, company: companyName, location: role.location })} label="Share position" variant="light" /> : null}
-                <button type="button" onClick={() => { void toggle(role); }} className={`min-h-10 px-4 text-sm font-semibold ${role.status === "active" ? "bg-accent text-white" : "border border-accent text-accent"}`}>
+                <button type="button" onClick={() => { void toggle(role); }} className={`min-h-11 rounded-md px-4 text-sm font-semibold ${role.status === "active" ? "bg-accent text-white hover:bg-accent-strong" : "border border-accent text-accent hover:bg-surface-muted"}`}>
                   {role.status === "active" ? "Unpublish role" : "Publish role"}
                 </button>
               </div>
@@ -122,27 +124,27 @@ export function RoleEditor({ companyName, initialRoles, initialRequirements, qua
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_10rem_7rem_7rem_auto_auto] lg:items-end">
               <label className="text-sm font-semibold">Qualification
-                <select value={selectedQualification} onChange={(event) => setSelectedQualification(event.target.value)} className="mt-2 min-h-11 w-full border border-border bg-surface px-3 text-sm font-normal">
+                <select value={selectedQualification} onChange={(event) => setSelectedQualification(event.target.value)} className={inputClass}>
                   <option value="" disabled>Select qualification</option>
                   {qualifications.map((qualification) => <option key={qualification.id} value={qualification.id}>{qualification.name}</option>)}
                 </select>
               </label>
               <label className="text-sm font-semibold">Type
-                <select value={kind} onChange={(event) => setKind(event.target.value as RequirementKind)} className="mt-2 min-h-11 w-full border border-border bg-surface px-3 text-sm font-normal">
+                <select value={kind} onChange={(event) => setKind(event.target.value as RequirementKind)} className={inputClass}>
                   {requirementKinds.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                 </select>
               </label>
               <label className="text-sm font-semibold">Weight
-                <input type="number" min={1} max={5} value={weight} onChange={(event) => setWeight(Number(event.target.value))} className="mt-2 min-h-11 w-full border border-border px-3 text-sm font-normal" />
+                <input type="number" min={1} max={5} value={weight} onChange={(event) => setWeight(Number(event.target.value))} className={inputClass} />
               </label>
               <label className="text-sm font-semibold">Years
-                <input type="number" min={0} max={60} value={minimumYears} onChange={(event) => setMinimumYears(Number(event.target.value))} className="mt-2 min-h-11 w-full border border-border px-3 text-sm font-normal" />
+                <input type="number" min={0} max={60} value={minimumYears} onChange={(event) => setMinimumYears(Number(event.target.value))} className={inputClass} />
               </label>
               <label className="flex min-h-11 items-center gap-2 text-sm font-semibold">
                 <input type="checkbox" checked={mandatory} onChange={(event) => setMandatory(event.target.checked)} className="size-4 accent-accent" />
                 Mandatory
               </label>
-              <button type="button" onClick={() => { void addRequirement(role.id); }} className="min-h-11 border border-accent px-4 text-sm font-semibold text-accent hover:bg-teal-50">Add requirement</button>
+              <button type="button" onClick={() => { void addRequirement(role.id); }} className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted">Add requirement</button>
             </div>
           </article>
         );

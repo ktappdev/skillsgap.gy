@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 
 type ShareButtonProps = {
   url: string;
@@ -9,6 +9,9 @@ type ShareButtonProps = {
   label?: string;
   variant?: "accent" | "light";
 };
+
+const sharePanelWidth = 288;
+const viewportMargin = 16;
 
 function toAbsoluteUrl(url: string) {
   return new URL(url, window.location.href).toString();
@@ -22,11 +25,12 @@ export function ShareButton({
   url,
   title,
   text,
-  label = "Share with someone",
+  label = "Share",
   variant = "accent",
 }: ShareButtonProps) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [panelStyle, setPanelStyle] = useState<CSSProperties>();
   const panelId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -52,27 +56,43 @@ export function ShareButton({
     };
   }, [open]);
 
+  function positionPanel() {
+    const container = containerRef.current?.getBoundingClientRect();
+    if (!container) return;
+
+    const panelWidth = Math.min(sharePanelWidth, window.innerWidth - viewportMargin * 2);
+    const idealLeft = container.right - panelWidth;
+    const maxLeft = window.innerWidth - viewportMargin - panelWidth;
+    const left = Math.min(Math.max(idealLeft, viewportMargin), maxLeft);
+    setPanelStyle({ left: left - container.left, right: "auto" });
+  }
+
+  function setPanelOpen(nextOpen: boolean) {
+    if (nextOpen) positionPanel();
+    setOpen(nextOpen);
+  }
+
   async function share() {
     setMessage(null);
     const absoluteUrl = toAbsoluteUrl(url);
     if (typeof navigator.share === "function") {
       try {
         await navigator.share({ title, text, url: absoluteUrl });
-        setMessage("Shared. You just helped someone take their next step.");
+        setMessage("Shared.");
       } catch (error) {
-        if (!isShareCancellation(error)) setOpen(true);
+        if (!isShareCancellation(error)) setPanelOpen(true);
       }
       return;
     }
-    setOpen((current) => !current);
+    setPanelOpen(!open);
   }
 
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(toAbsoluteUrl(url));
-      setMessage("Link copied. Who will you send it to?");
+      setMessage("Link copied.");
     } catch {
-      setMessage("Copy is unavailable here. WhatsApp or Email are ready below.");
+      setMessage("Copy is unavailable here. WhatsApp or email are ready below.");
     }
   }
 
@@ -92,20 +112,19 @@ export function ShareButton({
         aria-controls={panelId}
         aria-expanded={open}
         onClick={() => { void share(); }}
-        className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${buttonClass}`}
+        className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition ${buttonClass}`}
       >
-        <span aria-hidden="true" className="text-base">↗</span>
+        <span aria-hidden="true">↗</span>
         {label}
       </button>
 
       {open ? (
-        <div id={panelId} className="absolute right-0 z-20 mt-2 w-72 border border-border bg-surface p-4 text-left shadow-lg" aria-labelledby={`${panelId}-title`}>
-          <p id={`${panelId}-title`} className="font-semibold text-foreground">Help someone take their next step</p>
-          <p className="mt-1 text-sm leading-5 text-muted">Send this to a friend, family member, or colleague who is building a future in Guyana.</p>
-          <div className="mt-4 grid gap-2">
-            <a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={() => setOpen(false)} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#25D366] px-3 text-sm font-semibold text-[#073b1a] hover:bg-[#20bd5c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Send on WhatsApp <span aria-hidden="true" className="ml-2">↗</span></a>
-            <button type="button" onClick={() => { void copyLink(); }} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-border px-3 text-sm font-semibold text-foreground hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Copy link</button>
-            <a href={emailUrl} onClick={() => setOpen(false)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-border px-3 text-sm font-semibold text-foreground hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Email this path</a>
+        <div id={panelId} className="absolute right-0 z-20 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-surface p-4 text-left" style={panelStyle} aria-labelledby={`${panelId}-title`}>
+          <p id={`${panelId}-title`} className="font-semibold text-foreground">Send this to someone</p>
+          <div className="mt-3 grid gap-2">
+            <a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={() => setOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-3 text-sm font-semibold text-white hover:bg-accent-strong">WhatsApp <span aria-hidden="true" className="ml-2">↗</span></a>
+            <button type="button" onClick={() => { void copyLink(); }} className="inline-flex min-h-11 items-center justify-center rounded-md border border-border px-3 text-sm font-semibold text-foreground hover:border-accent hover:text-accent">Copy link</button>
+            <a href={emailUrl} onClick={() => setOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-md border border-border px-3 text-sm font-semibold text-foreground hover:border-accent hover:text-accent">Email</a>
           </div>
           {message ? <p className="mt-3 text-sm leading-5 text-muted" role="status" aria-live="polite">{message}</p> : null}
         </div>

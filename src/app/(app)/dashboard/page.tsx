@@ -7,6 +7,7 @@ import { MatchCard } from "@/components/skillsgap/match-card";
 import { MilestonePath, StatusPill } from "@/components/skillsgap/milestone-path";
 import { QualificationReview } from "@/components/skillsgap/qualification-review";
 import { RealtimeSync } from "@/components/dashboard/realtime-sync";
+import { SavedCareerRoute } from "@/components/dashboard/saved-career-route";
 import { isDemoApplicantMetadata } from "@/lib/auth/demo";
 import { requireApplicant } from "@/lib/auth/queries";
 import { getApplicantProgress } from "@/lib/skillsgap/queries";
@@ -14,9 +15,13 @@ import { demoMatches, shouldUseDemoMatches } from "@/lib/skillsgap-demo";
 
 export const metadata: Metadata = { title: "My pathway" };
 
-export default async function DashboardPage() {
+type DashboardPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const { supabase, user } = await requireApplicant();
-  const progress = await getApplicantProgress(supabase, user.id);
+  const [progress, params] = await Promise.all([getApplicantProgress(supabase, user.id), searchParams]);
   const usingDemoMatches = shouldUseDemoMatches({
     isDemoApplicant: isDemoApplicantMetadata(user.user_metadata),
     matchCount: progress.matches.length,
@@ -41,15 +46,25 @@ export default async function DashboardPage() {
       <header className="border-b border-border pb-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Your career pathway</p>
-          <RealtimeSync userId={user.id} />
+          <RealtimeSync userId={user.id} isProcessing={progress.processingStatus === "queued" || progress.processingStatus === "processing" || progress.latestResume?.status === "uploaded" || progress.latestResume?.status === "processing"} />
         </div>
         <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-foreground sm:text-4xl">Good to see you, {name}.</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">We start with what you can already do, then focus only on the steps that move you closer.</p>
       </header>
 
+      {params.pathway === "saved" ? <p className="mt-6 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status">Your career route is saved privately to this dashboard.</p> : null}
+
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="space-y-8">
-          <CvUpload key={progress.latestResume?.id ?? "no-resume"} userId={user.id} hasUploadedCv={Boolean(progress.latestResume)} />
+          <SavedCareerRoute plan={progress.pathwayPlan} />
+          <CvUpload
+            key={progress.latestResume?.id ?? "no-resume"}
+            userId={user.id}
+            hasUploadedCv={Boolean(progress.latestResume)}
+            resumeStatus={progress.latestResume?.status ?? null}
+            processingStatus={progress.processingStatus}
+            processingError={progress.processingError}
+          />
           <ProcessingNotice status={progress.processingStatus} error={progress.processingError} />
           <QualificationReview key={[...progress.findings.map((item) => `${item.id}-${item.updated_at}`), ...progress.qualifications.map((item) => `${item.id}-${item.updated_at}`)].join(",")} applicantId={user.id} initialFindings={progress.findings} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} unmappedTerms={progress.unmappedTerms} />
           <ExperienceReview key={progress.experience.map((item) => `${item.id}-${item.updated_at}`).join(",")} initialExperience={progress.experience} />
@@ -86,7 +101,7 @@ export default async function DashboardPage() {
 
 function ProcessingNotice({ status, error }: { status: string | null; error: string | null }) {
   if (status === "queued" || status === "processing") {
-    return <section className="border border-accent/30 bg-teal-50/50 p-5" aria-live="polite"><p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Small win in progress</p><h2 className="mt-2 text-xl font-semibold tracking-tight">Your CV is being understood</h2><p className="mt-2 text-sm leading-6 text-muted">We are finding the skills you already have. This page will refresh when your first routes are ready.</p></section>;
+    return <section className="border border-accent/30 bg-teal-50/50 p-5" aria-live="polite"><p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Small win in progress</p><h2 className="mt-2 text-xl font-semibold tracking-tight">Your CV is being understood</h2><p className="mt-2 text-sm leading-6 text-muted">We are finding the skills you already have. We&apos;ll keep checking automatically, and your results will appear here when ready.</p></section>;
   }
   if (status === "failed") {
     return <section className="border border-red-200 bg-red-50 p-5" aria-live="polite"><p className="text-xs font-bold uppercase tracking-[0.15em] text-danger">Needs attention</p><h2 className="mt-2 text-xl font-semibold tracking-tight">We could not finish understanding that CV</h2><p className="mt-2 text-sm leading-6 text-muted">{error ?? "Try uploading the PDF again. Your existing profile stays private."}</p></section>;

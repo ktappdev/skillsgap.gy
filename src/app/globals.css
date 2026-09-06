@@ -1,14 +1,37 @@
 @import "tailwindcss";
 
+/*
+ * SkillsGap.gy foundation — shared light corporate system (light mode only).
+ *
+ * HANDOFF FOR AREA DESIGNERS (public / applicant / console):
+ * - Tokens below are the whole palette. Use existing Tailwind classes
+ *   (bg-background, bg-surface, bg-surface-muted, border-border, text-muted,
+ *   text-foreground, bg-accent, text-accent, text-danger). Do not invent
+ *   new hex values or gradients.
+ * - Radius: two sizes only — cards/sections `rounded-lg` (8px),
+ *   inputs/buttons `rounded-md` (6px). Migrate `rounded-xl`/`rounded-3xl`
+ *   when you touch an area file; foundation intentionally leaves them working.
+ * - Rhythm: three stops — 12px (`mt-3`), 24px (`mt-6`), 48px (`mt-12`).
+ * - Kickers (uppercase tracking-wide labels): hero surfaces only.
+ * - Tracking: avoid extreme negative tracking on body text; headings
+ *   `tracking-tight` at most.
+ * - Focus: the global `:focus-visible` ring below covers keyboard affordance;
+ *   do not rebuild focus styles per component.
+ * - Touch: interactive elements get `min-h-11` (44px) unless the design
+ *   clearly calls for denser rows.
+ * - Shadows: rely on `border-border` alone; no shadow scale utilities
+ *   unless a sticky/floating surface genuinely needs elevation.
+ */
+
 :root {
-  --background: #f3f7f5;
+  --background: #fafaf9;
   --foreground: #142522;
   --surface: #ffffff;
   --surface-muted: #eaf2ef;
   --border: #d7e4df;
   --muted: #60736e;
-  --accent: #0f766e;
-  --accent-strong: #115e59;
+  --accent: #0b5f4c;
+  --accent-strong: #08473a;
   --danger: #b42318;
 }
 
@@ -22,8 +45,8 @@
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-danger: var(--danger);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 * {
@@ -35,10 +58,27 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 button,
@@ -49,11 +89,11 @@ textarea {
 }
 
 ::selection {
-  background: #99f6e4;
-  color: #134e4a;
+  background: #bfe3d8;
+  color: #08382d;
 }
 
 :focus-visible {
-  outline: 3px solid #2dd4bf;
-  outline-offset: 3px;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

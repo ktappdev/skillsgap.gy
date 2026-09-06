@@ -78,7 +78,7 @@ async function createQualificationAction(
 }
 
 const inputClass =
-  "min-h-11 w-full border border-border bg-surface px-3 text-sm font-normal outline-none transition placeholder:text-muted focus:border-accent";
+  "min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm font-normal outline-none placeholder:text-muted focus:border-accent";
 
 export function ProviderProgramManager({
   providerName,
@@ -91,13 +91,12 @@ export function ProviderProgramManager({
   const [createState, createFormAction] = useActionState(createAction, initialState);
 
   return (
-    <section className="mt-8 space-y-5">
+    <section className="mt-6 space-y-6" aria-label="Training programs">
       <section
-        className="border border-border bg-surface p-5 shadow-sm sm:p-6"
+        className="rounded-lg border border-border bg-surface p-5 sm:p-6"
         aria-labelledby="create-program-heading"
       >
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">New program</p>
-        <h2 id="create-program-heading" className="mt-2 text-xl font-semibold">
+        <h2 id="create-program-heading" className="text-xl font-semibold">
           Add a training program
         </h2>
         <p className="mt-2 text-sm leading-6 text-muted">
@@ -163,7 +162,7 @@ export function ProviderProgramManager({
           ) : null}
           <SubmitButton
             pendingLabel="Adding…"
-            className="min-h-11 bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
+            className="min-h-11 rounded-md bg-accent px-5 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
           >
             Add program
           </SubmitButton>
@@ -171,11 +170,12 @@ export function ProviderProgramManager({
       </section>
 
       {programs.length === 0 ? (
-        <div className="border border-border bg-surface p-6 text-sm text-muted">
+        <div className="rounded-lg border border-border bg-surface p-6 text-sm text-muted">
           No training programs yet. Add your first program above.
         </div>
       ) : (
-        programs.map((program) => (
+        <ul className="space-y-4" aria-label="Training programs">
+        {programs.map((program) => (
           <ProgramCard
             key={program.id}
             program={program}
@@ -185,7 +185,8 @@ export function ProviderProgramManager({
             qualifications={qualifications}
             aliases={aliases}
           />
-        ))
+        ))}
+        </ul>
       )}
     </section>
   );
@@ -217,16 +218,16 @@ function ProgramCard({
   const mappedQualificationIds = new Set(outcomes.map((outcome) => outcome.qualification_id));
 
   return (
-    <article className="border border-border bg-surface p-5 shadow-sm">
+    <li className="rounded-lg border border-border bg-surface p-5 sm:p-6 list-none">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold text-foreground">{program.name}</p>
             <span
               className={
                 program.is_active
-                  ? "inline-flex items-center bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white"
-                  : "inline-flex items-center border border-border px-2.5 py-1 text-xs font-semibold text-muted"
+                  ? "inline-flex min-h-11 items-center rounded-md bg-accent px-2.5 text-xs font-semibold text-white"
+                  : "inline-flex min-h-11 items-center rounded-md border border-border px-2.5 text-xs font-semibold text-muted"
               }
             >
               {program.is_active ? "Active" : "Inactive"}
@@ -246,8 +247,8 @@ function ProgramCard({
               pendingLabel="Updating…"
               className={
                 program.is_active
-                  ? "min-h-10 border border-border px-4 text-sm font-semibold text-foreground transition hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60"
-                  : "min-h-10 bg-accent px-4 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
+                  ? "min-h-11 rounded-md border border-border px-4 text-sm font-semibold text-foreground hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60"
+                  : "min-h-11 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
               }
             >
               {program.is_active ? "Deactivate" : "Activate"}
@@ -325,14 +326,14 @@ function ProgramCard({
         ) : null}
         <SubmitButton
           pendingLabel="Saving…"
-          className="min-h-11 bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
+            className="min-h-11 rounded-md bg-accent px-5 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
         >
           Save changes
         </SubmitButton>
       </form>
 
-      <div className="mt-5 border-t border-border pt-4">
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Outcomes</p>
+      <div className="mt-6 border-t border-border pt-5">
+        <h3 className="text-sm font-semibold text-foreground">Outcomes</h3>
         <p className="mt-1 text-sm text-muted">
           Map the qualifications this program delivers.
         </p>
@@ -344,7 +345,7 @@ function ProgramCard({
             {mappedQualifications.map((qualification) => (
               <li
                 key={qualification.id}
-                className="flex items-center justify-between gap-3 border border-border bg-surface-muted/40 px-3 py-2"
+                className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface-muted px-3 py-2"
               >
                 <span className="text-sm text-foreground">{qualification.name}</span>
                 <form action={removeFormAction}>
@@ -352,7 +353,7 @@ function ProgramCard({
                   <input type="hidden" name="qualificationId" value={qualification.id} />
                   <SubmitButton
                     pendingLabel="Removing…"
-                    className="min-h-9 border border-danger px-3 text-xs font-semibold text-danger transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
+                    className="min-h-11 rounded-md border border-danger px-3 text-xs font-semibold text-danger hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60"
                   >
                     Remove
                   </SubmitButton>
@@ -374,7 +375,7 @@ function ProgramCard({
           mappedQualificationIds={mappedQualificationIds}
         />
       </div>
-    </article>
+    </li>
   );
 }
 
@@ -441,7 +442,7 @@ function OutcomeSearch({
                 <input type="hidden" name="qualificationId" value={qualification.id} />
                 <SubmitButton
                   pendingLabel="Mapping…"
-                  className="min-h-10 w-full border border-border bg-surface px-3 text-left text-sm font-normal text-foreground transition hover:border-accent hover:bg-surface-muted/40 disabled:cursor-wait disabled:opacity-60"
+                  className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-left text-sm font-normal text-foreground hover:border-accent hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60"
                 >
                   {qualification.name}
                 </SubmitButton>
@@ -455,12 +456,12 @@ function OutcomeSearch({
         <form
           key={trimmedQuery}
           action={createQualificationFormAction}
-          className="mt-3 space-y-3 border border-border bg-surface-muted/40 p-3"
+          className="mt-3 space-y-3 rounded-md border border-border bg-surface-muted p-4"
         >
           <input type="hidden" name="programId" value={program.id} />
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">
-            Create new qualification
-          </p>
+          <h3 className="text-sm font-semibold text-foreground">
+            New qualification
+          </h3>
           <label
             className="block space-y-2 text-sm font-semibold text-foreground"
             htmlFor={`create-qual-name-${program.id}`}
@@ -513,7 +514,7 @@ function OutcomeSearch({
           ) : null}
           <SubmitButton
             pendingLabel="Creating…"
-            className="min-h-11 bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
+            className="min-h-11 rounded-md bg-accent px-5 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
           >
             Create & map
           </SubmitButton>

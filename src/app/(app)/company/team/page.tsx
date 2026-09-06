@@ -15,13 +15,12 @@ export default async function CompanyTeamPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Company workspace</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">Team access</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">Team access</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Owners control who can manage roles, candidates, and job fairs. Recruiters use their own SkillsGap.gy account.</p>
-      <div className="mt-7"><ManagementNav area="company" /></div>
-      <div className="mt-8 space-y-8">
+      <div className="mt-6"><ManagementNav area="company" /></div>
+      <div className="mt-6 space-y-6">
         {canManage ? <RecruiterInviteForm /> : (
-          <section className="border border-border bg-surface-muted p-5 text-sm leading-6 text-muted">Only the company owner can invite or remove recruiters.</section>
+          <section className="rounded-lg border border-border bg-surface-muted p-5 text-sm leading-6 text-muted">Only the company owner can invite or remove recruiters.</section>
         )}
         <TeamAccessList
           canManage={canManage}
