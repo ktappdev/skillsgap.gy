@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 
+import { ShareButton } from "@/components/shareable/share-button";
+import { buildCourseShareText } from "@/lib/share/messages";
 import { SubmitButton } from "@/components/ui/submit-button";
 import {
   createProviderProgram,
@@ -20,6 +22,8 @@ type Qualification = Tables<"qualifications">;
 type Alias = Tables<"qualification_aliases">;
 
 type ProviderProgramManagerProps = {
+  providerName: string;
+  providerVerified: boolean;
   programs: Program[];
   outcomes: Outcome[];
   qualifications: Qualification[];
@@ -77,6 +81,8 @@ const inputClass =
   "min-h-11 w-full border border-border bg-surface px-3 text-sm font-normal outline-none transition placeholder:text-muted focus:border-accent";
 
 export function ProviderProgramManager({
+  providerName,
+  providerVerified,
   programs,
   outcomes,
   qualifications,
@@ -173,6 +179,8 @@ export function ProviderProgramManager({
           <ProgramCard
             key={program.id}
             program={program}
+            providerName={providerName}
+            providerVerified={providerVerified}
             outcomes={outcomes.filter((outcome) => outcome.training_program_id === program.id)}
             qualifications={qualifications}
             aliases={aliases}
@@ -185,11 +193,15 @@ export function ProviderProgramManager({
 
 function ProgramCard({
   program,
+  providerName,
+  providerVerified,
   outcomes,
   qualifications,
   aliases,
 }: {
   program: Program;
+  providerName: string;
+  providerVerified: boolean;
   outcomes: Outcome[];
   qualifications: Qualification[];
   aliases: Alias[];
@@ -225,20 +237,23 @@ function ProgramCard({
             {program.enrollment_url ? ` · ${program.enrollment_url}` : ""}
           </p>
         </div>
-        <form action={toggleFormAction}>
-          <input type="hidden" name="programId" value={program.id} />
-          <input type="hidden" name="isActive" value={program.is_active ? "false" : "true"} />
-          <SubmitButton
-            pendingLabel="Updating…"
-            className={
-              program.is_active
-                ? "min-h-10 border border-border px-4 text-sm font-semibold text-foreground transition hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60"
-                : "min-h-10 bg-accent px-4 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
-            }
-          >
-            {program.is_active ? "Deactivate" : "Activate"}
-          </SubmitButton>
-        </form>
+        <div className="flex flex-wrap items-center gap-2">
+          {program.is_active && providerVerified ? <ShareButton url={`/training/${program.id}`} title={program.name} text={buildCourseShareText({ name: program.name, provider: providerName })} label="Share course" variant="light" /> : null}
+          <form action={toggleFormAction}>
+            <input type="hidden" name="programId" value={program.id} />
+            <input type="hidden" name="isActive" value={program.is_active ? "false" : "true"} />
+            <SubmitButton
+              pendingLabel="Updating…"
+              className={
+                program.is_active
+                  ? "min-h-10 border border-border px-4 text-sm font-semibold text-foreground transition hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60"
+                  : "min-h-10 bg-accent px-4 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
+              }
+            >
+              {program.is_active ? "Deactivate" : "Activate"}
+            </SubmitButton>
+          </form>
+        </div>
       </div>
       {toggleState.error ? (
         <p className="mt-2 text-sm text-danger" role="alert">

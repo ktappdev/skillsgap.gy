@@ -5,6 +5,8 @@ import { ApplyButton } from "@/components/skillsgap/apply-button";
 import { GapActionList } from "@/components/skillsgap/gap-action-list";
 import { StatusPill } from "@/components/skillsgap/milestone-path";
 import { ShareProfileButton } from "@/components/skillsgap/share-profile-button";
+import { ShareButton } from "@/components/shareable/share-button";
+import { buildPositionShareText } from "@/lib/share/messages";
 import { isDemoApplicantMetadata } from "@/lib/auth/demo";
 import { requireApplicant } from "@/lib/auth/queries";
 import { getDemoMatch } from "@/lib/skillsgap-demo";
@@ -31,7 +33,10 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ ma
             <h1 className="text-3xl font-semibold tracking-[-0.04em] text-foreground sm:text-4xl">{match.title}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Based on the experience you confirmed in your profile.</p>
           </div>
-          <StatusPill tone="accent">{match.score}% match</StatusPill>
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusPill tone="accent">{match.score}% match</StatusPill>
+            {match.roleId ? <ShareButton url={`/opportunities/${match.roleId}`} title={match.title} text={buildPositionShareText({ title: match.title, company: match.company, location: null })} label="Share position" variant="light" /> : null}
+          </div>
         </div>
       </header>
 

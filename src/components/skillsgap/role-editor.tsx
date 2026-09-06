@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 
+import { ShareButton } from "@/components/shareable/share-button";
+import { buildPositionShareText } from "@/lib/share/messages";
 import { addJobRequirement, createJobRole, setJobRoleStatus } from "@/lib/skillsgap/actions";
 import { DEFAULT_ELIGIBILITY_THRESHOLD } from "@/lib/skillsgap/constants";
 import type { RequirementKind, Tables } from "@/lib/supabase/database.types";
 
 type RoleEditorProps = {
+  companyName: string;
   initialRoles: Tables<"job_roles">[];
   initialRequirements: Tables<"job_requirements">[];
   qualifications: Tables<"qualifications">[];
@@ -19,7 +22,7 @@ const requirementKinds: Array<{ value: RequirementKind; label: string }> = [
   { value: "experience", label: "Experience" },
 ];
 
-export function RoleEditor({ initialRoles, initialRequirements, qualifications }: RoleEditorProps) {
+export function RoleEditor({ companyName, initialRoles, initialRequirements, qualifications }: RoleEditorProps) {
   const [roles, setRoles] = useState(initialRoles);
   const [requirements, setRequirements] = useState(initialRequirements);
   const [title, setTitle] = useState("");
@@ -99,9 +102,12 @@ export function RoleEditor({ initialRoles, initialRequirements, qualifications }
                 <h2 className="mt-2 text-xl font-semibold">{role.title}</h2>
                 <p className="mt-1 text-sm text-muted">Interview threshold: {role.eligibility_threshold}%</p>
               </div>
-              <button type="button" onClick={() => { void toggle(role); }} className={`min-h-10 px-4 text-sm font-semibold ${role.status === "active" ? "bg-accent text-white" : "border border-accent text-accent"}`}>
-                {role.status === "active" ? "Unpublish role" : "Publish role"}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {role.status === "active" ? <ShareButton url={`/opportunities/${role.id}`} title={role.title} text={buildPositionShareText({ title: role.title, company: companyName, location: role.location })} label="Share position" variant="light" /> : null}
+                <button type="button" onClick={() => { void toggle(role); }} className={`min-h-10 px-4 text-sm font-semibold ${role.status === "active" ? "bg-accent text-white" : "border border-accent text-accent"}`}>
+                  {role.status === "active" ? "Unpublish role" : "Publish role"}
+                </button>
+              </div>
             </div>
 
             <ul className="mt-6 divide-y divide-border border-y border-border" aria-label={`${role.title} requirements`}>

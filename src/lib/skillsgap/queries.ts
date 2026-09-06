@@ -102,6 +102,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
           type: requirement.kind === "certification" ? "Certification" as const : requirement.kind === "experience" ? "Experience" as const : "Technical skill" as const,
           mandatory: requirement.mandatory,
           training: trainingByQualification.get(requirement.qualification_id)?.label ?? null,
+          trainingProgramId: trainingByQualification.get(requirement.qualification_id)?.id ?? null,
           trainingDescription: trainingByQualification.get(requirement.qualification_id)?.description ?? null,
           trainingDuration: trainingByQualification.get(requirement.qualification_id)?.duration ?? null,
           trainingUrl: trainingByQualification.get(requirement.qualification_id)?.url ?? null,
@@ -182,7 +183,7 @@ async function getAvailableQualifications(client: Client): Promise<Tables<"quali
   return data ?? [];
 }
 
-type TrainingPathway = { label: string; description: string | null; duration: string | null; url: string | null };
+type TrainingPathway = { id: string; label: string; description: string | null; duration: string | null; url: string | null };
 
 async function getTrainingPathways(client: Client, qualificationIds: string[]): Promise<Map<string, TrainingPathway>> {
   if (qualificationIds.length === 0) return new Map();
@@ -205,6 +206,7 @@ async function getTrainingPathways(client: Client, qualificationIds: string[]): 
     const provider = program ? providerById.get(program.provider_id) : undefined;
     if (program && provider && !pathways.has(outcome.qualification_id)) {
       pathways.set(outcome.qualification_id, {
+        id: program.id,
         label: `${program.name} · ${provider.name}`,
         description: program.description,
         duration: program.duration_text,
@@ -257,6 +259,7 @@ export async function getApplicantMatch(client: Client, applicantId: string, mat
       name: names.get(requirement.qualification_id) ?? "Qualification to verify",
       type: requirement.kind === "certification" ? "Certification" as const : requirement.kind === "experience" ? "Experience" as const : "Technical skill" as const,
       training: trainingByQualification.get(requirement.qualification_id)?.label ?? null,
+      trainingProgramId: trainingByQualification.get(requirement.qualification_id)?.id ?? null,
       trainingUrl: trainingByQualification.get(requirement.qualification_id)?.url ?? null,
       status: (gaps ?? []).find((gap) => gap.job_requirement_id === requirement.id)?.status,
     })),

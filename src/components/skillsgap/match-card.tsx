@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { ShareButton } from "@/components/shareable/share-button";
+import { buildPositionShareText } from "@/lib/share/messages";
 import type { Match } from "@/lib/skillsgap-demo";
 
 import { StatusPill } from "./milestone-path";
@@ -57,9 +59,12 @@ export function MatchCard({ match }: { match: Match }) {
         </p>
       ) : null}
 
-      <Link href={`/matches/${match.id}`} className="mt-5 inline-flex text-sm font-semibold text-accent underline-offset-4 hover:underline">
-        See your pathway <span aria-hidden="true">→</span>
-      </Link>
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <Link href={`/matches/${match.id}`} className="inline-flex min-h-10 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">
+          See your pathway <span aria-hidden="true" className="ml-1">→</span>
+        </Link>
+        {match.roleId ? <ShareButton url={`/opportunities/${match.roleId}`} title={match.title} text={buildPositionShareText({ title: match.title, company: match.company, location: null })} label="Share position" variant="light" /> : null}
+      </div>
     </article>
   );
 }

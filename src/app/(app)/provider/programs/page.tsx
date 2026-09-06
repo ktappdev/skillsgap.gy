@@ -37,6 +37,8 @@ export default async function ProviderProgramsPage() {
         <ManagementNav area="provider" />
       </div>
       <ProviderProgramManager
+        providerName={provider.name}
+        providerVerified={provider.is_verified}
         programs={programs ?? []}
         outcomes={outcomesResult.data ?? []}
         qualifications={qualifications ?? []}

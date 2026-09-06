@@ -28,6 +28,10 @@ export default function Home() {
               <Link href="/signup/provider" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border bg-surface px-5 font-semibold text-foreground transition hover:border-accent hover:text-accent">I offer training</Link>
             </div>
             <p className="mt-4 text-sm text-muted">Start with a CV, or explore a career route from your CSEC/CXC results. No job title required.</p>
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-accent">
+              <Link href="/opportunities" className="underline-offset-4 hover:underline">Explore positions <span aria-hidden="true">→</span></Link>
+              <Link href="/training" className="underline-offset-4 hover:underline">Find training <span aria-hidden="true">→</span></Link>
+            </div>
           </div>
           <section aria-label="Example skills pathway" className="border border-border bg-surface p-5 shadow-sm sm:p-7">
             <div className="flex items-start justify-between gap-4 border-b border-border pb-5">

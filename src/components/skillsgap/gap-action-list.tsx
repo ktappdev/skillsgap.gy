@@ -1,3 +1,7 @@
+import Link from "next/link";
+
+import { ShareButton } from "@/components/shareable/share-button";
+import { buildCourseShareText } from "@/lib/share/messages";
 import type { Match } from "@/lib/skillsgap-demo";
 
 import { StatusPill } from "@/components/skillsgap/milestone-path";
@@ -25,6 +29,8 @@ function GapAction({ gap, isDemo, isFirst = false }: { gap: Gap; isDemo: boolean
           {gap.trainingDescription ? <p className="mt-1 text-sm leading-6 text-muted">{gap.trainingDescription}</p> : null}
           {gap.projectedScore !== undefined ? <p className="mt-2 text-sm font-semibold text-accent">Projected match after confirmation: {gap.projectedScore}%</p> : null}
           <div className="mt-3 flex flex-wrap items-center gap-3">
+            {gap.trainingProgramId ? <Link href={`/training/${gap.trainingProgramId}`} className="inline-flex min-h-10 items-center border border-accent px-4 text-sm font-semibold text-accent hover:bg-teal-50">View course <span className="ml-1" aria-hidden="true">→</span></Link> : null}
+            {gap.trainingProgramId ? <ShareButton url={`/training/${gap.trainingProgramId}`} title={gap.training ?? "Local training route"} text={buildCourseShareText({ name: gap.training ?? "Local training route", provider: gap.training?.split(" · ").slice(1).join(" · ") || "a verified local provider" })} label="Share course" variant="light" /> : null}
             {gap.trainingUrl?.startsWith("https://") ? (
               <a href={gap.trainingUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">
                 Check training <span className="ml-1" aria-hidden="true">↗</span>
