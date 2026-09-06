@@ -1,49 +1,49 @@
 import Image from "next/image";
-import Link from "next/link";
 
-const routes = [
+const productSteps = [
   {
-    title: "Tell us what you've done",
-    description: "Upload a CV. We'll pull out the skills that already count.",
+    number: "01",
+    title: "Recognize your experience",
+    description: "Turn the work you have already done into a clear skills profile.",
   },
   {
-    title: "See roles that already fit",
-    description: "Compare your confirmed experience with local opportunities.",
+    number: "02",
+    title: "Find your closest opportunities",
+    description: "See how your strengths line up with real roles in Guyana.",
   },
   {
-    title: "Get the next piece of training",
-    description: "Close one gap at a time with a verified local course.",
+    number: "03",
+    title: "Close the gaps",
+    description: "Get pointed toward training that helps you take the next step.",
   },
 ];
 
-const examplePathway = [
-  {
-    stage: "What already counts",
-    title: "Mechanical experience",
-    detail: "4 years of mechanical maintenance",
-  },
-  {
-    stage: "A focused next step",
-    title: "Hydraulics training",
-    detail: "A local maintenance course at GTI",
-  },
-  {
-    stage: "Where it can lead",
-    title: "Offshore technician",
-    detail: "With BOSIET certification before offshore work",
-  },
-];
+function Tape({ position }: { position: "top" | "bottom" }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={`absolute inset-x-0 z-10 overflow-hidden border-y-2 border-foreground bg-accent py-2 ${position === "top" ? "top-5 -rotate-2" : "bottom-6 rotate-2"}`}
+    >
+      <div className="flex min-w-max -translate-x-6 items-center text-[10px] font-black uppercase tracking-[0.2em] text-white sm:text-xs">
+        {Array.from({ length: 8 }, (_, index) => (
+          <span key={index} className="border-r border-white/50 px-6 py-1">
+            Under construction&nbsp; ◆
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6 sm:px-6 lg:px-8">
+    <main className="relative min-h-screen overflow-hidden bg-background">
+      <Tape position="top" />
+      <Tape position="bottom" />
+
+      <div className="relative z-20 mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
         <header className="flex items-center justify-between gap-4">
-          <Link
-            href="/"
-            className="inline-flex min-h-11 items-center gap-2"
-            aria-label="SkillsGap.gy home"
-          >
+          <div className="inline-flex min-h-11 items-center" aria-label="SkillsGap.gy">
             <Image
               src="/skillsgap-logo.webp"
               alt="SkillsGap.gy"
@@ -52,122 +52,73 @@ export default function Home() {
               priority
               className="h-8 w-auto object-contain"
             />
-          </Link>
-          <nav className="flex items-center gap-4 text-sm font-semibold" aria-label="Site navigation">
-            <Link href="/faq" className="inline-flex min-h-11 items-center text-foreground underline-offset-4 hover:text-accent hover:underline">
-              FAQ
-            </Link>
-            <Link href="/login" className="inline-flex min-h-11 items-center text-foreground underline-offset-4 hover:text-accent hover:underline">
-              Sign in
-            </Link>
-          </nav>
+          </div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-accent">
+            <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
+            In development
+          </span>
         </header>
 
-        <section className="flex flex-1 flex-col justify-center py-12 lg:py-16">
-          <div className="mx-auto max-w-4xl text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">
-              Built for Guyana&apos;s local talent
-            </p>
-            <h1 className="mt-3 text-4xl font-semibold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              Your experience can take you further than you think.
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-              SkillsGap.gy helps Guyanese citizens build the skills they need
-              for careers in the rapidly growing energy industry.
-            </p>
-            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
-              <Link
-                href="/signup"
-                className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 font-semibold text-white transition hover:bg-accent-strong"
-              >
-                I have experience
-              </Link>
-              <Link
-                href="/i-want-to-become"
-                className="inline-flex min-h-11 items-center justify-center rounded-md border border-accent bg-surface px-5 font-semibold text-accent transition hover:bg-surface-muted"
-              >
-                I want to become…
-              </Link>
-            </div>
-            <p className="mt-4 text-sm leading-6 text-muted">
-              <Link href="/signup/company" className="font-semibold text-accent underline-offset-4 hover:underline">
-                Hiring? Join as a company
-              </Link>{" "}
-              ·{" "}
-              <Link href="/signup/provider" className="font-semibold text-accent underline-offset-4 hover:underline">
-                Offer training
-              </Link>
-            </p>
-          </div>
-
-          <section
-            aria-label="Example skills pathway"
-            className="mt-12 border-y border-border bg-surface"
-          >
-            <div className="flex flex-col gap-2 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <div className="flex items-center gap-3">
-                <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-accent">
-                  Example route
-                </span>
-                <h2 className="font-semibold tracking-tight text-foreground">
-                  From mechanic to offshore technician
-                </h2>
+        <section className="flex flex-1 items-center py-20 sm:py-24 lg:py-28" aria-labelledby="coming-soon-title">
+          <div className="grid w-full items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-20">
+            <div>
+              <div className="inline-flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-accent">
+                <span aria-hidden="true" className="text-base leading-none">⚒</span>
+                Under construction
               </div>
-              <p className="text-sm text-muted">Experience → training → opportunity</p>
+              <div className="mt-6 inline-flex items-center gap-3 border border-accent bg-accent px-3 py-2 text-white sm:px-4 sm:py-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white text-sm font-black text-accent">2nd</span>
+                <span>
+                  <span className="block text-xs font-bold uppercase tracking-[0.16em]">Second place</span>
+                  <span className="mt-1 block text-sm font-semibold">Innovation Challenge 2026 · Guyana</span>
+                </span>
+              </div>
+              <h1 id="coming-soon-title" className="mt-6 max-w-3xl text-5xl font-semibold leading-[0.98] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+                A better way to move from skills to opportunity is on the way.
+              </h1>
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-muted sm:text-xl">
+                SkillsGap.gy is a Guyana-focused career transition platform. It
+                helps people see the experience they already have, match it to
+                real local opportunities, understand what is missing, and find
+                training to close the gap.
+              </p>
+              <p className="mt-6 max-w-xl border-l-2 border-accent pl-4 text-sm font-semibold leading-6 text-foreground">
+                After earning second place, we are taking a pause to build the
+                next chapter properly. SkillsGap.gy is in development and
+                coming back bigger and better.
+              </p>
             </div>
-            <ol className="grid md:grid-cols-3">
-              {examplePathway.map((step, index) => (
-                <li
-                  key={step.stage}
-                  className="relative border-b border-border px-5 py-6 last:border-b-0 md:border-b-0 md:border-r md:px-6 md:last:border-r-0"
-                >
-                  <div className="flex items-start gap-4">
-                    <span
-                      aria-hidden="true"
-                      className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-xs font-bold text-white"
-                    >
-                      {index + 1}
-                    </span>
-                    <div>
-                      <p className="text-xs font-semibold text-accent">{step.stage}</p>
-                      <h3 className="mt-1 text-lg font-semibold tracking-tight text-foreground">
-                        {step.title}
-                      </h3>
-                      <p className="mt-2 text-sm leading-6 text-muted">{step.detail}</p>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </section>
 
-          <div className="flex flex-col gap-3 border-b border-border py-4 text-sm sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-x-5 gap-y-1 font-semibold text-accent">
-              <Link href="/opportunities" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">
-                Explore positions <span aria-hidden="true">→</span>
-              </Link>
-              <Link href="/training" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">
-                Find training <span aria-hidden="true">→</span>
-              </Link>
+            <div className="relative mx-auto w-full max-w-md lg:mx-0 lg:justify-self-end">
+              <div className="border border-border bg-surface p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-6 border-b border-border pb-5">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">What we are building</p>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">The next step starts here.</h2>
+                  </div>
+                  <span className="grid size-12 shrink-0 place-items-center rounded-full bg-surface-muted text-2xl" aria-hidden="true">🦺</span>
+                </div>
+                <ol className="divide-y divide-border">
+                  {productSteps.map((step) => (
+                    <li key={step.number} className="flex gap-4 py-5 last:pb-1">
+                      <span className="text-sm font-black text-accent">{step.number}</span>
+                      <div>
+                        <h3 className="font-semibold text-foreground">{step.title}</h3>
+                        <p className="mt-1 text-sm leading-6 text-muted">{step.description}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <div className="absolute -bottom-4 -left-4 -z-10 size-20 border-b-2 border-l-2 border-accent" aria-hidden="true" />
+              <div className="absolute -right-4 -top-4 -z-10 size-20 border-r-2 border-t-2 border-accent" aria-hidden="true" />
             </div>
           </div>
         </section>
 
-        <section className="grid gap-px border border-border bg-border md:grid-cols-3" aria-label="How it works">
-          {routes.map((route) => (
-            <article key={route.title} className="bg-surface p-5 sm:p-6">
-              <h2 className="text-lg font-semibold tracking-tight text-foreground">{route.title}</h2>
-              <p className="mt-2 text-sm leading-6 text-muted">{route.description}</p>
-            </article>
-          ))}
-        </section>
-
-        <footer className="flex flex-col gap-2 py-6 text-sm text-muted sm:flex-row sm:justify-between">
+        <footer className="flex flex-col gap-2 border-t border-border py-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
           <span>SkillsGap.gy</span>
-          <span className="flex flex-wrap gap-x-4 gap-y-2">
-            <Link href="/faq" className="underline-offset-4 hover:text-accent hover:underline">Questions and answers</Link>
-            <span>Skills → opportunities → training</span>
-          </span>
+          <span>Skills → opportunities → training</span>
         </footer>
       </div>
     </main>

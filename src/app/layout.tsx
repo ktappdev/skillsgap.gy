@@ -8,8 +8,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: { default: "SkillsGap.gy", template: "%s | SkillsGap.gy" },
-  description: "Find your closest career route in Guyana's oil-and-gas local-content economy.",
+  title: { default: "SkillsGap.gy — Coming soon", template: "%s | SkillsGap.gy" },
+  description: "SkillsGap.gy connects the skills people have in Guyana with local opportunities and training.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

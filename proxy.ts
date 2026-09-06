@@ -1,9 +1,11 @@
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
-import { updateSession } from "@/lib/supabase/proxy";
+export function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname !== "/") {
+    return NextResponse.redirect(new URL("/", request.url), 302);
+  }
 
-export async function proxy(request: NextRequest) {
-  return updateSession(request);
+  return NextResponse.next();
 }
 
 export const config = {
