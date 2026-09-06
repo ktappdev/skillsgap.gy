@@ -93,11 +93,11 @@ export default async function PositionPage({ params }: PositionPageProps) {
 
             <section className="rounded-lg border border-border bg-surface p-6" aria-labelledby="requirements-title">
               <h2 id="requirements-title" className="text-2xl font-semibold tracking-tight text-foreground">
-                What helps here
+                What this role looks for
               </h2>
               <p className="mt-3 text-sm leading-6 text-muted">
-                Requirements currently tied to this position. Each one is a starting
-                point for a plan, not a judgement.
+                Required items must be met for interview eligibility. Preferred items
+                strengthen your match and can guide your next step.
               </p>
               {position.requirements.length > 0 ? (
                 <ul className="mt-3 divide-y divide-border border-y border-border" role="list">
@@ -161,7 +161,7 @@ function RequirementRow({ requirement }: { requirement: PublicPositionRequiremen
         </p>
       </div>
       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${requirement.mandatory ? "bg-amber-100 text-amber-900" : "bg-surface-muted text-accent"}`}>
-        {requirement.mandatory ? "Important" : "Helpful"}
+        {requirement.mandatory ? "Required" : "Preferred"}
       </span>
     </li>
   );

@@ -13,8 +13,8 @@ export default async function InterviewsPage() {
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-semibold tracking-tight text-foreground">Interviews</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-        Invitations appear here once a role&apos;s threshold and mandatory
-        requirements are met.
+        Invitations appear here once a role&apos;s match threshold and all required
+        qualifications are met.
       </p>
       {interviews.length === 0 ? (
         <section className="mt-6 rounded-lg border border-border bg-surface p-6 text-center">

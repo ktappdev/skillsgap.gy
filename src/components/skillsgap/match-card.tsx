@@ -25,10 +25,10 @@ export function MatchCard({ match }: { match: Match }) {
       </div>
       <p className="mt-3 text-sm leading-6 text-muted">
         {match.eligible
-          ? "Meets the score and mandatory requirements."
+          ? "Meets the match threshold and all required qualifications."
           : remaining > 0
             ? `${remaining}% to the interview threshold.`
-            : "Score met; check mandatory requirements."}
+            : "Match threshold met; required qualifications remain."}
       </p>
 
       <div className="mt-3 border-t border-border pt-3">

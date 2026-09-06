@@ -18,7 +18,7 @@ function GapAction({ gap, isDemo, isFirst = false }: { gap: Gap; isDemo: boolean
           <h3 className="text-sm font-semibold text-foreground">{gap.name}</h3>
           <p className="mt-1 text-sm text-muted">{gap.type}</p>
         </div>
-        <StatusPill>{gap.mandatory ? "Mandatory" : "Required"}</StatusPill>
+        <StatusPill>{gap.mandatory ? "Required" : "Preferred"}</StatusPill>
       </div>
 
       {gap.training ? (
