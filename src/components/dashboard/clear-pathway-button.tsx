@@ -5,14 +5,20 @@ import { useState, useTransition } from "react";
 
 import { clearApplicantPathway } from "@/lib/skillsgap/actions";
 
-export function ClearPathwayButton({ onCleared }: { onCleared?: () => void }) {
+type ClearPathwayButtonProps = {
+  label?: string;
+  confirmMessage?: string;
+  onCleared?: () => void | Promise<void>;
+};
+
+export function ClearPathwayButton({ label = "Clear all data", confirmMessage, onCleared }: ClearPathwayButtonProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   function clearPathway() {
-    if (!window.confirm("Clear your uploaded CV and all pathway data? This cannot be undone. Your account will stay active.")) return;
+    if (!window.confirm(confirmMessage ?? "Clear your uploaded CV and all pathway data? This cannot be undone. Your account will stay active.")) return;
 
     setError(null);
     setMessage(null);
@@ -22,7 +28,7 @@ export function ClearPathwayButton({ onCleared }: { onCleared?: () => void }) {
         setError(result.error);
         return;
       }
-      onCleared?.();
+      await onCleared?.();
       router.refresh();
     });
   }
@@ -36,7 +42,7 @@ export function ClearPathwayButton({ onCleared }: { onCleared?: () => void }) {
         aria-busy={isPending}
         className="min-h-10 border border-danger px-3 text-sm font-semibold text-danger transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
       >
-        {isPending ? "Clearing…" : "Clear all data"}
+        {isPending ? "Clearing…" : label}
       </button>
       <p className="max-w-xs text-right text-xs leading-5 text-muted" role="status" aria-live="polite">
         {message}

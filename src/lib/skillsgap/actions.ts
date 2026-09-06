@@ -26,20 +26,34 @@ export async function clearApplicantPathway(): Promise<ClearApplicantPathwayResu
     return { error: "We could not clear your pathway. Please try again." };
   }
 
+  const { data: existingResumes, error: resumeLookupError } = await adminClient
+    .from("resumes")
+    .select("storage_path")
+    .eq("applicant_id", user.id);
+  if (resumeLookupError) return { error: getDatabaseErrorMessage(resumeLookupError, "We could not clear your pathway. Please try again.") };
+
+  const existingPaths = (existingResumes ?? []).map((resume) => resume.storage_path);
+  if (existingPaths.length > 0) {
+    const { error: storageError } = await adminClient.storage.from("resumes").remove(existingPaths);
+    if (storageError) return { error: "We could not remove your uploaded CV file. Your pathway is still intact; please try again." };
+  }
+
   const { data: storagePaths, error } = await adminClient.rpc("clear_applicant_pathway", {
     target_applicant_id: user.id,
   });
   if (error) return { error: getDatabaseErrorMessage(error, "We could not clear your pathway. Please try again.") };
 
+  // The RPC returns its paths too, covering a concurrent upload between the
+  // lookup above and the database reset.
+  const paths = [...new Set(storagePaths ?? [])].filter((path) => !existingPaths.includes(path));
+  if (paths.length > 0) {
+    const { error: storageError } = await adminClient.storage.from("resumes").remove(paths);
+    if (storageError) return { error: "Your pathway was cleared, but we could not remove a CV file. Please try again." };
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/interviews");
   revalidatePath("/matches/[matchId]", "page");
-
-  const paths = storagePaths ?? [];
-  if (paths.length > 0) {
-    const { error: storageError } = await adminClient.storage.from("resumes").remove(paths);
-    if (storageError) return { error: "Your pathway was cleared, but we could not remove the uploaded CV file. Please try again." };
-  }
 
   return {};
 }
@@ -60,6 +74,22 @@ export async function queueResumeProcessing(
     return { error: "Choose a PDF CV up to 15 MB." };
   }
 
+  const { data: existingResume, error: existingResumeError } = await supabase
+    .from("resumes")
+    .select("id")
+    .eq("applicant_id", user.id)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+  if (existingResumeError) {
+    await supabase.storage.from("resumes").remove([cleanPath]);
+    return { error: getDatabaseErrorMessage(existingResumeError, "We could not verify your existing CV.") };
+  }
+  if (existingResume) {
+    await supabase.storage.from("resumes").remove([cleanPath]);
+    return { error: "This is a demo — clear your previous CV first." };
+  }
+
   const { data: resume, error: resumeError } = await supabase
     .from("resumes")
     .insert({
@@ -75,6 +105,9 @@ export async function queueResumeProcessing(
 
   if (resumeError || !resume) {
     await supabase.storage.from("resumes").remove([cleanPath]);
+    if (resumeError?.code === "23505") {
+      return { error: "This is a demo — clear your previous CV first." };
+    }
     return { error: getDatabaseErrorMessage(resumeError, "We could not save your private CV.") };
   }
 

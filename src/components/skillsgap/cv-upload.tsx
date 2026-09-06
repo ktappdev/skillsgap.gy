@@ -15,20 +15,9 @@ export function CvUpload({ userId, hasUploadedCv }: { userId: string; hasUploade
   const [fileName, setFileName] = useState<string | null>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [hasCv, setHasCv] = useState(hasUploadedCv);
+  const [pendingReplacement, setPendingReplacement] = useState<File | null>(null);
 
-  const handleFile = async (file: File | undefined) => {
-    if (!file) return;
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      setStatus("error");
-      setMessage("Choose a PDF CV to continue.");
-      return;
-    }
-    if (file.size === 0 || file.size > fileLimit) {
-      setStatus("error");
-      setMessage("Your CV must be between 1 byte and 15 MB.");
-      return;
-    }
-
+  const uploadFile = async (file: File) => {
     setFileName(file.name);
     setStatus("uploading");
     setMessage("Uploading privately…");
@@ -57,6 +46,39 @@ export function CvUpload({ userId, hasUploadedCv }: { userId: string; hasUploade
     setStatus("queued");
     setHasCv(true);
     setMessage("CV received. We are identifying your strengths now.");
+  };
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      setStatus("error");
+      setMessage("Choose a PDF CV to continue.");
+      return;
+    }
+    if (file.size === 0 || file.size > fileLimit) {
+      setStatus("error");
+      setMessage("Your CV must be between 1 byte and 15 MB.");
+      return;
+    }
+
+    if (hasCv) {
+      setPendingReplacement(file);
+      setStatus("error");
+      setMessage("This is a demo — clear your previous CV first.");
+      return;
+    }
+
+    await uploadFile(file);
+  };
+
+  const clearAndContinue = async () => {
+    const replacement = pendingReplacement;
+    setPendingReplacement(null);
+    setHasCv(false);
+    setFileName(null);
+    setStatus("idle");
+    setMessage(null);
+    if (replacement) await uploadFile(replacement);
   };
 
   return (
@@ -90,7 +112,7 @@ export function CvUpload({ userId, hasUploadedCv }: { userId: string; hasUploade
         <span className="mt-1 text-sm text-muted">{fileName ? "Upload another CV" : "We will identify skills, certifications, and experience."}</span>
       </button>
       {message ? <p className="mt-3 text-sm leading-6 text-muted" role={status === "error" ? "alert" : "status"}>{message}</p> : null}
-      {hasCv ? <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-foreground">Want to start over?</p><p className="mt-1 max-w-lg text-sm leading-6 text-muted">Clear your uploaded CV and all generated pathway data, then upload a fresh CV.</p></div><ClearPathwayButton onCleared={() => { setHasCv(false); setFileName(null); setStatus("idle"); setMessage(null); }} /></div> : null}
+      {hasCv ? <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-foreground">{pendingReplacement ? "Ready to replace your CV?" : "Want to start over?"}</p><p className="mt-1 max-w-lg text-sm leading-6 text-muted">{pendingReplacement ? "Your replacement is waiting. Clear the previous CV and continue." : "Clear your uploaded CV and all generated pathway data, then upload a fresh CV."}</p></div><ClearPathwayButton label={pendingReplacement ? "Clear previous & continue" : "Clear all data"} confirmMessage={pendingReplacement ? "Clear your previous CV and all pathway data, then continue with this replacement?" : undefined} onCleared={clearAndContinue} /></div> : null}
     </section>
   );
 }
