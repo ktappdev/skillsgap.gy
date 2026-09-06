@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { addJobRequirement, createJobRole, setJobRoleStatus } from "@/lib/skillsgap/actions";
+import { DEFAULT_ELIGIBILITY_THRESHOLD } from "@/lib/skillsgap/constants";
 import type { RequirementKind, Tables } from "@/lib/supabase/database.types";
 
 type RoleEditorProps = {
@@ -22,7 +23,7 @@ export function RoleEditor({ initialRoles, initialRequirements, qualifications }
   const [roles, setRoles] = useState(initialRoles);
   const [requirements, setRequirements] = useState(initialRequirements);
   const [title, setTitle] = useState("");
-  const [threshold, setThreshold] = useState(75);
+  const [threshold, setThreshold] = useState<number | "">(DEFAULT_ELIGIBILITY_THRESHOLD);
   const [selectedQualification, setSelectedQualification] = useState(qualifications[0]?.id ?? "");
   const [kind, setKind] = useState<RequirementKind>("technical_skill");
   const [weight, setWeight] = useState(1);
@@ -31,7 +32,7 @@ export function RoleEditor({ initialRoles, initialRequirements, qualifications }
   const [message, setMessage] = useState<string | null>(null);
 
   async function createRole() {
-    const result = await createJobRole(title, threshold);
+    const result = await createJobRole(title, threshold === "" ? null : threshold);
     if (result.error) {
       setMessage(result.error);
       return;
@@ -80,7 +81,8 @@ export function RoleEditor({ initialRoles, initialRequirements, qualifications }
           </label>
           <label className="text-xs font-semibold text-muted">
             Threshold %
-            <input type="number" min={1} max={100} value={threshold} onChange={(event) => setThreshold(Number(event.target.value))} className="mt-1 min-h-11 w-full border border-border px-3 text-sm font-normal text-foreground outline-none focus:border-accent" />
+            <input type="number" min={1} max={100} value={threshold} onChange={(event) => setThreshold(event.target.value === "" ? "" : Number(event.target.value))} placeholder={String(DEFAULT_ELIGIBILITY_THRESHOLD)} className="mt-1 min-h-11 w-full border border-border px-3 text-sm font-normal text-foreground outline-none focus:border-accent" />
+            <span className="mt-1 block text-xs font-normal text-muted">Optional · defaults to {DEFAULT_ELIGIBILITY_THRESHOLD}%</span>
           </label>
           <button type="button" onClick={() => { void createRole(); }} className="min-h-11 self-end bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">Create draft</button>
         </div>

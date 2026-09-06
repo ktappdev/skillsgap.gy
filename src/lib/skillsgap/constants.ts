@@ -1,0 +1,1 @@
+export const DEFAULT_ELIGIBILITY_THRESHOLD = 85;

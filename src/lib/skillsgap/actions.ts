@@ -8,6 +8,7 @@ import { getDatabaseErrorMessage } from "@/lib/errors";
 import { isCompanyDescription, normalizeCompanyWebsite } from "@/lib/company/access-request";
 import { parseGuyanaDateTime } from "@/lib/guyana-time";
 import type { CareerActionType } from "@/lib/i-want-to-become/guidance";
+import { DEFAULT_ELIGIBILITY_THRESHOLD } from "@/lib/skillsgap/constants";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/database.types";
 
@@ -137,7 +138,7 @@ export async function applyToJob(roleId: string): Promise<{ error?: string; mess
 
   const { data: role, error: roleError } = await supabase
     .from("job_roles")
-    .select("id,company_id,status")
+    .select("id,company_id,status,eligibility_threshold")
     .eq("id", cleanRoleId)
     .eq("status", "active")
     .maybeSingle();
@@ -151,7 +152,7 @@ export async function applyToJob(roleId: string): Promise<{ error?: string; mess
     .eq("status", "current")
     .maybeSingle();
   if (matchError) return { error: getDatabaseErrorMessage(matchError, "We could not verify your match.") };
-  if (!match || match.score < 85) return { error: "Reach an 85% match before applying to this role." };
+  if (!match || match.score < role.eligibility_threshold) return { error: `Reach a ${role.eligibility_threshold}% match before applying to this role.` };
 
   const { data: existingApplication, error: existingApplicationError } = await supabase
     .from("job_applications")
@@ -358,11 +359,12 @@ export async function reviewCompany(companyId: string, status: "approved" | "rej
   return {};
 }
 
-export async function createJobRole(title: string, threshold: number): Promise<{ error?: string; role?: Tables<"job_roles"> }> {
+export async function createJobRole(title: string, threshold?: number | null): Promise<{ error?: string; role?: Tables<"job_roles"> }> {
   const { supabase, user, companyId } = await requireApprovedCompanyMember();
   const cleanTitle = title.trim();
-  if (cleanTitle.length < 2 || cleanTitle.length > 160 || !Number.isInteger(threshold) || threshold < 1 || threshold > 100) return { error: "Enter a role name and a threshold from 1 to 100." };
-  const { data, error } = await supabase.from("job_roles").insert({ company_id: companyId, title: cleanTitle, created_by: user.id, eligibility_threshold: threshold, description: "", location: "Guyana", status: "draft" }).select("*").single();
+  const eligibilityThreshold = threshold ?? DEFAULT_ELIGIBILITY_THRESHOLD;
+  if (cleanTitle.length < 2 || cleanTitle.length > 160 || !Number.isInteger(eligibilityThreshold) || eligibilityThreshold < 1 || eligibilityThreshold > 100) return { error: "Enter a role name and a threshold from 1 to 100." };
+  const { data, error } = await supabase.from("job_roles").insert({ company_id: companyId, title: cleanTitle, created_by: user.id, eligibility_threshold: eligibilityThreshold, description: "", location: "Guyana", status: "draft" }).select("*").single();
   if (error) return { error: getDatabaseErrorMessage(error, "We could not create that role.") };
   revalidatePath("/company/jobs");
   return { role: data };
