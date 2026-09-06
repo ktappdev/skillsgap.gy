@@ -766,6 +766,195 @@ export async function revokeProfileShare(roleId: string): Promise<{ error?: stri
   return { message: "Profile sharing was revoked for this role." };
 }
 
+const demoFallbackRoleId = "40000000-0000-0000-0000-000000000001";
+const demoFallbackFairId = "50000000-0000-0000-0000-000000000001";
+const demoFallbackCompanyId = "10000000-0000-0000-0000-000000000001";
+const demoResetPassword = "reset1";
+
+type DemoResetRequirement = {
+  id: string;
+  job_role_id: string;
+  qualification_id: string;
+  weight: number;
+  minimum_years: number | null;
+  mandatory: boolean;
+};
+
+function isDemoResetRequirementSatisfied(requirement: DemoResetRequirement, skillYears: Map<string, number>) {
+  const years = skillYears.get(requirement.qualification_id);
+  return years !== undefined && (requirement.minimum_years === null || years >= requirement.minimum_years);
+}
+
+export type ResetDemoFallbackResult = { error?: string; message?: string; matches?: number };
+
+/**
+ * In-app ULTRA RESET for the hackathon demo. Rebuilds the prepared fallback
+ * applicant from the admin dashboard without a laptop terminal. Mirrors
+ * scripts/prepare-demo-fallback.mjs: curated qualifications, deterministic
+ * matches from every active approved role, one pending interview invitation
+ * on the fallback role, cleared consent, and settled recalculation jobs.
+ * Never creates a resume and never claims the results came from OCR or Qwen.
+ *
+ * Guards: platform admin only, password "reset1", and the target email must
+ * be the configured DEMO_APPLICANT_EMAIL so a typo can never wipe a real
+ * applicant.
+ */
+export async function resetDemoFallback(password: string): Promise<ResetDemoFallbackResult> {
+  const { user } = await requirePlatformAdmin();
+  void user;
+
+  if (password !== demoResetPassword) return { error: "That reset password was not recognized." };
+
+  const expectedEmail = process.env.DEMO_APPLICANT_EMAIL?.trim().toLowerCase();
+  if (!expectedEmail) {
+    return { error: "The prepared demo applicant is not configured." };
+  }
+
+  let adminClient;
+  try {
+    adminClient = createAdminClient();
+  } catch {
+    return { error: "The secure reset service is not configured." };
+  }
+
+  const { data: userList, error: usersError } = await adminClient.auth.admin.listUsers();
+  if (usersError) return { error: "We could not read the demo applicant. Please try again." };
+  const applicant = userList.users.find((item) => item.email?.toLowerCase() === expectedEmail);
+  if (!applicant) return { error: "The demo applicant does not exist. Run the setup script first." };
+
+  const fallbackSkills = [
+    { slug: "diesel-mechanics", years: 4, originalTerm: "Minibus diesel repair" },
+    { slug: "mechanical-maintenance", years: 4, originalTerm: "Mechanical maintenance" },
+    { slug: "bosiet", years: 0, originalTerm: "BOSIET certificate" },
+  ];
+
+  const { data: qualifications, error: qualificationsError } = await adminClient
+    .from("qualifications")
+    .select("id,slug")
+    .in("slug", fallbackSkills.map((skill) => skill.slug));
+  if (qualificationsError) return { error: getDatabaseErrorMessage(qualificationsError, "We could not read the curated taxonomy.") };
+  if ((qualifications ?? []).length !== fallbackSkills.length) return { error: "The curated qualification taxonomy is incomplete." };
+  const qualificationBySlug = new Map((qualifications ?? []).map((item) => [item.slug, item.id]));
+
+  const { error: profileError } = await adminClient.from("profiles").upsert({
+    id: applicant.id,
+    full_name: "Prepared demo applicant",
+    parish_or_region: "Georgetown",
+    onboarding_completed: true,
+  });
+  if (profileError) return { error: getDatabaseErrorMessage(profileError, "We could not prepare the fallback profile.") };
+
+  const { error: removeQualificationsError } = await adminClient.from("applicant_qualifications").delete().eq("applicant_id", applicant.id);
+  if (removeQualificationsError) return { error: getDatabaseErrorMessage(removeQualificationsError, "We could not reset fallback qualifications.") };
+
+  const fallbackRows = fallbackSkills.map((skill) => {
+    const qualificationId = qualificationBySlug.get(skill.slug);
+    if (!qualificationId) return null;
+    return {
+      applicant_id: applicant.id,
+      qualification_id: qualificationId,
+      years_experience: skill.years,
+      source: "applicant_confirmed" as const,
+      review_status: "confirmed" as const,
+      original_term: skill.originalTerm,
+      evidence: "Prepared non-sensitive fallback scenario for the hackathon demo.",
+      confidence: 1,
+    };
+  });
+  if (fallbackRows.some((row) => row === null)) return { error: "The curated qualification taxonomy is incomplete." };
+  const { error: insertQualificationsError } = await adminClient
+    .from("applicant_qualifications")
+    .insert(fallbackRows.filter((row): row is NonNullable<typeof row> => row !== null));
+  if (insertQualificationsError) return { error: getDatabaseErrorMessage(insertQualificationsError, "We could not add fallback qualifications.") };
+
+  const { data: roles, error: rolesError } = await adminClient.from("job_roles").select("id,eligibility_threshold").eq("status", "active");
+  if (rolesError) return { error: getDatabaseErrorMessage(rolesError, "We could not read active roles.") };
+  if (!roles || roles.length === 0) return { error: "No active curated roles are available." };
+
+  const { data: requirements, error: requirementsError } = await adminClient
+    .from("job_requirements")
+    .select("id,job_role_id,qualification_id,weight,minimum_years,mandatory")
+    .in("job_role_id", roles.map((role) => role.id));
+  if (requirementsError) return { error: getDatabaseErrorMessage(requirementsError, "We could not read role requirements.") };
+  const typedRequirements = (requirements ?? []) as DemoResetRequirement[];
+
+  const skillYears = new Map(fallbackSkills.map((skill) => [qualificationBySlug.get(skill.slug) as string, skill.years]));
+  const requirementsByRole = new Map(roles.map((role) => [role.id, typedRequirements.filter((requirement) => requirement.job_role_id === role.id)]));
+
+  const { error: removeInvitationsError } = await adminClient.from("interview_invitations").delete().eq("applicant_id", applicant.id);
+  if (removeInvitationsError) return { error: getDatabaseErrorMessage(removeInvitationsError, "We could not reset fallback invitations.") };
+
+  const { error: removeMatchesError } = await adminClient.from("job_matches").delete().eq("applicant_id", applicant.id);
+  if (removeMatchesError) return { error: getDatabaseErrorMessage(removeMatchesError, "We could not reset fallback matches.") };
+
+  const matchRows = roles.map((role) => {
+    const roleRequirements = requirementsByRole.get(role.id) ?? [];
+    const totalWeight = roleRequirements.reduce((total, requirement) => total + requirement.weight, 0);
+    const matchedWeight = roleRequirements
+      .filter((requirement) => isDemoResetRequirementSatisfied(requirement, skillYears))
+      .reduce((total, requirement) => total + requirement.weight, 0);
+    const mandatoryMet = roleRequirements
+      .filter((requirement) => requirement.mandatory)
+      .every((requirement) => isDemoResetRequirementSatisfied(requirement, skillYears));
+    const score = totalWeight === 0 ? 0 : Math.round((matchedWeight * 100) / totalWeight);
+    return {
+      applicant_id: applicant.id,
+      job_role_id: role.id,
+      score,
+      mandatory_requirements_met: mandatoryMet,
+      interview_eligible: mandatoryMet && score >= role.eligibility_threshold,
+      status: "current" as const,
+    };
+  });
+
+  const { data: matches, error: matchesError } = await adminClient.from("job_matches").insert(matchRows).select("id,job_role_id");
+  if (matchesError) return { error: getDatabaseErrorMessage(matchesError, "We could not create fallback matches.") };
+
+  const matchByRole = new Map((matches ?? []).map((match) => [match.job_role_id, match.id]));
+  const gapRows = typedRequirements.flatMap((requirement) => {
+    if (isDemoResetRequirementSatisfied(requirement, skillYears)) return [];
+    const matchId = matchByRole.get(requirement.job_role_id);
+    if (!matchId) return [];
+    return [{ match_id: matchId, job_requirement_id: requirement.id, status: "unresolved" as const }];
+  });
+  if (gapRows.length === 0) return { error: "We could not connect a fallback gap to its match." };
+  const { error: gapsError } = await adminClient.from("match_gaps").insert(gapRows);
+  if (gapsError) return { error: getDatabaseErrorMessage(gapsError, "We could not create fallback gaps.") };
+
+  const selectedMatch = matchRows.find((match) => match.job_role_id === demoFallbackRoleId);
+  if (!selectedMatch?.interview_eligible) return { error: "The fallback role is not interview eligible; check curated requirements." };
+
+  const { error: invitationError } = await adminClient.from("interview_invitations").insert({
+    applicant_id: applicant.id,
+    job_role_id: demoFallbackRoleId,
+    job_fair_id: demoFallbackFairId,
+    status: "pending",
+  });
+  if (invitationError) return { error: getDatabaseErrorMessage(invitationError, "We could not create the fallback invitation.") };
+
+  const { error: clearConsentError } = await adminClient
+    .from("candidate_consents")
+    .delete()
+    .eq("applicant_id", applicant.id)
+    .eq("company_id", demoFallbackCompanyId)
+    .eq("job_role_id", demoFallbackRoleId);
+  if (clearConsentError) return { error: getDatabaseErrorMessage(clearConsentError, "We could not clear fallback consent.") };
+
+  const { error: completedJobsError } = await adminClient
+    .from("processing_jobs")
+    .update({ status: "completed", completed_at: new Date().toISOString(), error_message: null })
+    .eq("applicant_id", applicant.id)
+    .eq("kind", "recalculate_matches")
+    .in("status", ["queued", "processing", "failed"]);
+  if (completedJobsError) return { error: getDatabaseErrorMessage(completedJobsError, "We could not settle fallback recalculation jobs.") };
+
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+  revalidatePath("/interviews");
+  revalidatePath("/company/candidates");
+  return { matches: matchRows.length, message: `Fallback rebuilt: ${matchRows.length} matches, one eligible interview invitation, consent cleared.` };
+}
+
 export async function getConsentedCandidateResumeUrl(applicantId: string, roleId: string): Promise<{ error?: string; url?: string }> {
   const { supabase } = await requireApprovedCompanyMember();
   const { data: storagePath, error: pathError } = await supabase.rpc("get_consented_candidate_resume_path", { target_applicant_id: applicantId, target_job_role_id: roleId });
