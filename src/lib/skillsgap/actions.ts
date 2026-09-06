@@ -153,13 +153,32 @@ export async function applyToJob(roleId: string): Promise<{ error?: string; mess
   if (matchError) return { error: getDatabaseErrorMessage(matchError, "We could not verify your match.") };
   if (!match || match.score < 85) return { error: "Reach an 85% match before applying to this role." };
 
-  const { error } = await supabase.from("job_applications").upsert({
-    applicant_id: user.id,
-    job_role_id: role.id,
-    company_id: role.company_id,
-    status: "applied",
-  }, { onConflict: "applicant_id,job_role_id" });
-  if (error) return { error: getDatabaseErrorMessage(error, "We could not submit your application.") };
+  const { data: existingApplication, error: existingApplicationError } = await supabase
+    .from("job_applications")
+    .select("id,status")
+    .eq("applicant_id", user.id)
+    .eq("job_role_id", role.id)
+    .maybeSingle();
+  if (existingApplicationError) return { error: getDatabaseErrorMessage(existingApplicationError, "We could not check your application status.") };
+  if (existingApplication?.status === "applied") return { message: "You have already applied to this role." };
+
+  if (existingApplication?.status === "withdrawn") {
+    const { error } = await supabase
+      .from("job_applications")
+      .update({ status: "applied" })
+      .eq("id", existingApplication.id)
+      .eq("applicant_id", user.id)
+      .eq("status", "withdrawn");
+    if (error) return { error: getDatabaseErrorMessage(error, "We could not submit your application.") };
+  } else {
+    const { error } = await supabase.from("job_applications").insert({
+      applicant_id: user.id,
+      job_role_id: role.id,
+      company_id: role.company_id,
+      status: "applied",
+    });
+    if (error && error.code !== "23505") return { error: getDatabaseErrorMessage(error, "We could not submit your application.") };
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/matches/[matchId]", "page");

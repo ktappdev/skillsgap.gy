@@ -86,7 +86,6 @@ create trigger job_applications_set_updated_at
 before update on public.job_applications
 for each row execute function public.set_updated_at();
 
-alter type public.invitation_status add value if not exists 'invited';
 alter table public.interview_invitations
   alter column job_fair_id drop not null;
 alter table public.interview_invitations
