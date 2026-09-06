@@ -89,8 +89,14 @@ export default function Home() {
                 I want to become…
               </Link>
             </div>
-            <p className="mt-3 text-sm leading-6 text-muted">
-              Start with a CV, or explore a route from your CSEC/CXC results.
+            <p className="mt-4 text-sm leading-6 text-muted">
+              <Link href="/signup/company" className="font-semibold text-accent underline-offset-4 hover:underline">
+                Hiring? Join as a company
+              </Link>{" "}
+              ·{" "}
+              <Link href="/signup/provider" className="font-semibold text-accent underline-offset-4 hover:underline">
+                Offer training
+              </Link>
             </p>
           </div>
 
@@ -144,15 +150,6 @@ export default function Home() {
                 Find training <span aria-hidden="true">→</span>
               </Link>
             </div>
-            <p className="leading-6 text-muted">
-              <Link href="/signup/company" className="font-semibold text-accent underline-offset-4 hover:underline">
-                Hiring? Join as a company
-              </Link>{" "}
-              ·{" "}
-              <Link href="/signup/provider" className="font-semibold text-accent underline-offset-4 hover:underline">
-                Offer training
-              </Link>
-            </p>
           </div>
         </section>
 
