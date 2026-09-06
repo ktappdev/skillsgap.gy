@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Create or tear down the four demo accounts used by one-click demo login.
+ * Create or tear down the five demo accounts used by one-click demo login.
  *
  * Usage:
  *   node --env-file=.env.local scripts/setup-demo-users.mjs            # create demo users
@@ -13,7 +13,9 @@
  *   DEMO_OWNER_EMAIL / PASSWORD
  *   DEMO_RECRUITER_EMAIL / PASSWORD
  *   DEMO_ADMIN_EMAIL / PASSWORD
+ *   DEMO_PROVIDER_EMAIL / PASSWORD
  *   DEMO_COMPANY_ID (optional; defaults to the seeded demo company)
+ *   DEMO_PROVIDER_ID (optional; defaults to the seeded demo provider)
  *
  * The script uses the service-role client to bypass RLS while provisioning, then
  * the demo users authenticate normally with the publishable key + RLS at runtime.
@@ -24,12 +26,14 @@
 import { createClient } from "@supabase/supabase-js";
 
 const DEMO_COMPANY_ID = process.env.DEMO_COMPANY_ID?.trim() || "10000000-0000-0000-0000-000000000001";
+const DEMO_PROVIDER_ID = process.env.DEMO_PROVIDER_ID?.trim() || "20000000-0000-0000-0000-000000000002";
 
 const roles = [
   { key: "applicant", emailEnv: "DEMO_APPLICANT_EMAIL", passwordEnv: "DEMO_APPLICANT_PASSWORD", role: null },
   { key: "owner", emailEnv: "DEMO_OWNER_EMAIL", passwordEnv: "DEMO_OWNER_PASSWORD", role: "owner" },
   { key: "recruiter", emailEnv: "DEMO_RECRUITER_EMAIL", passwordEnv: "DEMO_RECRUITER_PASSWORD", role: "recruiter" },
   { key: "admin", emailEnv: "DEMO_ADMIN_EMAIL", passwordEnv: "DEMO_ADMIN_PASSWORD", role: null },
+  { key: "provider", emailEnv: "DEMO_PROVIDER_EMAIL", passwordEnv: "DEMO_PROVIDER_PASSWORD", role: null },
 ];
 
 const args = new Set(process.argv.slice(2));
@@ -91,7 +95,8 @@ if (isTeardown) {
     const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
     if (deleteError) fail(`Could not delete ${entry.key} (${email}): ${deleteError.message}`);
 
-    // company_members and platform_admins rows cascade on delete of auth.users.
+    // company_members, platform_admins rows cascade on delete of auth.users;
+    // training_providers.owner_user_id is set to null on delete of auth.users.
     removed += 1;
     log(`  ${entry.key}: deleted ${email}`);
   }
@@ -162,6 +167,11 @@ for (const entry of roles) {
 
     if (adminError) fail(`Could not insert platform_admins for admin: ${adminError.message}`);
     log(`  admin: ${email} → platform_admins`);
+  } else if (entry.key === "provider") {
+    const { error: providerError } = await admin.from("training_providers").update({ owner_user_id: userId }).eq("id", DEMO_PROVIDER_ID);
+
+    if (providerError) fail(`Could not link training_providers for provider: ${providerError.message}`);
+    log(`  provider: ${email} → training_providers owner for ${DEMO_PROVIDER_ID}`);
   } else {
     log(`  ${entry.key}: ${email} → applicant (no role table)`);
   }

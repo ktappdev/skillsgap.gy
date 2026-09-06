@@ -11,6 +11,7 @@ export const DEMO_ROLES = [
   "owner",
   "recruiter",
   "admin",
+  "provider",
 ] as const;
 
 export type DemoRole = (typeof DEMO_ROLES)[number];
@@ -25,6 +26,7 @@ const ENV_KEY_FOR_ROLE: Record<DemoRole, { email: string; password: string }> = 
   owner: { email: "DEMO_OWNER_EMAIL", password: "DEMO_OWNER_PASSWORD" },
   recruiter: { email: "DEMO_RECRUITER_EMAIL", password: "DEMO_RECRUITER_PASSWORD" },
   admin: { email: "DEMO_ADMIN_EMAIL", password: "DEMO_ADMIN_PASSWORD" },
+  provider: { email: "DEMO_PROVIDER_EMAIL", password: "DEMO_PROVIDER_PASSWORD" },
 };
 
 /**
@@ -36,6 +38,7 @@ export const DEMO_REDIRECTS: Record<DemoRole, string> = {
   owner: "/company",
   recruiter: "/company",
   admin: "/admin",
+  provider: "/provider",
 };
 
 /**

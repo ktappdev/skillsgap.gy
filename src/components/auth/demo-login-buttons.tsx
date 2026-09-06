@@ -9,6 +9,7 @@ const demoRoles = [
   { id: "owner", label: "Company Owner", hint: "Manage company and roles" },
   { id: "recruiter", label: "Recruiter", hint: "Review candidates and matches" },
   { id: "admin", label: "Platform Admin", hint: "Oversee the platform" },
+  { id: "provider", label: "Training Provider", hint: "Manage courses and programs" },
 ] as const;
 
 const initialState: AuthActionState = {};

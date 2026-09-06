@@ -47,6 +47,6 @@ async function getAppShell() {
   if (!userResult.user) return { home: "/login", navigation: [] };
 
   const home = await resolveUserHome(supabase, userResult.user.id);
-  const space = home === "/admin" ? "admin" : home === "/company" ? "company" : home === "/company/request-access" ? "company-pending" : "applicant";
+  const space = home === "/admin" ? "admin" : home === "/company" ? "company" : home === "/provider" ? "provider" : home === "/company/request-access" ? "company-pending" : "applicant";
   return { home, navigation: getAccountNavigation(space) };
 }

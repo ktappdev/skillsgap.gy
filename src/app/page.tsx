@@ -25,6 +25,7 @@ export default function Home() {
               <Link href="/signup" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-accent px-5 font-semibold text-white transition hover:bg-accent-strong">I have experience</Link>
               <Link href="/i-want-to-become" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-accent bg-surface px-5 font-semibold text-accent transition hover:bg-teal-50">I want to become…</Link>
               <Link href="/signup/company" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border bg-surface px-5 font-semibold text-foreground transition hover:border-accent hover:text-accent">I represent a company</Link>
+              <Link href="/signup/provider" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border bg-surface px-5 font-semibold text-foreground transition hover:border-accent hover:text-accent">I offer training</Link>
             </div>
             <p className="mt-4 text-sm text-muted">Start with a CV, or explore a career route from your CSEC/CXC results. No job title required.</p>
           </div>

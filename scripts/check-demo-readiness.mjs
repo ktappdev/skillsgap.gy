@@ -31,6 +31,7 @@ const demoCredentials = [
   ["DEMO_OWNER_EMAIL", "DEMO_OWNER_PASSWORD"],
   ["DEMO_RECRUITER_EMAIL", "DEMO_RECRUITER_PASSWORD"],
   ["DEMO_ADMIN_EMAIL", "DEMO_ADMIN_PASSWORD"],
+  ["DEMO_PROVIDER_EMAIL", "DEMO_PROVIDER_PASSWORD"],
 ];
 
 for (const [emailName, passwordName] of demoCredentials) {
@@ -61,4 +62,4 @@ if (processorUrl) {
   assert(response.ok, "Thunder processor health check failed.");
 }
 
-console.log("Demo readiness passed: four logins, three or more matches, and an eligible interview invitation.");
+console.log("Demo readiness passed: five logins, three or more matches, and an eligible interview invitation.");
