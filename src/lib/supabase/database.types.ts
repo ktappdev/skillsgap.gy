@@ -29,9 +29,10 @@ export type ExtractionFindingStatus = "pending" | "confirmed" | "rejected" | "su
 export type FindingSelectionSource = "model_option" | "applicant_correction";
 export type MatchStatus = "current" | "stale";
 export type GapStatus = "unresolved" | "plan_started" | "completed";
+export type ApplicationStatus = "applied" | "withdrawn";
 export type ConsentStatus = "active" | "revoked";
 export type FairStatus = "draft" | "open" | "closed";
-export type InvitationStatus = "pending" | "accepted" | "declined" | "expired";
+export type InvitationStatus = "pending" | "accepted" | "declined" | "expired" | "invited";
 export type BookingStatus = "confirmed" | "cancelled";
 
 type Profile = {
@@ -70,10 +71,11 @@ type ResumeExtractionFindingCandidate = { created_at: string; finding_id: string
 type ApplicantExperience = Timestamps & { applicant_id: string; confidence: number | null; created_at: string; employer: string | null; evidence: string | null; id: string; resume_id: string | null; title: string; updated_at: string; years: number };
 type JobMatch = Timestamps & { applicant_id: string; calculated_at: string; id: string; interview_eligible: boolean; job_role_id: string; mandatory_requirements_met: boolean; score: number; status: MatchStatus };
 type MatchGap = Timestamps & { id: string; job_requirement_id: string; match_id: string; status: GapStatus };
+type JobApplication = Timestamps & { applicant_id: string; company_id: string; id: string; job_role_id: string; status: ApplicationStatus };
 type CandidateConsent = Timestamps & { applicant_id: string; company_id: string; granted_at: string; id: string; job_role_id: string; revoked_at: string | null; status: ConsentStatus };
 type JobFair = Timestamps & { company_id: string; ends_at: string; id: string; location: string; name: string; starts_at: string; status: FairStatus };
 type InterviewSlot = { created_at: string; ends_at: string; id: string; job_fair_id: string; starts_at: string };
-type InterviewInvitation = { applicant_id: string; created_at: string; expires_at: string | null; id: string; job_fair_id: string; job_role_id: string; status: InvitationStatus };
+type InterviewInvitation = { applicant_id: string; created_at: string; expires_at: string | null; id: string; job_fair_id: string | null; job_role_id: string; status: InvitationStatus };
 type InterviewBooking = { applicant_id: string; created_at: string; id: string; interview_slot_id: string; invitation_id: string; status: BookingStatus };
 type InsertOf<T> = Partial<T>;
 
@@ -107,6 +109,7 @@ export type Database = {
       applicant_experience: Table<ApplicantExperience, InsertOf<ApplicantExperience> & Pick<ApplicantExperience, "applicant_id" | "title">, Partial<ApplicantExperience>>;
       job_matches: Table<JobMatch, InsertOf<JobMatch> & Pick<JobMatch, "applicant_id" | "job_role_id" | "score" | "mandatory_requirements_met" | "interview_eligible">, Partial<JobMatch>>;
       match_gaps: Table<MatchGap, InsertOf<MatchGap> & Pick<MatchGap, "match_id" | "job_requirement_id">, Partial<MatchGap>>;
+      job_applications: Table<JobApplication, InsertOf<JobApplication> & Pick<JobApplication, "applicant_id" | "job_role_id" | "company_id">, Partial<JobApplication>>;
       candidate_consents: Table<CandidateConsent, InsertOf<CandidateConsent> & Pick<CandidateConsent, "applicant_id" | "company_id" | "job_role_id">, Partial<CandidateConsent>>;
       job_fairs: Table<JobFair, InsertOf<JobFair> & Pick<JobFair, "company_id" | "name" | "location" | "starts_at" | "ends_at">, Partial<JobFair>>;
       interview_slots: Table<InterviewSlot, InsertOf<InterviewSlot> & Pick<InterviewSlot, "job_fair_id" | "starts_at" | "ends_at">, Partial<InterviewSlot>>;
@@ -145,6 +148,7 @@ export type Database = {
       review_status: ReviewStatus;
       match_status: MatchStatus;
       gap_status: GapStatus;
+      application_status: ApplicationStatus;
       consent_status: ConsentStatus;
       fair_status: FairStatus;
       invitation_status: InvitationStatus;

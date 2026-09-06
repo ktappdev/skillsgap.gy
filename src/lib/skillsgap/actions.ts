@@ -130,6 +130,84 @@ export async function queueResumeProcessing(
   return { resumeId: resume.id };
 }
 
+export async function applyToJob(roleId: string): Promise<{ error?: string; message?: string }> {
+  const { supabase, user } = await requireApplicant();
+  const cleanRoleId = roleId.trim();
+  if (!cleanRoleId) return { error: "Choose an opportunity before applying." };
+
+  const { data: role, error: roleError } = await supabase
+    .from("job_roles")
+    .select("id,company_id,status")
+    .eq("id", cleanRoleId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (roleError || !role) return { error: "That opportunity is no longer active." };
+
+  const { data: match, error: matchError } = await supabase
+    .from("job_matches")
+    .select("score,status")
+    .eq("applicant_id", user.id)
+    .eq("job_role_id", role.id)
+    .eq("status", "current")
+    .maybeSingle();
+  if (matchError) return { error: getDatabaseErrorMessage(matchError, "We could not verify your match.") };
+  if (!match || match.score < 85) return { error: "Reach an 85% match before applying to this role." };
+
+  const { data: existingApplication, error: existingApplicationError } = await supabase
+    .from("job_applications")
+    .select("id,status")
+    .eq("applicant_id", user.id)
+    .eq("job_role_id", role.id)
+    .maybeSingle();
+  if (existingApplicationError) return { error: getDatabaseErrorMessage(existingApplicationError, "We could not check your application status.") };
+  if (existingApplication?.status === "applied") return { message: "You have already applied to this role." };
+
+  if (existingApplication?.status === "withdrawn") {
+    const { error } = await supabase
+      .from("job_applications")
+      .update({ status: "applied" })
+      .eq("id", existingApplication.id)
+      .eq("applicant_id", user.id)
+      .eq("status", "withdrawn");
+    if (error) return { error: getDatabaseErrorMessage(error, "We could not submit your application.") };
+  } else {
+    const { error } = await supabase.from("job_applications").insert({
+      applicant_id: user.id,
+      job_role_id: role.id,
+      company_id: role.company_id,
+      status: "applied",
+    });
+    if (error && error.code !== "23505") return { error: getDatabaseErrorMessage(error, "We could not submit your application.") };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/matches/[matchId]", "page");
+  revalidatePath("/company/candidates");
+  return { message: "Application submitted. The company can now see your interest without seeing your private profile." };
+}
+
+export async function withdrawApplication(roleId: string): Promise<{ error?: string; message?: string }> {
+  const { supabase, user } = await requireApplicant();
+  const cleanRoleId = roleId.trim();
+  if (!cleanRoleId) return { error: "Choose an opportunity before withdrawing." };
+
+  const { data, error } = await supabase
+    .from("job_applications")
+    .update({ status: "withdrawn" })
+    .eq("applicant_id", user.id)
+    .eq("job_role_id", cleanRoleId)
+    .eq("status", "applied")
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not withdraw your application.") };
+  if (!data) return { error: "You do not have an active application for this role." };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/matches/[matchId]", "page");
+  revalidatePath("/company/candidates");
+  return { message: "Your application was withdrawn. Any interview invitation remains separate." };
+}
+
 export async function bookInterviewSlot(invitationId: string, interviewSlotId: string): Promise<{ error?: string; message?: string }> {
   const { supabase, user } = await requireApplicant();
   const { error } = await supabase.from("interview_bookings").insert({
@@ -579,6 +657,84 @@ export async function getConsentedResumeUrl(resumeId: string, roleId: string): P
   const { data, error } = await adminClient.storage.from("resumes").createSignedUrl(storagePath, 10 * 60);
   if (error || !data.signedUrl) return { error: "We could not create a temporary CV link." };
   return { url: data.signedUrl };
+}
+
+export async function initiateDirectInterview(applicantId: string, roleId: string): Promise<{ error?: string; message?: string; invitationId?: string }> {
+  const { supabase, companyId } = await requireApprovedCompanyMember();
+  const cleanApplicantId = applicantId.trim();
+  const cleanRoleId = roleId.trim();
+  if (!cleanApplicantId || !cleanRoleId) return { error: "Choose an applicant and role first." };
+
+  const { data: role, error: roleError } = await supabase
+    .from("job_roles")
+    .select("id,company_id,status")
+    .eq("id", cleanRoleId)
+    .eq("company_id", companyId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (roleError || !role) return { error: "That role is no longer active in your company workspace." };
+
+  const { data: application, error: applicationError } = await supabase
+    .from("job_applications")
+    .select("id")
+    .eq("applicant_id", cleanApplicantId)
+    .eq("job_role_id", role.id)
+    .eq("company_id", companyId)
+    .eq("status", "applied")
+    .maybeSingle();
+  if (applicationError) return { error: getDatabaseErrorMessage(applicationError, "We could not verify this application.") };
+  if (!application) return { error: "This applicant does not have an active application for the role." };
+
+  const { data: existing, error: existingError } = await supabase
+    .from("interview_invitations")
+    .select("id,status")
+    .eq("applicant_id", cleanApplicantId)
+    .eq("job_role_id", role.id)
+    .is("job_fair_id", null)
+    .maybeSingle();
+  if (existingError) return { error: getDatabaseErrorMessage(existingError, "We could not check interview invitations.") };
+  if (existing?.status === "invited") return { invitationId: existing.id, message: "Interview invitation already sent." };
+
+  const { data: invitation, error } = await supabase
+    .from("interview_invitations")
+    .insert({ applicant_id: cleanApplicantId, job_role_id: role.id, job_fair_id: null, status: "invited" })
+    .select("id")
+    .single();
+  if (error || !invitation) {
+    return { error: error?.code === "23505" ? "An interview invitation was just sent." : getDatabaseErrorMessage(error, "We could not send the interview invitation.") };
+  }
+
+  revalidatePath("/company/candidates");
+  revalidatePath("/interviews");
+  return { invitationId: invitation.id, message: "Interview invitation sent." };
+}
+
+export async function cancelDirectInterview(invitationId: string): Promise<{ error?: string; message?: string }> {
+  const { supabase } = await requireApprovedCompanyMember();
+  const cleanInvitationId = invitationId.trim();
+  if (!cleanInvitationId) return { error: "Choose an interview invitation first." };
+
+  const { data: invitation, error: invitationError } = await supabase
+    .from("interview_invitations")
+    .select("id")
+    .eq("id", cleanInvitationId)
+    .is("job_fair_id", null)
+    .eq("status", "invited")
+    .maybeSingle();
+  if (invitationError) return { error: getDatabaseErrorMessage(invitationError, "We could not find that interview invitation.") };
+  if (!invitation) return { error: "That interview invitation is no longer active." };
+
+  const { error } = await supabase
+    .from("interview_invitations")
+    .delete()
+    .eq("id", invitation.id)
+    .is("job_fair_id", null)
+    .eq("status", "invited");
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not cancel the interview invitation.") };
+
+  revalidatePath("/company/candidates");
+  revalidatePath("/interviews");
+  return { message: "Interview invitation cancelled." };
 }
 
 export async function shareProfileForRole(roleId: string): Promise<{ error?: string; message?: string }> {

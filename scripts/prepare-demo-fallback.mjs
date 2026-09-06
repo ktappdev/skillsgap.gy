@@ -41,6 +41,9 @@ const supabase = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVI
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+const { error: schemaError } = await supabase.from("job_applications").select("id").limit(1);
+if (schemaError) throw new Error("The applications migration must be deployed before preparing the fallback applicant.");
+
 const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
 failIfError(usersError, "Could not read demo users");
 
@@ -59,6 +62,7 @@ const fallbackSkills = [
   { slug: "diesel-mechanics", years: 4, originalTerm: "Minibus diesel repair" },
   { slug: "mechanical-maintenance", years: 4, originalTerm: "Mechanical maintenance" },
   { slug: "bosiet", years: 0, originalTerm: "BOSIET certificate" },
+  { slug: "hydraulic-maintenance", years: 0, originalTerm: "Hydraulics maintenance" },
 ];
 
 const { data: qualifications, error: qualificationsError } = await supabase
@@ -112,6 +116,12 @@ const { error: removeInvitationsError } = await supabase
   .delete()
   .eq("applicant_id", applicant.id);
 failIfError(removeInvitationsError, "Could not reset fallback invitations");
+
+const { error: removeApplicationsError } = await supabase
+  .from("job_applications")
+  .delete()
+  .eq("applicant_id", applicant.id);
+failIfError(removeApplicationsError, "Could not reset fallback applications");
 
 const { error: removeMatchesError } = await supabase
   .from("job_matches")
