@@ -115,6 +115,7 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      clear_applicant_pathway: { Args: { target_applicant_id: string }; Returns: string[] };
       claim_processing_job: { Args: { processing_job_id: string }; Returns: ProcessingJob[] };
       apply_resume_extraction: { Args: { job_id: string; extraction: Json }; Returns: undefined };
       apply_match_recalculation: { Args: { job_id: string }; Returns: undefined };

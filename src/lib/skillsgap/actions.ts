@@ -14,6 +14,35 @@ import type { Tables } from "@/lib/supabase/database.types";
 const maxResumeBytes = 15 * 1024 * 1024;
 
 export type QueueResumeResult = { error?: string; resumeId?: string };
+export type ClearApplicantPathwayResult = { error?: string };
+
+export async function clearApplicantPathway(): Promise<ClearApplicantPathwayResult> {
+  const { user } = await requireApplicant();
+
+  let adminClient;
+  try {
+    adminClient = createAdminClient();
+  } catch {
+    return { error: "We could not clear your pathway. Please try again." };
+  }
+
+  const { data: storagePaths, error } = await adminClient.rpc("clear_applicant_pathway", {
+    target_applicant_id: user.id,
+  });
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not clear your pathway. Please try again.") };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/interviews");
+  revalidatePath("/matches/[matchId]", "page");
+
+  const paths = storagePaths ?? [];
+  if (paths.length > 0) {
+    const { error: storageError } = await adminClient.storage.from("resumes").remove(paths);
+    if (storageError) return { error: "Your pathway was cleared, but we could not remove the uploaded CV file. Please try again." };
+  }
+
+  return {};
+}
 
 export async function queueResumeProcessing(
   storagePath: string,

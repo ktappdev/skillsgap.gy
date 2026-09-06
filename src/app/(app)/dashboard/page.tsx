@@ -6,6 +6,7 @@ import { ExperienceReview } from "@/components/skillsgap/experience-review";
 import { MatchCard } from "@/components/skillsgap/match-card";
 import { MilestonePath, StatusPill } from "@/components/skillsgap/milestone-path";
 import { QualificationReview } from "@/components/skillsgap/qualification-review";
+import { ClearPathwayButton } from "@/components/dashboard/clear-pathway-button";
 import { RealtimeSync } from "@/components/dashboard/realtime-sync";
 import { requireApplicant } from "@/lib/auth/queries";
 import { getApplicantProgress } from "@/lib/skillsgap/queries";
@@ -36,7 +37,10 @@ export default async function DashboardPage() {
       <header className="border-b border-border pb-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Your career pathway</p>
-          <RealtimeSync userId={user.id} />
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <ClearPathwayButton />
+            <RealtimeSync userId={user.id} />
+          </div>
         </div>
         <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-foreground sm:text-4xl">Good to see you, {name}.</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">We start with what you can already do, then focus only on the steps that move you closer.</p>
@@ -44,7 +48,7 @@ export default async function DashboardPage() {
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="space-y-8">
-          <CvUpload userId={user.id} />
+          <CvUpload key={progress.latestResume?.id ?? "no-resume"} userId={user.id} />
           <ProcessingNotice status={progress.processingStatus} error={progress.processingError} />
           <QualificationReview key={[...progress.findings.map((item) => `${item.id}-${item.updated_at}`), ...progress.qualifications.map((item) => `${item.id}-${item.updated_at}`)].join(",")} applicantId={user.id} initialFindings={progress.findings} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} unmappedTerms={progress.unmappedTerms} />
           <ExperienceReview key={progress.experience.map((item) => `${item.id}-${item.updated_at}`).join(",")} initialExperience={progress.experience} />
