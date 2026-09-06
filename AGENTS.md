@@ -64,6 +64,24 @@ node --env-file=.env.local scripts/check-demo-readiness.mjs
 - Keep `.env.local` populated locally but ignored by Git. Never expose service-role credentials to the browser.
 - Supabase schema changes live in `supabase/migrations`; seed records live in `supabase/seed.sql`. Use the dry-run commands above before any explicit deployment.
 
+## Opportunity and match wiring
+
+An opportunity is only matchable after every link in this chain exists:
+
+1. **Taxonomy:** Add a canonical row to `public.qualifications` with a stable slug and `is_active = true`. Add the phrases people may use in CVs to `public.qualification_aliases`. The processor reads the active taxonomy through `supabase/migrations/20260905205305_expose_active_extraction_taxonomy.sql`; an alias alone is not enough. If a role reuses an older qualification, explicitly reactivate it in the new migration and include it in readiness checks.
+2. **Training:** Add or verify a provider, an active program, and one `training_program_outcomes` row for every qualification used by the role. Providers must be verified before their programs are visible. A role requirement with no verified active training outcome will fail the demo readiness check and will show no training pathway in its gap card.
+3. **Role and requirements:** Add the company, then the `job_roles` row, then `job_requirements` rows joined by qualification slug. Requirements carry `weight`, optional `minimum_years`, and `mandatory`. The company must be `approved`; the role must be `active` and have a `published_at` value. Seed data may insert a draft and promote it later, but an existing linked database needs the migration to create or update the records directly.
+4. **Applicant match:** Only confirmed, active `applicant_qualifications` satisfy a requirement. PostgreSQL calculates the score and mandatory gate in `apply_match_recalculation`; it creates a `job_matches` row and one `match_gaps` row for each unsatisfied requirement. Extracted or pending findings do not count until the applicant confirms them.
+5. **Dashboard visibility:** `src/lib/skillsgap/queries.ts` filters to current matches for active roles at approved companies and then returns only the top three by score. A correctly wired role can exist in the database but not appear on the dashboard if its score is below those three. Use the opportunities view or the readiness query to distinguish “not wired” from “ranked below the dashboard limit.”
+6. **Demo reset:** Keep the fallback skills identical in `scripts/prepare-demo-fallback.mjs` and `src/lib/skillsgap/actions.ts`. The reset deletes the fallback applicant's qualifications and matches, re-adds the curated skills, recalculates every active demo role, rebuilds gaps, and recreates the demo invitation. Add representative skills here when a new seeded pathway must appear in the top three. The static no-resume fallback in `src/lib/skillsgap-demo.ts` is intentionally a small three-match presentation fallback; it does not automatically expand when seed roles are added.
+
+For every new seeded pathway, make the data change in both places:
+
+- `supabase/seed.sql` for a clean local `supabase db reset`.
+- A timestamped migration created with a concrete name, for example `supabase migration new add_new_career_pathway`, for an already-linked database. Do not assume `seed.sql` changes are deployed by the application or by `git push`.
+
+Before declaring the pathway complete, run `supabase db push --dry-run --include-seed --project-ref uljznzafpiamxmervxjb`, `supabase db lint --linked --project-ref uljznzafpiamxmervxjb --schema public --fail-on error`, the fallback preparation/readiness commands above, and the normal web checks. Deploy with `supabase db push --include-seed --project-ref uljznzafpiamxmervxjb` only after the target environment and destructive impact are explicitly approved.
+
 ## Hackathon deployment
 
 - The Next.js application deploys from the repository root to Vercel project `skillsgap-gy`, authenticated as `ktad` under `ken-taylors-projects`. Promote a verified preview rather than rebuilding for production.
