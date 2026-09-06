@@ -3,6 +3,7 @@ export type Match = {
   roleId?: string;
   companyId?: string;
   consented?: boolean;
+  applicationStatus?: "applied" | "withdrawn" | null;
   isDemo?: boolean;
   title: string;
   company: string;

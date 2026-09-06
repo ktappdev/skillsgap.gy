@@ -208,11 +208,12 @@ export async function getApplicantMatch(client: Client, applicantId: string, mat
 
   const { data: role } = await client.from("job_roles").select("*").eq("id", match.job_role_id).eq("status", "active").maybeSingle();
   if (!role) return null;
-  const [{ data: company }, { data: gaps }, { data: requirements }, { data: applicantQualifications }] = await Promise.all([
+  const [{ data: company }, { data: gaps }, { data: requirements }, { data: applicantQualifications }, { data: application }] = await Promise.all([
     client.from("companies").select("id,name").eq("id", role.company_id).eq("status", "approved").maybeSingle(),
     client.from("match_gaps").select("*").eq("match_id", match.id),
     client.from("job_requirements").select("*").eq("job_role_id", role.id),
     client.from("applicant_qualifications").select("qualification_id").eq("applicant_id", applicantId).eq("review_status", "confirmed"),
+    client.from("job_applications").select("status").eq("applicant_id", applicantId).eq("job_role_id", role.id).maybeSingle(),
   ]);
   const { data: consent } = await client.from("candidate_consents").select("id").eq("applicant_id", applicantId).eq("job_role_id", role.id).eq("status", "active").maybeSingle();
   const roleRequirements = requirements ?? [];
@@ -230,6 +231,7 @@ export async function getApplicantMatch(client: Client, applicantId: string, mat
     roleId: role.id,
     companyId: role.company_id,
     consented: Boolean(consent),
+    applicationStatus: application?.status ?? null,
     title: role.title,
     company: company?.name ?? "Approved contractor",
     score: match.score,
@@ -250,33 +252,38 @@ export async function getApplicantMatch(client: Client, applicantId: string, mat
 
 export type ApplicantInterview = {
   booking: Tables<"interview_bookings"> | null;
-  fair: Tables<"job_fairs">;
+  fair: Tables<"job_fairs"> | null;
   invitation: Tables<"interview_invitations">;
   role: Tables<"job_roles">;
   slots: Tables<"interview_slots">[];
 };
 
 export async function getApplicantInterviews(client: Client, applicantId: string): Promise<ApplicantInterview[]> {
-  const { data: invitations } = await client.from("interview_invitations").select("*").eq("applicant_id", applicantId).in("status", ["pending", "accepted"]);
+  const { data: invitations } = await client.from("interview_invitations").select("*").eq("applicant_id", applicantId).in("status", ["pending", "accepted", "invited"]);
   if (!invitations || invitations.length === 0) return [];
+  const fairIds = [...new Set(invitations.map((invitation) => invitation.job_fair_id).filter((id): id is string => Boolean(id)))];
   const [{ data: roles }, { data: fairs }, { data: bookings }] = await Promise.all([
     client.from("job_roles").select("*").in("id", invitations.map((item) => item.job_role_id)),
-    client.from("job_fairs").select("*").in("id", invitations.map((item) => item.job_fair_id)),
+    fairIds.length > 0 ? client.from("job_fairs").select("*").in("id", fairIds) : Promise.resolve({ data: [] }),
     client.from("interview_bookings").select("*").in("invitation_id", invitations.map((item) => item.id)).eq("status", "confirmed"),
   ]);
   const now = new Date();
   const activeInvitations = invitations.filter((invitation) => {
     const fair = (fairs ?? []).find((item) => item.id === invitation.job_fair_id);
     const booking = (bookings ?? []).find((item) => item.invitation_id === invitation.id);
+    if (invitation.status === "invited" && invitation.job_fair_id === null) {
+      return !invitation.expires_at || new Date(invitation.expires_at) > now;
+    }
     return Boolean(booking) || Boolean(fair && fair.status === "open" && new Date(fair.ends_at) > now && (!invitation.expires_at || new Date(invitation.expires_at) > now));
   });
-  const fairIds = [...new Set(activeInvitations.map((invitation) => invitation.job_fair_id))];
-  const { data: slots } = fairIds.length > 0 ? await client.from("interview_slots").select("*").in("job_fair_id", fairIds).order("starts_at") : { data: [] };
-  return activeInvitations.flatMap((invitation) => {
+  const activeFairIds = [...new Set(activeInvitations.map((invitation) => invitation.job_fair_id).filter((id): id is string => Boolean(id)))];
+  const { data: slots } = activeFairIds.length > 0 ? await client.from("interview_slots").select("*").in("job_fair_id", activeFairIds).order("starts_at") : { data: [] };
+  return activeInvitations.flatMap((invitation): ApplicantInterview[] => {
     const role = (roles ?? []).find((item) => item.id === invitation.job_role_id);
-    const fair = (fairs ?? []).find((item) => item.id === invitation.job_fair_id);
-    if (!role || !fair) return [];
+    const fair = (fairs ?? []).find((item) => item.id === invitation.job_fair_id) ?? null;
+    if (!role || (invitation.job_fair_id && !fair)) return [];
     const booking = (bookings ?? []).find((item) => item.invitation_id === invitation.id) ?? null;
+    if (!fair) return [{ invitation, role, fair: null, slots: [], booking: null }];
     const availableSlots = (slots ?? []).filter((slot) => slot.job_fair_id === fair.id && new Date(slot.starts_at) > now);
     return [{ invitation, role, fair, slots: booking ? (slots ?? []).filter((slot) => slot.id === booking.interview_slot_id) : availableSlots, booking }];
   });
