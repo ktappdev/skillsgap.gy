@@ -34,20 +34,20 @@ export function ClearPathwayButton({ label = "Clear all data", confirmMessage, o
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
+    <div className="flex flex-col items-stretch gap-2 sm:items-end">
       <button
         type="button"
         onClick={clearPathway}
         disabled={isPending}
         aria-busy={isPending}
-        className="min-h-10 border border-danger px-3 text-sm font-semibold text-danger transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
+        className="min-h-11 w-full rounded-md border border-danger px-3 text-sm font-semibold text-danger transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60 sm:w-auto"
       >
         {isPending ? "Clearing…" : label}
       </button>
-      <p className="max-w-xs text-right text-xs leading-5 text-muted" role="status" aria-live="polite">
+      <p className="max-w-xs text-left text-xs leading-5 text-muted sm:text-right" role="status" aria-live="polite">
         {message}
       </p>
-      {error ? <p className="max-w-xs text-right text-xs leading-5 text-danger" role="alert">{error}</p> : null}
+      {error ? <p className="max-w-xs text-left text-xs leading-5 text-danger sm:text-right" role="alert">{error}</p> : null}
     </div>
   );
 }

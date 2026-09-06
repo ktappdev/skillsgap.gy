@@ -28,6 +28,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     hasResume: Boolean(progress.latestResume),
   });
   const matches = progress.matches.length > 0 ? progress.matches : usingDemoMatches ? demoMatches : [];
+  const isProcessing = progress.processingStatus === "queued"
+    || progress.processingStatus === "processing"
+    || progress.latestResume?.status === "uploaded"
+    || progress.latestResume?.status === "processing";
+  const showProfileResults = !isProcessing && (
+    progress.latestResume?.status === "processed"
+    || progress.findings.length > 0
+    || progress.qualifications.length > 0
+    || progress.experience.length > 0
+    || matches.length > 0
+  );
   const roleCount = usingDemoMatches ? matches.length : progress.visibleRoleCount;
   const roleLabel = usingDemoMatches
     ? "Demo pathways"
@@ -46,7 +57,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       <header className="border-b border-border pb-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Your career pathway</p>
-          <RealtimeSync userId={user.id} isProcessing={progress.processingStatus === "queued" || progress.processingStatus === "processing" || progress.latestResume?.status === "uploaded" || progress.latestResume?.status === "processing"} />
+          {isProcessing ? <RealtimeSync userId={user.id} isProcessing /> : null}
         </div>
         <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-foreground sm:text-4xl">Good to see you, {name}.</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">We start with what you can already do, then focus only on the steps that move you closer.</p>
@@ -54,9 +65,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       {params.pathway === "saved" ? <p className="mt-6 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status">Your career route is saved privately to this dashboard.</p> : null}
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
+      <div className={isProcessing ? "mt-8 max-w-3xl" : "mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]"}>
         <div className="space-y-8">
-          <SavedCareerRoute plan={progress.pathwayPlan} />
           <CvUpload
             key={progress.latestResume?.id ?? "no-resume"}
             userId={user.id}
@@ -65,10 +75,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             processingStatus={progress.processingStatus}
             processingError={progress.processingError}
           />
-          <ProcessingNotice status={progress.processingStatus} error={progress.processingError} />
-          <QualificationReview key={[...progress.findings.map((item) => `${item.id}-${item.updated_at}`), ...progress.qualifications.map((item) => `${item.id}-${item.updated_at}`)].join(",")} applicantId={user.id} initialFindings={progress.findings} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} unmappedTerms={progress.unmappedTerms} />
-          <ExperienceReview key={progress.experience.map((item) => `${item.id}-${item.updated_at}`).join(",")} initialExperience={progress.experience} />
-          <section aria-labelledby="matches-heading">
+          {!isProcessing ? <SavedCareerRoute plan={progress.pathwayPlan} /> : null}
+          {showProfileResults ? <QualificationReview key={[...progress.findings.map((item) => `${item.id}-${item.updated_at}`), ...progress.qualifications.map((item) => `${item.id}-${item.updated_at}`)].join(",")} applicantId={user.id} initialFindings={progress.findings} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} unmappedTerms={progress.unmappedTerms} /> : null}
+          {showProfileResults ? <ExperienceReview key={progress.experience.map((item) => `${item.id}-${item.updated_at}`).join(",")} initialExperience={progress.experience} /> : null}
+          {showProfileResults ? <section aria-labelledby="matches-heading">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted">Closest opportunities</p>
@@ -78,10 +88,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </div>
             <p className="mt-3 text-sm leading-6 text-muted">These routes are ranked from your confirmed profile. You do not need to know the job title first.</p>
             <div className="mt-5 grid gap-4 xl:grid-cols-2">{matches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
-          </section>
+          </section> : null}
         </div>
 
-        <aside className="space-y-6">
+        {!isProcessing ? <aside className="space-y-6">
           <section className="border border-border bg-surface p-5 shadow-sm" aria-labelledby="progress-heading">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Small wins matter</p>
             <h2 id="progress-heading" className="mt-2 text-xl font-semibold tracking-tight">Your progress, made clear</h2>
@@ -93,18 +103,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             <p className="mt-2 text-sm leading-6 text-muted">Add a certification or update your experience so your matches can be recalculated.</p>
             <Link href="/matches/offshore-mechanical-technician" className="mt-4 inline-flex text-sm font-semibold text-accent underline-offset-4 hover:underline">Review the demo pathway <span aria-hidden="true">→</span></Link>
           </section> : null}
-        </aside>
+        </aside> : null}
       </div>
     </div>
   );
-}
-
-function ProcessingNotice({ status, error }: { status: string | null; error: string | null }) {
-  if (status === "queued" || status === "processing") {
-    return <section className="border border-accent/30 bg-teal-50/50 p-5" aria-live="polite"><p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Small win in progress</p><h2 className="mt-2 text-xl font-semibold tracking-tight">Your CV is being understood</h2><p className="mt-2 text-sm leading-6 text-muted">We are finding the skills you already have. We&apos;ll keep checking automatically, and your results will appear here when ready.</p></section>;
-  }
-  if (status === "failed") {
-    return <section className="border border-red-200 bg-red-50 p-5" aria-live="polite"><p className="text-xs font-bold uppercase tracking-[0.15em] text-danger">Needs attention</p><h2 className="mt-2 text-xl font-semibold tracking-tight">We could not finish understanding that CV</h2><p className="mt-2 text-sm leading-6 text-muted">{error ?? "Try uploading the PDF again. Your existing profile stays private."}</p></section>;
-  }
-  return null;
 }

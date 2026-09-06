@@ -28,7 +28,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const [pathwayResult, resumeResult, jobResult, matchesResult, experienceResult] = await Promise.all([
     client.from("applicant_pathway_plans").select("*").eq("applicant_id", applicantId).maybeSingle(),
     client.from("resumes").select("*").eq("applicant_id", applicantId).is("deleted_at", null).order("uploaded_at", { ascending: false }).limit(1).maybeSingle(),
-    client.from("processing_jobs").select("*").eq("applicant_id", applicantId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    client.from("processing_jobs").select("*").eq("applicant_id", applicantId).eq("kind", "resume_analysis").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     client.from("job_matches").select("*").eq("applicant_id", applicantId).eq("status", "current").order("score", { ascending: false }).order("calculated_at", { ascending: false }).order("id", { ascending: true }),
     client.from("applicant_experience").select("*").eq("applicant_id", applicantId).order("created_at", { ascending: false }),
   ]);

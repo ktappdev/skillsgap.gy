@@ -91,7 +91,7 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
 
   const knownIds = new Set(qualifications.map((item) => item.qualification_id));
   return (
-    <section className="rounded-lg border border-border bg-surface p-5" aria-labelledby="qualification-review-heading">
+    <section id="skills-review" className="scroll-mt-6 rounded-lg border border-border bg-surface p-5" aria-labelledby="qualification-review-heading">
       <h2 id="qualification-review-heading" className="text-xl font-semibold tracking-tight text-foreground">Skills from your CV</h2>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">Review what we found before it affects your matches. Only skills you confirm are added to your profile.</p>
 
@@ -108,14 +108,14 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
         <h3 className="text-sm font-semibold text-foreground">Add another skill</h3>
         <p className="mt-1 text-sm leading-6 text-muted">Add a skill we did not find in your CV.</p>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
-          <label className="flex-1 text-xs font-semibold text-muted" htmlFor="add-qualification">
+          <label className="min-w-0 flex-1 text-xs font-semibold text-muted" htmlFor="add-qualification">
             Choose a skill
-            <select id="add-qualification" value={selectedQualification} onChange={(event) => setSelectedQualification(event.target.value)} className="mt-1 min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm font-normal">
+            <select id="add-qualification" value={selectedQualification} onChange={(event) => setSelectedQualification(event.target.value)} className="mt-1 min-h-11 w-full min-w-0 rounded-md border border-border bg-surface px-3 text-base font-normal sm:text-sm">
               <option value="" disabled>Select a skill</option>
               {availableQualifications.filter((item) => !knownIds.has(item.id)).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           </label>
-          <button type="button" disabled={!selectedQualification} onClick={() => { void add(); }} className="inline-flex min-h-11 items-center justify-center rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted disabled:opacity-50">Add skill</button>
+          <button type="button" disabled={!selectedQualification} onClick={() => { void add(); }} className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted disabled:opacity-50 sm:w-auto">Add skill</button>
         </div>
       </div>
       {message ? <p className="mt-3 text-sm text-muted" role="status">{message}</p> : null}
@@ -164,7 +164,7 @@ function PendingFindingCard({ finding, availableQualifications, selectedQualific
         <summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold text-accent">None of these? Choose another skill</summary>
         <label className="mt-2 block text-xs font-semibold text-muted" htmlFor={`alternative-${finding.id}`}>
           Choose an active skill
-          <select id={`alternative-${finding.id}`} value={alternativeQualifications.some((qualification) => qualification.id === selectedQualificationId) ? selectedQualificationId : ""} onChange={(event) => onSelect(event.target.value)} className="mt-1 min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm font-normal">
+          <select id={`alternative-${finding.id}`} value={alternativeQualifications.some((qualification) => qualification.id === selectedQualificationId) ? selectedQualificationId : ""} onChange={(event) => onSelect(event.target.value)} className="mt-1 min-h-11 w-full min-w-0 rounded-md border border-border bg-surface px-3 text-base font-normal sm:text-sm">
             <option value="">Select a skill</option>
             {alternativeQualifications.map((qualification) => <option key={qualification.id} value={qualification.id}>{qualification.name}</option>)}
           </select>
@@ -182,7 +182,27 @@ function PendingFindingCard({ finding, availableQualifications, selectedQualific
 }
 
 function ConfirmedQualificationCard({ item, years, correction, availableQualifications, onYearsChange, onCorrectionChange, onSaveYears, onCorrect, onRemove }: { item: ApplicantQualificationView; years: string; correction: string; availableQualifications: Tables<"qualifications">[]; onYearsChange: (value: string) => void; onCorrectionChange: (value: string) => void; onSaveYears: () => void; onCorrect: () => void; onRemove: () => void }) {
-  return <li className="border border-border bg-surface-muted/40 p-4"><div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center"><div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Found in your CV</p><p className="mt-1 font-semibold text-foreground">{item.original_term ?? (item.source === "applicant_confirmed" ? "Added by you" : item.qualificationName)}</p></div><span className="hidden text-xl text-accent sm:block" aria-hidden="true">→</span><div><p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">Confirmed oil-and-gas translation</p><p className="mt-1 font-semibold text-foreground">{item.qualificationName}</p></div></div>{item.evidence ? <p className="mt-3 border-l-2 border-border pl-3 text-sm leading-6 text-muted">“{item.evidence}”{item.evidence_page ? ` · Page ${item.evidence_page}, ${evidenceMethodLabel(item.evidence_method)}` : ""}</p> : null}<div className="mt-4 flex flex-wrap items-center gap-3"><span className="text-sm font-semibold text-emerald-800">Confirmed by you ✓</span><button type="button" onClick={onRemove} className="min-h-10 text-sm font-semibold text-danger hover:underline">Remove qualification</button></div><div className="mt-4 grid gap-3 border-t border-border pt-4 md:grid-cols-2"><div className="flex items-end gap-2"><label className="flex-1 text-xs font-semibold text-muted">Years of experience<input type="number" min={0} max={60} step="0.1" value={years} onChange={(event) => onYearsChange(event.target.value)} placeholder="Not specified" className="mt-1 min-h-10 w-full border border-border bg-surface px-3 text-sm font-normal" /></label><button type="button" onClick={onSaveYears} className="min-h-10 border border-border px-3 text-sm font-semibold text-muted hover:border-accent hover:text-accent">Save</button></div><div className="flex items-end gap-2"><label className="flex-1 text-xs font-semibold text-muted">Choose a different translation<select value={correction} onChange={(event) => onCorrectionChange(event.target.value)} className="mt-1 min-h-10 w-full border border-border bg-surface px-3 text-sm font-normal"><option value="">Select a skill</option>{availableQualifications.filter((qualification) => qualification.id !== item.qualification_id).map((qualification) => <option key={qualification.id} value={qualification.id}>{qualification.name}</option>)}</select></label><button type="button" disabled={!correction} onClick={onCorrect} className="min-h-10 border border-border px-3 text-sm font-semibold text-muted hover:border-accent hover:text-accent disabled:opacity-50">Correct</button></div></div></li>;
+  return (
+    <li className="border border-border bg-surface-muted/40 p-4">
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
+        <div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Found in your CV</p><p className="mt-1 font-semibold text-foreground">{item.original_term ?? (item.source === "applicant_confirmed" ? "Added by you" : item.qualificationName)}</p></div>
+        <span className="hidden text-xl text-accent sm:block" aria-hidden="true">→</span>
+        <div><p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">Confirmed oil-and-gas translation</p><p className="mt-1 font-semibold text-foreground">{item.qualificationName}</p></div>
+      </div>
+      {item.evidence ? <p className="mt-3 border-l-2 border-border pl-3 text-sm leading-6 text-muted">“{item.evidence}”{item.evidence_page ? ` · Page ${item.evidence_page}, ${evidenceMethodLabel(item.evidence_method)}` : ""}</p> : null}
+      <div className="mt-4 flex flex-wrap items-center gap-3"><span className="text-sm font-semibold text-emerald-800">Confirmed by you ✓</span><button type="button" onClick={onRemove} className="min-h-10 text-sm font-semibold text-danger hover:underline">Remove qualification</button></div>
+      <div className="mt-4 grid gap-4 border-t border-border pt-4 md:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
+          <label className="min-w-0 flex-1 text-xs font-semibold text-muted">Years of experience<input type="number" min={0} max={60} step="0.1" value={years} onChange={(event) => onYearsChange(event.target.value)} placeholder="Not specified" className="mt-1 min-h-11 w-full border border-border bg-surface px-3 text-base font-normal sm:text-sm" /></label>
+          <button type="button" onClick={onSaveYears} className="min-h-11 w-full border border-border px-3 text-sm font-semibold text-muted hover:border-accent hover:text-accent sm:w-auto">Save years</button>
+        </div>
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
+          <label className="min-w-0 flex-1 text-xs font-semibold text-muted">Choose a different translation<select value={correction} onChange={(event) => onCorrectionChange(event.target.value)} className="mt-1 min-h-11 w-full min-w-0 border border-border bg-surface px-3 text-base font-normal sm:text-sm"><option value="">Select a skill</option>{availableQualifications.filter((qualification) => qualification.id !== item.qualification_id).map((qualification) => <option key={qualification.id} value={qualification.id}>{qualification.name}</option>)}</select></label>
+          <button type="button" disabled={!correction} onClick={onCorrect} className="min-h-11 w-full border border-border px-3 text-sm font-semibold text-muted hover:border-accent hover:text-accent disabled:opacity-50 sm:w-auto">Use skill</button>
+        </div>
+      </div>
+    </li>
+  );
 }
 
 function formatCategory(category: Tables<"qualifications">["category"]): string {
