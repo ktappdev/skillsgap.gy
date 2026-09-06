@@ -1,5 +1,5 @@
--- The demo pathway accepts one current CV per applicant. Preserve the newest
--- row for any existing demo account, then enforce that invariant going forward.
+-- The demo pathway accepts one current CV per applicant. Remove older duplicate
+-- rows from the development database, then enforce that invariant going forward.
 with ranked_resumes as (
   select
     id,
@@ -7,9 +7,8 @@ with ranked_resumes as (
   from public.resumes
   where deleted_at is null
 )
-update public.resumes resume
-set deleted_at = timezone('utc', now())
-from ranked_resumes ranked
+delete from public.resumes resume
+using ranked_resumes ranked
 where resume.id = ranked.id
   and ranked.row_number > 1;
 
