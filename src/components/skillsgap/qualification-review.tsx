@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 
 import {
   addApplicantQualification,
-  confirmExtractionFinding,
+  confirmExtractionFindings,
   correctApplicantQualification,
   rejectExtractionFinding,
   removeApplicantQualification,
   updateApplicantQualificationYears,
 } from "@/lib/skillsgap/actions";
+import type { MatchScoreGain } from "@/lib/skillsgap/actions";
 import type { ApplicantExtractionFindingView, ApplicantQualificationView } from "@/lib/skillsgap/queries";
 import type { Tables } from "@/lib/supabase/database.types";
 
@@ -31,13 +32,56 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
   const [findingChoices, setFindingChoices] = useState<Record<string, string>>(() => Object.fromEntries(initialFindings.map((finding) => [finding.id, ""])));
   const [selectedQualification, setSelectedQualification] = useState(availableQualifications[0]?.id ?? "");
   const [message, setMessage] = useState<string | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [matchGains, setMatchGains] = useState<MatchScoreGain[]>([]);
 
-  async function confirmFinding(finding: ApplicantExtractionFindingView, qualificationId: string) {
-    if (!qualificationId) return setMessage("Choose a skill first.");
-    const result = await confirmExtractionFinding(finding.id, qualificationId);
-    if (result.error) return setMessage(result.error);
-    setFindings((current) => current.filter((item) => item.id !== finding.id));
-    setMessage("Skill confirmed. Your role matches are being recalculated.");
+  async function confirmSelectedFindings() {
+    const selections = findings.flatMap((finding) => {
+      const qualificationId = findingChoices[finding.id];
+      return qualificationId ? [{ findingId: finding.id, qualificationId }] : [];
+    });
+    if (selections.length === 0) return setMessage("Choose at least one skill to confirm.");
+
+    setIsConfirming(true);
+    setMessage(null);
+    setMatchGains([]);
+    const result = await confirmExtractionFindings(selections);
+    setFindings((current) => current.filter((finding) => !result.confirmedFindingIds.includes(finding.id)));
+    setIsConfirming(false);
+    const confirmedItems = result.confirmedFindingIds.flatMap((findingId) => {
+      const finding = findings.find((item) => item.id === findingId);
+      const qualificationId = findingChoices[findingId];
+      const qualification = availableQualifications.find((item) => item.id === qualificationId);
+      if (!finding || !qualification) return [];
+      return [{
+        id: crypto.randomUUID(),
+        applicant_id: applicantId,
+        qualification_id: qualification.id,
+        qualificationName: qualification.name,
+        resume_id: finding.resume_id,
+        years_experience: finding.years_experience,
+        source: "applicant_confirmed" as const,
+        review_status: "confirmed" as const,
+        original_term: finding.original_term,
+        evidence: finding.evidence,
+        evidence_page: finding.evidence_page,
+        evidence_method: finding.evidence_method,
+        confidence: finding.confidence,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }];
+    });
+    setQualifications((current) => [
+      ...current,
+      ...confirmedItems.filter((item) => !current.some((existing) => existing.qualification_id === item.qualification_id)),
+    ]);
+    if (result.error) {
+      setMessage(result.error);
+      router.refresh();
+      return;
+    }
+    setMatchGains(result.gains);
+    setMessage(`${result.confirmedFindingIds.length} skill${result.confirmedFindingIds.length === 1 ? "" : "s"} confirmed.`);
     router.refresh();
   }
 
@@ -90,6 +134,7 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
   }
 
   const knownIds = new Set(qualifications.map((item) => item.qualification_id));
+  const selectedFindingCount = findings.filter((finding) => Boolean(findingChoices[finding.id])).length;
   return (
     <section id="skills-review" className="scroll-mt-6 rounded-lg border border-border bg-surface p-5" aria-labelledby="qualification-review-heading">
       <h2 id="qualification-review-heading" className="text-xl font-semibold tracking-tight text-foreground">Skills from your CV</h2>
@@ -97,7 +142,18 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
 
       {findings.length > 0 ? <section className="mt-5 space-y-4" aria-labelledby="pending-findings-heading">
         <div><h3 id="pending-findings-heading" className="text-sm font-semibold text-foreground">Review CV suggestions</h3><p className="mt-1 text-sm leading-6 text-muted">Choose the skill that best describes your experience, or dismiss it if it does not apply.</p></div>
-        {findings.map((finding) => <PendingFindingCard key={finding.id} finding={finding} availableQualifications={availableQualifications} selectedQualificationId={findingChoices[finding.id] ?? ""} onSelect={(qualificationId) => setFindingChoices((current) => ({ ...current, [finding.id]: qualificationId }))} onConfirm={(qualificationId) => { void confirmFinding(finding, qualificationId); }} onReject={() => { void rejectFinding(finding); }} />)}
+        {findings.map((finding) => <PendingFindingCard key={finding.id} finding={finding} availableQualifications={availableQualifications} selectedQualificationId={findingChoices[finding.id] ?? ""} onSelect={(qualificationId) => setFindingChoices((current) => ({ ...current, [finding.id]: qualificationId }))} onReject={() => { void rejectFinding(finding); }} />)}
+        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-lg border border-accent/30 bg-surface p-4 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-semibold text-foreground">{selectedFindingCount === 0 ? "Select the skills that describe you" : `${selectedFindingCount} skill${selectedFindingCount === 1 ? "" : "s"} ready to confirm`}</p>
+          <button type="button" disabled={selectedFindingCount === 0 || isConfirming} onClick={() => { void confirmSelectedFindings(); }} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">
+            {isConfirming ? "Calculating your matches…" : `Confirm selected${selectedFindingCount > 0 ? ` (${selectedFindingCount})` : ""}`}
+          </button>
+        </div>
+      </section> : null}
+
+      {matchGains.length > 0 ? <section className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4" aria-labelledby="match-gains-heading">
+        <h3 id="match-gains-heading" className="text-sm font-semibold text-emerald-900">Your matches just improved</h3>
+        <ul className="mt-2 space-y-1" role="list">{matchGains.map((gain) => <li key={gain.roleId} className="text-sm font-semibold text-emerald-800">+{gain.points}% to {gain.roleTitle}</li>)}</ul>
       </section> : null}
 
       {qualifications.length > 0 ? <section className="mt-6" aria-labelledby="confirmed-strengths-heading"><h3 id="confirmed-strengths-heading" className="text-sm font-semibold text-foreground">Confirmed strengths</h3><ul className="mt-3 space-y-4" role="list">{qualifications.map((item) => <ConfirmedQualificationCard key={item.id} item={item} years={years[item.id] ?? ""} correction={corrections[item.id] ?? ""} availableQualifications={availableQualifications} onYearsChange={(value) => setYears((current) => ({ ...current, [item.id]: value }))} onCorrectionChange={(value) => setCorrections((current) => ({ ...current, [item.id]: value }))} onSaveYears={() => { void saveYears(item); }} onCorrect={() => { void correct(item); }} onRemove={() => { void remove(item); }} />)}</ul></section> : <p className="mt-3 rounded-lg border border-dashed border-border p-4 text-sm text-muted">No confirmed strengths yet. Upload a CV, review its suggestions, or add one below.</p>}
@@ -123,10 +179,7 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
   );
 }
 
-function PendingFindingCard({ finding, availableQualifications, selectedQualificationId, onSelect, onConfirm, onReject }: { finding: ApplicantExtractionFindingView; availableQualifications: Tables<"qualifications">[]; selectedQualificationId: string; onSelect: (qualificationId: string) => void; onConfirm: (qualificationId: string) => void; onReject: () => void }) {
-  const selectedCandidate = finding.candidates.find((candidate) => candidate.qualification_id === selectedQualificationId);
-  const selectedQualificationName = selectedCandidate?.qualificationName
-    ?? availableQualifications.find((qualification) => qualification.id === selectedQualificationId)?.name;
+function PendingFindingCard({ finding, availableQualifications, selectedQualificationId, onSelect, onReject }: { finding: ApplicantExtractionFindingView; availableQualifications: Tables<"qualifications">[]; selectedQualificationId: string; onSelect: (qualificationId: string) => void; onReject: () => void }) {
   const alternativeQualifications = availableQualifications.filter((qualification) => !finding.candidates.some((candidate) => candidate.qualification_id === qualification.id));
 
   return (
@@ -171,11 +224,9 @@ function PendingFindingCard({ finding, availableQualifications, selectedQualific
         </label>
       </details>
 
-      <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-5 flex items-center justify-between gap-3">
         <button type="button" onClick={onReject} className="inline-flex min-h-11 items-center justify-center rounded-md border border-border px-4 text-sm font-semibold text-muted hover:border-danger hover:text-danger">This does not apply</button>
-        <button type="button" disabled={!selectedQualificationId} onClick={() => onConfirm(selectedQualificationId)} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">
-          {selectedQualificationName ? `Confirm ${selectedQualificationName}` : "Choose a skill to continue"}
-        </button>
+        {selectedQualificationId ? <span className="text-sm font-semibold text-accent">Ready to confirm ✓</span> : null}
       </div>
     </article>
   );

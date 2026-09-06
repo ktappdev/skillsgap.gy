@@ -16,6 +16,7 @@ const maxResumeBytes = 15 * 1024 * 1024;
 
 export type QueueResumeResult = { error?: string; resumeId?: string };
 export type ClearApplicantPathwayResult = { error?: string };
+export type MatchScoreGain = { roleId: string; roleTitle: string; points: number };
 
 export async function clearApplicantPathway(): Promise<ClearApplicantPathwayResult> {
   const { user } = await requireApplicant();
@@ -232,15 +233,80 @@ export async function confirmApplicantQualification(qualificationId: string): Pr
   return {};
 }
 
-export async function confirmExtractionFinding(findingId: string, qualificationId: string): Promise<{ error?: string }> {
-  const { supabase } = await requireApplicant();
-  const { error } = await supabase.rpc("confirm_extraction_finding", {
-    target_finding_id: findingId,
-    target_qualification_id: qualificationId,
-  });
-  if (error) return { error: getDatabaseErrorMessage(error, "We could not confirm that translation.") };
+export async function confirmExtractionFindings(
+  selections: Array<{ findingId: string; qualificationId: string }>,
+): Promise<{ confirmedFindingIds: string[]; error?: string; gains: MatchScoreGain[] }> {
+  const { supabase, user } = await requireApplicant();
+  if (selections.length === 0) return { confirmedFindingIds: [], error: "Choose at least one skill to confirm.", gains: [] };
+
+  const [qualificationResult, experienceResult, roleResult, companyResult] = await Promise.all([
+    supabase.from("applicant_qualifications").select("qualification_id,years_experience").eq("applicant_id", user.id).eq("review_status", "confirmed"),
+    supabase.from("applicant_experience").select("years").eq("applicant_id", user.id),
+    supabase.from("job_roles").select("id,title,company_id").eq("status", "active"),
+    supabase.from("companies").select("id").eq("status", "approved"),
+  ]);
+  const approvedCompanyIds = new Set((companyResult.data ?? []).map((company) => company.id));
+  const roles = (roleResult.data ?? []).filter((role) => approvedCompanyIds.has(role.company_id));
+  const requirementResult = roles.length > 0
+    ? await supabase.from("job_requirements").select("job_role_id,qualification_id,kind,minimum_years,weight").in("job_role_id", roles.map((role) => role.id))
+    : { data: [], error: null };
+  const totalExperienceYears = (experienceResult.data ?? []).reduce((total, item) => total + item.years, 0);
+  const confirmedFindingIds: string[] = [];
+
+  for (const selection of selections) {
+    const { error } = await supabase.rpc("confirm_extraction_finding", {
+      target_finding_id: selection.findingId,
+      target_qualification_id: selection.qualificationId,
+    });
+    if (error) {
+      revalidatePath("/dashboard");
+      return {
+        confirmedFindingIds,
+        error: getDatabaseErrorMessage(error, "We could not confirm every selected skill."),
+        gains: [],
+      };
+    }
+    confirmedFindingIds.push(selection.findingId);
+  }
+
+  const qualificationsAfterResult = await supabase
+    .from("applicant_qualifications")
+    .select("qualification_id,years_experience")
+    .eq("applicant_id", user.id)
+    .eq("review_status", "confirmed");
+  const scoreForRole = (roleId: string, qualifications: Array<{ qualification_id: string; years_experience: number | null }>) => {
+    const roleRequirements = (requirementResult.data ?? []).filter((requirement) => requirement.job_role_id === roleId);
+    const totalWeight = roleRequirements.reduce((total, requirement) => total + requirement.weight, 0);
+    if (totalWeight === 0) return 0;
+    const yearsByQualification = new Map(qualifications.map((qualification) => [qualification.qualification_id, qualification.years_experience ?? 0]));
+    const satisfiedWeight = roleRequirements.reduce((total, requirement) => {
+      const qualificationYears = yearsByQualification.get(requirement.qualification_id);
+      const hasEnoughExperience = requirement.minimum_years === null
+        || (qualificationYears !== undefined && qualificationYears >= requirement.minimum_years)
+        || (requirement.kind === "experience" && totalExperienceYears >= requirement.minimum_years);
+      return qualificationYears !== undefined && hasEnoughExperience ? total + requirement.weight : total;
+    }, 0);
+    return Math.round((satisfiedWeight * 100) / totalWeight);
+  };
+  const canCalculateGains = !qualificationResult.error
+    && !experienceResult.error
+    && !roleResult.error
+    && !companyResult.error
+    && !requirementResult.error
+    && !qualificationsAfterResult.error;
+  const gains = canCalculateGains
+    ? roles.flatMap((role) => {
+      const points = scoreForRole(role.id, qualificationsAfterResult.data ?? []) - scoreForRole(role.id, qualificationResult.data ?? []);
+      return points > 0 ? [{ roleId: role.id, roleTitle: role.title, points }] : [];
+    }).sort((first, second) => second.points - first.points || first.roleTitle.localeCompare(second.roleTitle))
+    : [];
+
   revalidatePath("/dashboard");
-  return {};
+  revalidatePath("/matches/[matchId]", "page");
+  return {
+    confirmedFindingIds,
+    gains,
+  };
 }
 
 export async function rejectExtractionFinding(findingId: string): Promise<{ error?: string }> {

@@ -50,7 +50,7 @@ export function RealtimeSync({ userId, isProcessing }: RealtimeSyncProps) {
   }, [isProcessing, router]);
 
   const isLive = connectionState === "live";
-  const label = isLive ? "Updating automatically" : isProcessing ? "Checking for results" : "Updates paused";
+  const label = isLive ? "Updating automatically" : connectionState === "connecting" ? "Connecting updates" : isProcessing ? "Checking for results" : "Updates paused";
 
   return (
     <span className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted">

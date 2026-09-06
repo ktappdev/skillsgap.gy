@@ -57,7 +57,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       <header className="border-b border-border pb-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Your career pathway</p>
-          {isProcessing ? <RealtimeSync userId={user.id} isProcessing /> : null}
+          <RealtimeSync userId={user.id} isProcessing={isProcessing} />
         </div>
         <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-foreground sm:text-4xl">Good to see you, {name}.</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">We start with what you can already do, then focus only on the steps that move you closer.</p>
@@ -75,8 +75,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             processingStatus={progress.processingStatus}
             processingError={progress.processingError}
           />
-          {!isProcessing ? <SavedCareerRoute plan={progress.pathwayPlan} /> : null}
-          {showProfileResults ? <QualificationReview key={[...progress.findings.map((item) => `${item.id}-${item.updated_at}`), ...progress.qualifications.map((item) => `${item.id}-${item.updated_at}`)].join(",")} applicantId={user.id} initialFindings={progress.findings} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} unmappedTerms={progress.unmappedTerms} /> : null}
+          {!isProcessing && progress.pathwayPlan ? <SavedCareerRoute plan={progress.pathwayPlan} /> : null}
+          {showProfileResults ? <QualificationReview applicantId={user.id} initialFindings={progress.findings} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} unmappedTerms={progress.unmappedTerms} /> : null}
           {showProfileResults ? <ExperienceReview key={progress.experience.map((item) => `${item.id}-${item.updated_at}`).join(",")} initialExperience={progress.experience} /> : null}
           {showProfileResults ? <section aria-labelledby="matches-heading">
             <div className="flex flex-wrap items-end justify-between gap-3">
@@ -89,6 +89,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             <p className="mt-3 text-sm leading-6 text-muted">These routes are ranked from your confirmed profile. You do not need to know the job title first.</p>
             <div className="mt-5 grid gap-4 xl:grid-cols-2">{matches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
           </section> : null}
+          {!isProcessing && !progress.pathwayPlan ? <SavedCareerRoute plan={null} /> : null}
         </div>
 
         {!isProcessing ? <aside className="space-y-6">
