@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 type PublicContentHeaderProps = {
-  active?: "positions" | "training";
+  active?: "positions" | "training" | "faq";
 };
 
 const idleLink = "min-h-11 inline-flex items-center text-foreground hover:text-accent";
@@ -37,6 +37,13 @@ export function PublicContentHeader({ active }: PublicContentHeaderProps) {
           Training
         </Link>
         <Link href="/i-want-to-become" className={idleLink}>Build a route</Link>
+        <Link
+          href="/faq"
+          className={active === "faq" ? activeLink : idleLink}
+          aria-current={active === "faq" ? "page" : undefined}
+        >
+          FAQ
+        </Link>
         <Link href="/login" className={`${idleLink} underline underline-offset-4`}>Sign in</Link>
       </nav>
     </header>

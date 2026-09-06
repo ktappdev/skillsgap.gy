@@ -53,12 +53,14 @@ export default function Home() {
               className="h-8 w-auto object-contain"
             />
           </Link>
-          <Link
-            href="/login"
-            className="inline-flex min-h-11 items-center text-sm font-semibold text-foreground underline-offset-4 hover:text-accent hover:underline"
-          >
-            Sign in
-          </Link>
+          <nav className="flex items-center gap-4 text-sm font-semibold" aria-label="Site navigation">
+            <Link href="/faq" className="inline-flex min-h-11 items-center text-foreground underline-offset-4 hover:text-accent hover:underline">
+              FAQ
+            </Link>
+            <Link href="/login" className="inline-flex min-h-11 items-center text-foreground underline-offset-4 hover:text-accent hover:underline">
+              Sign in
+            </Link>
+          </nav>
         </header>
 
         <section className="flex flex-1 flex-col justify-center py-12 lg:py-16">
@@ -165,7 +167,10 @@ export default function Home() {
 
         <footer className="flex flex-col gap-2 py-6 text-sm text-muted sm:flex-row sm:justify-between">
           <span>SkillsGap.gy</span>
-          <span>Skills → opportunities → training</span>
+          <span className="flex flex-wrap gap-x-4 gap-y-2">
+            <Link href="/faq" className="underline-offset-4 hover:text-accent hover:underline">Questions and answers</Link>
+            <span>Skills → opportunities → training</span>
+          </span>
         </footer>
       </div>
     </main>
