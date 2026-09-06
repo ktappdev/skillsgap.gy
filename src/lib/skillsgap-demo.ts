@@ -19,6 +19,15 @@ export const demoMatches: Match[] = [
   { id: "logistics-coordinator", isDemo: true, title: "Warehouse and Logistics Assistant", company: "Essequibo Logistics Partners", score: 52, threshold: 65, eligible: false, strengths: ["Vehicle scheduling", "Team coordination"], gaps: [{ name: "Forklift operations", type: "Technical skill", training: "Board of Industrial Training · Georgetown", trainingUrl: "https://srms.bit.gov.gy/" }] },
 ];
 
+export function shouldUseDemoMatches({ isDemoApplicant, matchCount, hasResume }: { isDemoApplicant: boolean; matchCount: number; hasResume: boolean }): boolean {
+  return isDemoApplicant && matchCount === 0 && !hasResume;
+}
+
+export function getDemoMatch(matchId: string, isDemoApplicant: boolean): Match | null {
+  if (!isDemoApplicant) return null;
+  return demoMatches.find((match) => match.id === matchId) ?? null;
+}
+
 export const milestones = [
   { title: "CV understood", detail: "We found 6 skills and 4 years of mechanical experience.", state: "complete" },
   { title: "Strengths recognized", detail: "Your maintenance experience is already relevant to 3 roles.", state: "complete" },

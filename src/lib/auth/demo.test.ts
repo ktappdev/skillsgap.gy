@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { DEMO_REDIRECTS, getDemoCredentials, parseDemoRole } from "@/lib/auth/demo";
+import { DEMO_REDIRECTS, getDemoCredentials, isDemoApplicantMetadata, parseDemoRole } from "@/lib/auth/demo";
+import { getDemoMatch, shouldUseDemoMatches } from "@/lib/skillsgap-demo";
 
 const originalEnv = { ...process.env };
 
@@ -66,5 +67,29 @@ describe("DEMO_REDIRECTS", () => {
     expect(DEMO_REDIRECTS.owner).toBe("/company");
     expect(DEMO_REDIRECTS.recruiter).toBe("/company");
     expect(DEMO_REDIRECTS.admin).toBe("/admin");
+  });
+});
+
+describe("demo applicant fallback", () => {
+  it("recognizes only the provisioned demo applicant", () => {
+    expect(isDemoApplicantMetadata({ demo: true, role: "applicant" })).toBe(true);
+    expect(isDemoApplicantMetadata({ demo: true, role: "owner" })).toBe(false);
+    expect(isDemoApplicantMetadata({ full_name: "New applicant" })).toBe(false);
+    expect(isDemoApplicantMetadata(null)).toBe(false);
+  });
+
+  it("does not show demo matches to a brand-new regular account", () => {
+    expect(shouldUseDemoMatches({ isDemoApplicant: false, matchCount: 0, hasResume: false })).toBe(false);
+  });
+
+  it("keeps the fallback available for the prepared demo applicant only", () => {
+    expect(shouldUseDemoMatches({ isDemoApplicant: true, matchCount: 0, hasResume: false })).toBe(true);
+    expect(shouldUseDemoMatches({ isDemoApplicant: true, matchCount: 1, hasResume: false })).toBe(false);
+    expect(shouldUseDemoMatches({ isDemoApplicant: true, matchCount: 0, hasResume: true })).toBe(false);
+  });
+
+  it("does not expose a demo route to a regular applicant", () => {
+    expect(getDemoMatch("offshore-mechanical-technician", false)).toBeNull();
+    expect(getDemoMatch("offshore-mechanical-technician", true)?.isDemo).toBe(true);
   });
 });

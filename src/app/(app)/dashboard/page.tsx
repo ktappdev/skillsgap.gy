@@ -7,16 +7,21 @@ import { MatchCard } from "@/components/skillsgap/match-card";
 import { MilestonePath, StatusPill } from "@/components/skillsgap/milestone-path";
 import { QualificationReview } from "@/components/skillsgap/qualification-review";
 import { RealtimeSync } from "@/components/dashboard/realtime-sync";
+import { isDemoApplicantMetadata } from "@/lib/auth/demo";
 import { requireApplicant } from "@/lib/auth/queries";
 import { getApplicantProgress } from "@/lib/skillsgap/queries";
-import { demoMatches } from "@/lib/skillsgap-demo";
+import { demoMatches, shouldUseDemoMatches } from "@/lib/skillsgap-demo";
 
 export const metadata: Metadata = { title: "My pathway" };
 
 export default async function DashboardPage() {
   const { supabase, user } = await requireApplicant();
   const progress = await getApplicantProgress(supabase, user.id);
-  const usingDemoMatches = progress.matches.length === 0 && !progress.latestResume;
+  const usingDemoMatches = shouldUseDemoMatches({
+    isDemoApplicant: isDemoApplicantMetadata(user.user_metadata),
+    matchCount: progress.matches.length,
+    hasResume: Boolean(progress.latestResume),
+  });
   const matches = progress.matches.length > 0 ? progress.matches : usingDemoMatches ? demoMatches : [];
   const roleCount = usingDemoMatches ? matches.length : progress.visibleRoleCount;
   const roleLabel = usingDemoMatches
@@ -68,11 +73,11 @@ export default async function DashboardPage() {
             <p className="mt-2 text-sm leading-6 text-muted">Each confirmed skill gives us a more accurate route for you.</p>
             <div className="mt-6"><MilestonePath demo={usingDemoMatches} resumeStatus={progress.latestResume?.status} processingStatus={progress.processingStatus} hasProfile={progress.qualifications.length > 0 || progress.experience.length > 0} hasMatches={progress.matches.length > 0} hasEligibleMatch={progress.matches.some((match) => match.eligible)} /></div>
           </section>
-          <section className="border border-border bg-surface-muted p-5">
+          {usingDemoMatches ? <section className="border border-border bg-surface-muted p-5">
             <h2 className="text-lg font-semibold tracking-tight">Already completed training?</h2>
             <p className="mt-2 text-sm leading-6 text-muted">Add a certification or update your experience so your matches can be recalculated.</p>
-            <Link href="/matches/offshore-mechanical-technician" className="mt-4 inline-flex text-sm font-semibold text-accent underline-offset-4 hover:underline">Review your profile <span aria-hidden="true">→</span></Link>
-          </section>
+            <Link href="/matches/offshore-mechanical-technician" className="mt-4 inline-flex text-sm font-semibold text-accent underline-offset-4 hover:underline">Review the demo pathway <span aria-hidden="true">→</span></Link>
+          </section> : null}
         </aside>
       </div>
     </div>

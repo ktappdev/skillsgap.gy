@@ -47,6 +47,19 @@ export function parseDemoRole(value: string | null | undefined): DemoRole | null
   return DEMO_ROLES.find((role) => role === value) ?? null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Identify the applicant account provisioned for the curated fallback demo.
+ * Regular signups do not receive this metadata and must never see demo matches.
+ */
+export function isDemoApplicantMetadata(metadata: unknown): boolean {
+  if (!isRecord(metadata)) return false;
+  return metadata.demo === true && metadata.role === "applicant";
+}
+
 /**
  * Look up the demo credentials for a role from the server environment.
  * Returns null when the role is unknown or its credentials are not configured,
