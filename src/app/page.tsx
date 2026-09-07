@@ -23,7 +23,7 @@ function Tape({ position }: { position: "top" | "bottom" }) {
   return (
     <div
       aria-hidden="true"
-      className={`absolute inset-x-0 z-10 overflow-hidden border-y-2 border-foreground bg-accent/70 py-4 ${position === "top" ? "top-12 -rotate-2" : "bottom-12 rotate-2"}`}
+      className={`absolute inset-x-0 z-10 overflow-hidden border-y-2 border-foreground bg-accent/70 py-4 ${position === "top" ? "top-24 -rotate-2" : "bottom-12 rotate-2"}`}
     >
       <div className="flex min-w-max -translate-x-6 items-center text-xs font-black uppercase tracking-[0.2em] text-white sm:text-sm">
         {Array.from({ length: 8 }, (_, index) => (
