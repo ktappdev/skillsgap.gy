@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 const productSteps = [
   {
@@ -53,10 +54,15 @@ export default function Home() {
               className="h-8 w-auto object-contain"
             />
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-accent">
-            <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
-            In development
-          </span>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Link href="/faq" className="inline-flex min-h-11 items-center text-sm font-semibold text-foreground underline-offset-4 hover:text-accent hover:underline">
+              FAQ
+            </Link>
+            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-accent">
+              <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
+              In development
+            </span>
+          </div>
         </header>
 
         <section className="flex flex-1 items-center py-20 sm:py-24 lg:py-28" aria-labelledby="coming-soon-title">

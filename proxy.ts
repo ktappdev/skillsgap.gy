@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+const livePaths = new Set(["/", "/faq"]);
+
 export function proxy(request: NextRequest) {
-  if (request.nextUrl.pathname !== "/") {
+  if (!livePaths.has(request.nextUrl.pathname)) {
     return NextResponse.redirect(new URL("/", request.url), 302);
   }
 
