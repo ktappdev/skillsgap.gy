@@ -15,23 +15,11 @@ type MatchRecalculationContextValue = {
 
 const MatchRecalculationContext = createContext<MatchRecalculationContextValue | null>(null);
 
-function moveToMatches() {
-  const target = document.getElementById("matches-area");
-  if (!target) return;
-  const prefersReducedMotion = typeof window.matchMedia === "function"
-    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (typeof target.scrollIntoView === "function") {
-    target.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
-  }
-  target.focus({ preventScroll: true });
-}
-
 export function MatchRecalculationProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<MatchRecalculationState>({ status: "idle" });
 
   function begin() {
     setState({ status: "loading" });
-    moveToMatches();
   }
 
   function fail(message: string) {

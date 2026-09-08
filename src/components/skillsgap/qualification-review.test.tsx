@@ -80,8 +80,20 @@ describe("QualificationReview", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm selected (1)" }));
 
     await waitFor(() => expect(confirmExtractionFindings).toHaveBeenCalledWith([{ findingId: finding.id, qualificationId: qualification.id }]));
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    expect(scrollIntoView).not.toHaveBeenCalled();
     expect(await screen.findByText("+10% to Process Technician")).not.toBeNull();
     expect(screen.queryByText("No match")).toBeNull();
   });
+  it("requires an explicit choice and keeps failed suggestions available to retry", async () => {
+    vi.mocked(confirmExtractionFindings).mockRejectedValue(new Error("Network unavailable"));
+    render(<QualificationReview applicantId="applicant-1" initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />);
+
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Confirm selected" }).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("radio", { name: /Industrial Safety/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm selected (1)" }));
+    expect(await screen.findByText("We could not confirm those skills. Please try again.")).not.toBeNull();
+    expect(screen.getByRole("radio", { name: /Industrial Safety/i })).not.toBeNull();
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Confirm selected (1)" }).disabled).toBe(false);
+  });
+
 });

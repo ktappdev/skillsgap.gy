@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/supabase/database.types";
 
 const fileLimit = 15 * 1024 * 1024;
-type UploadStatus = "idle" | "uploading" | "queued" | "ready" | "error";
+type UploadStatus = "idle" | "uploading" | "waiting" | "queued" | "ready" | "error";
 
 type CvUploadProps = {
   userId: string;
@@ -69,7 +69,7 @@ export function CvUpload({ userId, hasUploadedCv, resumeStatus, processingStatus
         return;
       }
 
-      setLocalStatus("queued");
+      setLocalStatus("waiting");
       setHasCv(true);
       setMessage(null);
       router.refresh();
@@ -83,7 +83,7 @@ export function CvUpload({ userId, hasUploadedCv, resumeStatus, processingStatus
             .maybeSingle();
           if (!lookupError && registeredResume) {
             setHasCv(true);
-            setLocalStatus("queued");
+            setLocalStatus("waiting");
             setMessage(null);
             router.refresh();
             return;
@@ -132,7 +132,7 @@ export function CvUpload({ userId, hasUploadedCv, resumeStatus, processingStatus
   const showFilePicker = !hasCv && (status === "idle" || status === "error");
 
   return (
-    <section className={`border bg-surface p-5 shadow-sm sm:p-6 ${status === "queued" || status === "uploading" ? "border-accent" : "border-border"}`} aria-labelledby="cv-upload-heading">
+    <section className={`border bg-surface p-5 shadow-sm sm:p-6 ${(status === "queued" || status === "waiting") || status === "uploading" ? "border-accent" : "border-border"}`} aria-labelledby="cv-upload-heading">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Your CV</p>
@@ -165,8 +165,8 @@ export function CvUpload({ userId, hasUploadedCv, resumeStatus, processingStatus
         <span className="mt-1 text-sm text-muted">PDF only · Maximum 15 MB · Private to your account</span>
       </button> : null}
 
-      {status === "uploading" || status === "queued" ? <div className="mt-5 flex items-start gap-3 rounded-md bg-teal-50 p-4" role="status" aria-live="polite">
-        <span className="mt-0.5 size-5 shrink-0 animate-spin rounded-full border-2 border-accent/25 border-t-accent" aria-hidden="true" />
+      {status === "uploading" || (status === "queued" || status === "waiting") ? <div className="mt-5 flex items-start gap-3 rounded-md bg-teal-50 p-4" role="status" aria-live="polite">
+        <span className="mt-0.5 size-5 shrink-0 animate-spin rounded-full border-2 border-accent/25 border-t-accent motion-reduce:animate-none" aria-hidden="true" />
         <div><p className="font-semibold text-foreground">{status === "uploading" ? "Keep this page open while the upload finishes." : "No action needed right now."}</p><p className="mt-1 text-sm leading-6 text-muted">{status === "uploading" ? "Reading starts automatically after the file is received." : "This page updates automatically. You can also leave and come back later."}</p></div>
       </div> : null}
 
@@ -181,13 +181,13 @@ export function CvUpload({ userId, hasUploadedCv, resumeStatus, processingStatus
 }
 
 function Status({ status }: { status: UploadStatus }) {
-  const label = status === "uploading" ? "Uploading" : status === "queued" ? "Reading" : status === "ready" ? "Ready to review" : status === "error" ? "Needs attention" : "Not uploaded";
-  const tone = status === "error" ? "text-danger" : status === "queued" || status === "ready" ? "text-emerald-800" : "text-muted";
+  const label = status === "waiting" ? "Waiting to scan" : status === "uploading" ? "Uploading" : status === "queued" ? "Reading" : status === "ready" ? "Ready to review" : status === "error" ? "Needs attention" : "Not uploaded";
+  const tone = status === "error" ? "text-danger" : (status === "queued" || status === "waiting") || status === "ready" ? "text-emerald-800" : "text-muted";
   return <span className={`inline-flex w-fit rounded-full bg-surface-muted px-2.5 py-1 text-xs font-semibold ${tone}`}>{label}</span>;
 }
 
 function UploadSteps({ status, hasCv }: { status: UploadStatus; hasCv: boolean }) {
-  const currentStep = status === "ready" ? 3 : status === "uploading" || status === "queued" || (status === "error" && hasCv) ? 2 : 1;
+  const currentStep = status === "ready" ? 3 : (status === "queued" || status === "waiting") || (status === "error" && hasCv) ? 2 : 1;
   const steps = ["Upload", "We read it", "You confirm"];
 
   return <ol className="mt-5 grid grid-cols-3 gap-2" aria-label={`CV progress: step ${currentStep} of 3`}>
@@ -201,6 +201,7 @@ function UploadSteps({ status, hasCv }: { status: UploadStatus; hasCv: boolean }
 }
 
 function getStatusHeading(status: UploadStatus) {
+  if (status === "waiting") return "Your CV is waiting to be scanned";
   if (status === "uploading") return "Uploading your CV";
   if (status === "queued") return "We’re reading your CV";
   if (status === "ready") return "Your CV is ready";
@@ -209,6 +210,7 @@ function getStatusHeading(status: UploadStatus) {
 }
 
 function getStatusDescription(status: UploadStatus) {
+  if (status === "waiting") return "Your upload is complete. Scanning starts automatically when processing is available.";
   if (status === "uploading") return "First we securely receive the PDF. Reading begins automatically next.";
   if (status === "queued") return "We’re finding your skills and work history. When reading finishes, your next step is to confirm what we found.";
   if (status === "ready") return "Reading is complete. Review the suggested skills below before they shape your job matches.";
@@ -224,11 +226,12 @@ function getServerUploadStatus(
   if (!hasUploadedCv) return "idle";
   if (resumeStatus === "failed" || processingStatus === "failed") return "error";
   if (resumeStatus === "processed" || processingStatus === "completed") return "ready";
-  return "queued";
+  return processingStatus === "processing" || resumeStatus === "processing" ? "queued" : "waiting";
 }
 
 function getVisibleUploadStatus(serverStatus: UploadStatus, localStatus: UploadStatus | null): UploadStatus {
   if (localStatus === "uploading") return localStatus;
   if (serverStatus === "ready" || serverStatus === "error") return serverStatus;
+  if (serverStatus === "queued" || serverStatus === "waiting") return serverStatus;
   return localStatus ?? serverStatus;
 }
