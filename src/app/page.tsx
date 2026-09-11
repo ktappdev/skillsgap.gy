@@ -36,6 +36,24 @@ function Tape({ position }: { position: "top" | "bottom" }) {
   );
 }
 
+function SecondPlaceTrophy() {
+  return (
+    <div className="mx-auto max-w-3xl text-center">
+      <div className="relative mx-auto flex items-center justify-center">
+        <span className="grid size-40 place-items-center rounded-full border-8 border-yellow-400/60 bg-gradient-to-b from-yellow-300 to-amber-500 text-7xl shadow-lg shadow-amber-900/20 sm:size-48 sm:text-8xl" aria-hidden="true">
+          🥈
+        </span>
+        <span className="absolute -top-2 -right-2 grid size-10 place-items-center rounded-full border-4 border-yellow-400/60 bg-gradient-to-b from-yellow-300 to-amber-500 text-2xl shadow-md" aria-hidden="true">
+          ✦
+        </span>
+        <span className="absolute -bottom-3 -left-3 -z-10 grid size-16 place-items-center rounded-full border-4 border-yellow-400/60 bg-gradient-to-b from-yellow-300 to-amber-500 text-2xl shadow-md" aria-hidden="true">
+          ✦
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-background">
@@ -72,14 +90,13 @@ export default function Home() {
                 <span aria-hidden="true" className="text-base leading-none">⚒</span>
                 Under construction
               </div>
-              <div className="mt-6 inline-flex items-center gap-3 border border-accent bg-accent px-3 py-2 text-white sm:px-4 sm:py-3">
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white text-sm font-black text-accent">2nd</span>
-                <span>
-                  <span className="block text-xs font-bold uppercase tracking-[0.16em]">Second place</span>
-                  <span className="mt-1 block text-sm font-semibold">Innovation Challenge 2026 · Guyana</span>
-                </span>
+              <div className="mt-6">
+                <SecondPlaceTrophy />
+                <p className="mt-6 text-center text-sm font-bold uppercase tracking-[0.2em] text-foreground">
+                  Innovation Challenge 2026 · Guyana
+                </p>
               </div>
-              <h1 id="coming-soon-title" className="mt-6 max-w-3xl text-5xl font-semibold leading-[0.98] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+              <h1 id="coming-soon-title" className="mt-8 max-w-3xl text-5xl font-semibold leading-[0.98] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
                 A better way to move from skills to opportunity is on the way.
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-muted sm:text-xl">
@@ -89,9 +106,9 @@ export default function Home() {
                 training to close the gap.
               </p>
               <p className="mt-6 max-w-xl border-l-2 border-accent pl-4 text-sm font-semibold leading-6 text-foreground">
-                After earning second place, we are taking a pause to build the
-                next chapter properly. SkillsGap.gy is in development and
-                coming back bigger and better.
+                We took second place and are now rebuilding the next chapter
+                properly. SkillsGap.gy is under construction — coming back bigger
+                and better.
               </p>
             </div>
 
@@ -100,7 +117,8 @@ export default function Home() {
                 <div className="flex items-start justify-between gap-6 border-b border-border pb-5">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">What we are building</p>
-                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">The next step starts here.</h2>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">What we are building</h2>
+                  <p className="mt-1 text-sm text-muted">Recognition first, then the real work.</p>
                   </div>
                   <span className="grid size-12 shrink-0 place-items-center rounded-full bg-surface-muted text-2xl" aria-hidden="true">🦺</span>
                 </div>
