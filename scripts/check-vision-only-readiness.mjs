@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Verify the private Qwen vision gate before a live CV rehearsal.
+ * Verify the configured OpenAI-compatible vision gate before a live CV rehearsal.
  *
  * Usage:
  *   node --env-file=.env.local scripts/check-vision-only-readiness.mjs
@@ -17,19 +17,19 @@ function assert(condition, message) {
 }
 
 function endpoint(path) {
-  return `${required("VLLM_URL").replace(/\/$/, "")}/${path}`;
+  return `${required("LLM_BASE_URL").replace(/\/$/, "")}/${path}`;
 }
 
-const apiKey = required("VLLM_API_KEY");
-const model = required("VLLM_MODEL");
-const headers = { Authorization: `Bearer ${apiKey}` };
+const apiKey = process.env.LLM_API_KEY?.trim();
+const model = required("LLM_MODEL");
+const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
 const requestOptions = { headers, signal: AbortSignal.timeout(60_000) };
 
 const modelsResponse = await fetch(endpoint("models"), requestOptions);
-assert(modelsResponse.ok, `Qwen model discovery failed with HTTP ${modelsResponse.status}.`);
+assert(modelsResponse.ok, `LLM model discovery failed with HTTP ${modelsResponse.status}.`);
 const modelsPayload = await modelsResponse.json();
 const modelIds = Array.isArray(modelsPayload.data) ? modelsPayload.data.map((entry) => entry?.id) : [];
-assert(modelIds.includes(model), `Configured VLLM_MODEL was not served: ${model}.`);
+assert(modelIds.includes(model), `Configured LLM_MODEL was not served: ${model}.`);
 
 const image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 const visionResponse = await fetch(endpoint("chat/completions"), {
@@ -62,17 +62,17 @@ const visionResponse = await fetch(endpoint("chat/completions"), {
     },
   }),
 });
-assert(visionResponse.ok, `Qwen vision gate failed with HTTP ${visionResponse.status}.`);
+assert(visionResponse.ok, `LLM vision gate failed with HTTP ${visionResponse.status}.`);
 const visionPayload = await visionResponse.json();
 const content = visionPayload.choices?.[0]?.message?.content;
-assert(typeof content === "string", "Qwen vision gate returned no structured content.");
+assert(typeof content === "string", "LLM vision gate returned no structured content.");
 let result;
 try {
   result = JSON.parse(content);
 } catch {
-  throw new Error("Qwen vision gate returned malformed JSON.");
+  throw new Error("LLM vision gate returned malformed JSON.");
 }
-assert(result?.ok === true, "Qwen vision gate did not return ok=true.");
+assert(result?.ok === true, "LLM vision gate did not return ok=true.");
 
 const processorUrl = process.env.PROCESSOR_URL?.trim().replace(/\/$/, "");
 if (processorUrl) {
@@ -80,4 +80,4 @@ if (processorUrl) {
   assert(processorResponse.ok, `Go processor health check failed with HTTP ${processorResponse.status}.`);
 }
 
-console.log(`Vision-only readiness passed for ${model}.`);
+console.log(`OpenAI-compatible vision readiness passed for ${model}.`);

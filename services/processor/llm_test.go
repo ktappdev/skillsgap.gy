@@ -78,6 +78,7 @@ func TestVisionExtractionUsesPrivateDataURLAndStrictSchema(t *testing.T) {
 			t.Fatal("missing model authorization")
 		}
 		var payload struct {
+			Model    string `json:"model"`
 			Messages []struct {
 				Content json.RawMessage `json:"content"`
 			} `json:"messages"`
@@ -88,7 +89,7 @@ func TestVisionExtractionUsesPrivateDataURLAndStrictSchema(t *testing.T) {
 		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
 			t.Fatalf("decode request: %v", err)
 		}
-		if payload.ResponseFormat.Type != "json_schema" || len(payload.Messages) != 2 {
+		if request.URL.Path != "/chat/completions" || payload.Model != "test-model" || payload.ResponseFormat.Type != "json_schema" || len(payload.Messages) != 2 {
 			t.Fatalf("payload = %#v", payload)
 		}
 		var instructions string
@@ -107,7 +108,7 @@ func TestVisionExtractionUsesPrivateDataURLAndStrictSchema(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newLLMClient(config{vllmURL: server.URL, vllmAPIKey: "secret", modelName: "qwen"})
+	client := newLLMClient(config{llmBaseURL: server.URL, llmAPIKey: "secret", llmModel: "test-model"})
 	_, err := client.extractWithVision(context.Background(), []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("image")}}, testTaxonomy())
 	if err != nil {
 		t.Fatalf("extract vision: %v", err)
@@ -121,7 +122,7 @@ func TestVisionExtractionRejectsNonVisionEvidence(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newLLMClient(config{vllmURL: server.URL, vllmAPIKey: "secret", modelName: "qwen"})
+	client := newLLMClient(config{llmBaseURL: server.URL, llmAPIKey: "secret", llmModel: "test-model"})
 	_, err := client.extractWithVision(context.Background(), []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("image")}}, testTaxonomy())
 	if err == nil {
 		t.Fatal("expected non-vision evidence to be rejected")
@@ -135,10 +136,27 @@ func TestVisionExtractionRejectsOutOfRangeEvidencePage(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newLLMClient(config{vllmURL: server.URL, vllmAPIKey: "secret", modelName: "qwen"})
+	client := newLLMClient(config{llmBaseURL: server.URL, llmAPIKey: "secret", llmModel: "test-model"})
 	_, err := client.extractWithVision(context.Background(), []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("image")}}, testTaxonomy())
 	if err == nil {
 		t.Fatal("expected out-of-range evidence page to be rejected")
+	}
+}
+
+func TestVisionExtractionWorksWithoutAPIKeyForLocalEndpoint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if value := request.Header.Get("Authorization"); value != "" {
+			t.Fatalf("unexpected model authorization: %q", value)
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(writer).Encode(map[string]any{"choices": []map[string]any{{"message": map[string]string{"content": `{"findings":[],"employment":[],"unmapped_terms":[]}`}}}})
+	}))
+	defer server.Close()
+
+	client := newLLMClient(config{llmBaseURL: server.URL, llmModel: "local-model"})
+	_, err := client.extractWithVision(context.Background(), []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("image")}}, testTaxonomy())
+	if err != nil {
+		t.Fatalf("extract vision without API key: %v", err)
 	}
 }
 

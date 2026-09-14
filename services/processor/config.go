@@ -14,9 +14,9 @@ type config struct {
 	supabaseServiceKey string
 	ocrURL             string
 	ocrSecret          string
-	vllmURL            string
-	vllmAPIKey         string
-	modelName          string
+	llmBaseURL         string
+	llmAPIKey          string
+	llmModel           string
 	scratchDirectory   string
 	pollInterval       time.Duration
 	csecSlipSecret     string
@@ -30,9 +30,9 @@ func loadConfig() (config, error) {
 		supabaseServiceKey: strings.TrimSpace(os.Getenv("SUPABASE_SERVICE_ROLE_KEY")),
 		ocrURL:             envOrDefault("OCR_URL", "http://127.0.0.1:8090"),
 		ocrSecret:          strings.TrimSpace(os.Getenv("OCR_SERVICE_SECRET")),
-		vllmURL:            envOrDefault("VLLM_URL", "http://127.0.0.1:8000/v1"),
-		vllmAPIKey:         strings.TrimSpace(os.Getenv("VLLM_API_KEY")),
-		modelName:          envOrDefault("VLLM_MODEL", "qwen3.6-35b-a3b"),
+		llmBaseURL:         strings.TrimRight(strings.TrimSpace(os.Getenv("LLM_BASE_URL")), "/"),
+		llmAPIKey:          strings.TrimSpace(os.Getenv("LLM_API_KEY")),
+		llmModel:           strings.TrimSpace(os.Getenv("LLM_MODEL")),
 		scratchDirectory:   envOrDefault("PROCESSOR_SCRATCH_DIR", "/ephemeral/skillsgap-processor"),
 		pollInterval:       20 * time.Second,
 		csecSlipSecret:     strings.TrimSpace(os.Getenv("CSEC_SLIP_PROCESSOR_SECRET")),
@@ -43,8 +43,11 @@ func loadConfig() (config, error) {
 	if value.supabaseURL == "" || value.supabaseServiceKey == "" {
 		return config{}, errors.New("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
 	}
-	if value.vllmAPIKey == "" {
-		return config{}, errors.New("VLLM_API_KEY must be set")
+	if value.llmBaseURL == "" {
+		return config{}, errors.New("LLM_BASE_URL must be set")
+	}
+	if value.llmModel == "" {
+		return config{}, errors.New("LLM_MODEL must be set")
 	}
 	return value, nil
 }
