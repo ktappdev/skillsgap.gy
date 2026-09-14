@@ -15,7 +15,7 @@ pnpm test
 pnpm build
 ```
 
-Thunder processor checks (run from `services/processor`):
+Processor checks (run from `services/processor`):
 
 ```bash
 go test ./...
@@ -88,9 +88,9 @@ Before declaring the pathway complete, run `supabase db push --dry-run --include
 - The custom domain's DNS remains on Cloudflare. `skillsgap.gy` is assigned in Vercel and awaits this DNS-only record: `A skillsgap.gy 76.76.21.21`. Do not move nameservers or add CNAME records for the apex.
 - Supabase Auth uses `https://skillsgap.gy` as its site URL. Its allow-list includes the canonical hostname, localhost URLs, and the current verified preview URL; add a newly created preview URL before testing an OAuth-style redirect there.
 - Keep `NEXT_PUBLIC_SITE_URL=https://skillsgap.gy` in Vercel Preview and Production. Keep local `.env.local` local-only; never run a command that overwrites it without a backup.
-- Keep the CV upload path direct from the browser to private Supabase Storage. Vercel serves the application; it must not proxy CV bytes, OCR, Qwen, or the Go processor.
-- Thunder Compute hosts the private processing stack: Go on `0.0.0.0:8080` via Thunder HTTPS forwarding and Qwen on `127.0.0.1:8000`. The active MVP does not require PP-Structure OCR; keep port `8090` unbound and never forward ports `8000` or `8090`. Do not add Caddy.
-- The current Thunder Go forwarding URL is `https://e2tpybmi-8080.thundercompute.net`; Supabase sends only `{ "job_id": "..." }` to `/webhooks/resume` through the Vault-backed trigger migration.
+- Keep the CV upload path direct from the browser to private Supabase Storage. Vercel serves the application; it must not proxy CV bytes, model requests, or the Go processor.
+- The Go processor is a private external service. Keep its webhook endpoint protected, expose only the configured processor port, and never expose the model endpoint or temporary document-processing storage publicly.
+- Supabase sends only `{ "job_id": "..." }` to the configured processor webhook through the Vault-backed trigger migration. Keep the processor deployment URL and webhook secret environment-specific; do not hardcode them in the repository.
 
 ## Commit checkpoints
 
@@ -101,12 +101,12 @@ Before declaring the pathway complete, run `supabase db push --dry-run --include
 - Review the staged file list and run the relevant checks before pushing each checkpoint.
 - Never commit `.env.local`, credentials, or other secrets. If a corrective follow-up is required, continue the sequence and state the concrete fix.
 
-## Thunder Qwen3.6 vision-only extraction
+## Provider-agnostic vision extraction
 
-- The Thunder vLLM endpoint is configured only in the local, ignored `.env.local` file through `VLLM_URL`, `VLLM_MODEL`, and `VLLM_API_KEY`. The chosen model is Qwen3.6-35B-A3B with vision support.
-- The API key is a bearer secret: never commit it, print it, paste it into issues, or include it in logs. Rotate it after testing or the hackathon.
-- Model discovery can be checked without exposing the key: `set -a; . ./.env.local; set +a; curl --fail --silent --show-error --max-time 30 "$VLLM_URL/models" -H "Authorization: Bearer $VLLM_API_KEY" | jq '{data: [.data[] | {id, object, owned_by}], object}'`.
-- Render every validated PDF page locally and send an instruction prompt, active qualification taxonomy snapshot, and ordered page images to Qwen vision. Do not send native PDF text, OCR text, job requirements, or match data in the active MVP path. The model extracts evidence-backed taxonomy slugs only; PostgreSQL calculates matches and applicant confirmation remains the eligibility gate.
+- Configure the model endpoint, model identifier, and API key through server-only environment variables. The processor must support OpenAI-compatible hosted and local endpoints without hardcoding a hosting vendor or model family.
+- Model API keys are bearer secrets: never commit them, print them, paste them into issues, or include them in logs.
+- Before live processing, verify that the configured endpoint exposes the selected model and supports the capabilities required by the extraction contract: vision input and strict structured JSON output. Do not expose the key while checking connectivity.
+- Render every validated PDF page locally and send an instruction prompt, active qualification taxonomy snapshot, and ordered page images to the configured vision model. Do not send native PDF text, OCR text, job requirements, or match data in the active MVP path. The model extracts evidence-backed taxonomy slugs only; PostgreSQL calculates matches and applicant confirmation remains the eligibility gate.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
