@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { CourseCard } from "@/components/shareable/course-card";
+import { CourseDirectory } from "@/components/shareable/course-directory";
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
 import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 import { getPublicCourses } from "@/lib/share/public-content";
@@ -32,26 +31,7 @@ export default async function TrainingPage() {
           </p>
         </section>
 
-        <section className="mt-12" aria-labelledby="course-list-title">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 id="course-list-title" className="text-2xl font-semibold tracking-tight text-foreground">
-              Verified courses
-            </h2>
-            <p className="text-sm text-muted">{courses.length} {courses.length === 1 ? "course" : "courses"}</p>
-          </div>
-
-          {courses.length > 0 ? (
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {courses.map((course) => <CourseCard key={course.id} course={course} />)}
-            </div>
-          ) : (
-            <div className="mt-6 rounded-lg border border-dashed border-border bg-surface p-6">
-              <h3 className="text-lg font-semibold text-foreground">No verified courses right now.</h3>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-muted">Build a profile to see training recommendations when your pathway is ready, or check back when providers publish a new program.</p>
-              <Link href="/signup" className="mt-4 inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">Build my profile <span aria-hidden="true" className="ml-2">→</span></Link>
-            </div>
-          )}
-        </section>
+        <CourseDirectory courses={courses} />
 
         <p className="mx-auto mt-6 max-w-3xl text-sm leading-6 text-muted">
           Dates, fees, and entry requirements can change. Confirm details with
