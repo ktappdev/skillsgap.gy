@@ -35,7 +35,7 @@ export function CourseCard({ course }: { course: PublicCourse }) {
           url={courseUrl}
           title={course.name}
           text={buildCourseShareText({ name: course.name, provider: course.provider.name })}
-          label="Share"
+          label="Share course"
           variant="light"
         />
       </div>

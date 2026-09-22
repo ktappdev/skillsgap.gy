@@ -11,28 +11,33 @@ export function DirectInterviewButton({ applicantId, roleId, initialInvitationId
 
   async function submit() {
     if (saving) return;
+    if (invitationId && !window.confirm("Cancel this interview invitation?")) return;
     setSaving(true);
     setMessage(null);
-    if (invitationId) {
-      const result = await cancelDirectInterview(invitationId);
-      setSaving(false);
+    try {
+      if (invitationId) {
+        const result = await cancelDirectInterview(invitationId);
+        if (result.error) {
+          setMessage(result.error);
+          return;
+        }
+        setInvitationId(null);
+        setMessage(result.message ?? "Interview invitation cancelled.");
+        return;
+      }
+
+      const result = await initiateDirectInterview(applicantId, roleId);
       if (result.error) {
         setMessage(result.error);
         return;
       }
-      setInvitationId(null);
-      setMessage(result.message ?? "Interview invitation cancelled.");
-      return;
+      setInvitationId(result.invitationId ?? null);
+      setMessage(result.message ?? "Interview invitation sent.");
+    } catch {
+      setMessage("We couldn’t update the interview invitation. Please try again.");
+    } finally {
+      setSaving(false);
     }
-
-    const result = await initiateDirectInterview(applicantId, roleId);
-    setSaving(false);
-    if (result.error) {
-      setMessage(result.error);
-      return;
-    }
-    setInvitationId(result.invitationId ?? null);
-    setMessage(result.message ?? "Interview invitation sent.");
   }
 
   return (

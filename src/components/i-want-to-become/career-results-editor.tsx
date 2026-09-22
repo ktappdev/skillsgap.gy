@@ -21,7 +21,7 @@ type CareerResultsEditorProps = {
   onResultsReviewedChange: (reviewed: boolean) => void;
 };
 
-const fieldClass = "min-h-11 w-full border border-border bg-white px-3 text-sm text-foreground outline-none transition placeholder:text-muted focus:border-accent";
+const fieldClass = "min-h-11 w-full border border-border bg-white px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted focus:border-accent";
 
 export function CareerResultsEditor({ results, photoName, photoPreview, photoState, photoError, resultsReviewed, onFileSelected, onUpdateResult, onRemoveResult, onAddResult, onResultsReviewedChange }: CareerResultsEditorProps) {
   const fileInput = useRef<HTMLInputElement>(null);

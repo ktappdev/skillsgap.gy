@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AcceptRecruiterInvitation } from "@/components/company/accept-recruiter-invitation";
 import { requireUser } from "@/lib/auth/queries";
 import { hashRecruiterInvitationToken, isRecruiterInvitationToken } from "@/lib/company/recruiter-invitations";
+import { formatGuyanaDate } from "@/lib/guyana-time";
 
 type RecruiterInvitationPageProps = {
   params: Promise<{ token: string }>;
@@ -34,7 +35,7 @@ export default async function RecruiterInvitationPage({ params }: RecruiterInvit
             <>
               <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">Join {invitation.companyName}</h1>
               <p className="mt-3 text-sm leading-6 text-muted">You are signed in as {user.email}. Accept to access this company&apos;s roles, matched candidates, and job fairs.</p>
-              <p className="mt-3 text-sm text-muted">This invitation expires {new Date(invitation.expires_at).toLocaleDateString("en-GY")}.</p>
+              <p className="mt-3 text-sm text-muted">This invitation expires {formatGuyanaDate(invitation.expires_at)}.</p>
               <AcceptRecruiterInvitation token={token} />
             </>
           ) : (

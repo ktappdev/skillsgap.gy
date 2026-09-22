@@ -16,7 +16,7 @@ type CareerExplorerProps = {
 };
 
 function PlanError({ onEdit }: { onEdit: () => void }) {
-  return <section className="border border-border bg-surface p-6 shadow-sm sm:p-8" aria-labelledby="plan-error-title"><p className="text-xs font-bold uppercase tracking-[0.18em] text-danger">Pathway unavailable</p><h2 id="plan-error-title" className="mt-3 text-2xl font-semibold tracking-tight text-foreground">We could not load that route right now.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted">Your direction and starting point are still here. Try again in a moment or edit your starting point to choose another route.</p><button type="button" onClick={onEdit} className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white transition hover:bg-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Back to my starting point</button></section>;
+  return <section className="rounded-lg border border-border bg-surface p-6 sm:p-8" aria-labelledby="plan-error-title"><p className="text-xs font-bold uppercase tracking-[0.18em] text-danger">Pathway unavailable</p><h2 id="plan-error-title" className="mt-3 text-2xl font-semibold tracking-tight text-foreground">We could not load that route right now.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted">Your direction and starting point are still here. Try again in a moment or edit your starting point to choose another route.</p><button type="button" onClick={onEdit} className="mt-6 inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Back to my starting point</button></section>;
 }
 
 export function CareerExplorer({ initialOccupations = occupationCatalog, initialCareerId, autoOpenPathway = false, viewer = "anonymous" }: CareerExplorerProps) {
@@ -33,7 +33,7 @@ export function CareerExplorer({ initialOccupations = occupationCatalog, initial
     setResultsReviewed(false);
   }
 
-  if (!draftReady) return <section className="border border-border bg-surface p-6 shadow-sm sm:p-8" aria-busy="true"><div className="h-3 w-28 animate-pulse bg-surface-muted" /><div className="mt-4 h-8 max-w-md animate-pulse bg-surface-muted" /><p className="mt-4 text-sm text-muted">Restoring your starting point…</p></section>;
+  if (!draftReady) return <section className="rounded-lg border border-border bg-surface p-6 sm:p-8" aria-busy="true"><div className="h-3 w-28 animate-pulse bg-surface-muted" /><div className="mt-4 h-8 max-w-md animate-pulse bg-surface-muted" /><p className="mt-4 text-sm text-muted">Restoring your starting point…</p></section>;
 
   if (showPlan) {
     if (guidedPathway) return <GuidedPathwayPlan pathway={guidedPathway} interests={interests} selectedInterests={selectedInterests} results={completedResults} viewer={viewer} onEdit={editStartingPoint} />;

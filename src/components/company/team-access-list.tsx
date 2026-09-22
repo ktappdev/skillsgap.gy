@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { removeRecruiter, revokeRecruiterInvitation } from "@/lib/company/team-actions";
+import { formatGuyanaDate } from "@/lib/guyana-time";
 
 type TeamMember = {
   createdAt: string;
@@ -55,7 +56,7 @@ export function TeamAccessList({ members, invitations, canManage }: { members: T
               <li key={member.userId} className="flex flex-col justify-between gap-3 py-4 sm:flex-row sm:items-center">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-foreground">{member.email ?? `Account ${member.userId.slice(0, 8)}`}</p>
-                  <p className="mt-1 text-sm capitalize text-muted">{member.role} · Added {new Date(member.createdAt).toLocaleDateString("en-GY")}</p>
+                  <p className="mt-1 text-sm capitalize text-muted">{member.role} · Added {formatGuyanaDate(member.createdAt)}</p>
                 </div>
                 {canManage && member.role === "recruiter" ? (
                   <button type="button" disabled={isPending} onClick={() => remove(member.userId)} className="min-h-11 w-fit rounded-md border border-border px-4 text-sm font-semibold text-danger hover:border-danger disabled:cursor-wait disabled:opacity-60">Remove access</button>
@@ -73,7 +74,7 @@ export function TeamAccessList({ members, invitations, canManage }: { members: T
               <li key={invitation.id} className="flex flex-col justify-between gap-3 py-4 sm:flex-row sm:items-center">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-foreground">{invitation.email}</p>
-                  <p className="mt-1 text-sm text-muted">Expires {new Date(invitation.expiresAt).toLocaleDateString("en-GY")}</p>
+                  <p className="mt-1 text-sm text-muted">Expires {formatGuyanaDate(invitation.expiresAt)}</p>
                 </div>
                 <button type="button" disabled={isPending} onClick={() => revoke(invitation.id)} className="min-h-11 w-fit rounded-md border border-border px-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-60">Revoke invite</button>
               </li>

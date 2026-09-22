@@ -33,6 +33,7 @@ export function ShareButton({
   const [panelStyle, setPanelStyle] = useState<CSSProperties>();
   const panelId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -54,6 +55,14 @@ export function ShareButton({
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const frame = window.requestAnimationFrame(() => {
+      panelRef.current?.querySelector<HTMLElement>("a, button")?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [open]);
 
   function positionPanel() {
@@ -119,7 +128,7 @@ export function ShareButton({
       </button>
 
       {open ? (
-        <div id={panelId} className="absolute right-0 z-20 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-surface p-4 text-left" style={panelStyle} aria-labelledby={`${panelId}-title`}>
+        <div ref={panelRef} id={panelId} role="dialog" className="absolute right-0 z-20 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-surface p-4 text-left" style={panelStyle} aria-labelledby={`${panelId}-title`}>
           <p id={`${panelId}-title`} className="font-semibold text-foreground">Send this to someone</p>
           <div className="mt-3 grid gap-2">
             <a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={() => setOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-3 text-sm font-semibold text-white hover:bg-accent-strong">WhatsApp <span aria-hidden="true" className="ml-2">↗</span></a>

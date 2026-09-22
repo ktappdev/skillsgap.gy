@@ -56,7 +56,7 @@ function PathwayOptionCard({ option, selected, onSelect }: { option: PickerOptio
       type="button"
       aria-pressed={selected}
       onClick={onSelect}
-      className={`group flex min-h-11 w-full flex-col items-start rounded-lg border p-4 text-left transition ${selected ? "border-accent bg-surface-muted" : "border-border bg-surface hover:border-accent"}`}
+      className={`group flex min-h-11 w-full flex-col items-start rounded-lg border p-4 text-left transition-colors ${selected ? "border-accent bg-surface-muted" : "border-border bg-surface hover:border-accent"}`}
     >
       <span className="flex w-full items-start justify-between gap-3">
         <span className="text-xs font-semibold text-muted">
@@ -103,14 +103,14 @@ export function CareerPathwayPicker({ occupations, selectedId, onSelect }: Caree
           <label htmlFor="pathway-search" className="text-sm font-semibold text-foreground">Search the catalogue</label>
           <div className="relative mt-2">
             <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">⌕</span>
-            <input id="pathway-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try mechanic, HSE, logistics…" className="min-h-11 w-full rounded-md border border-border bg-surface pl-9 pr-3 text-sm text-foreground outline-none transition placeholder:text-muted focus:border-accent" />
+            <input id="pathway-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try mechanic, HSE, logistics…" className="min-h-11 w-full rounded-md border border-border bg-surface pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted focus:border-accent" />
           </div>
         </div>
         <p className="text-sm text-muted sm:pb-3"><span className="font-semibold text-foreground">{options.length}</span> routes to explore</p>
       </div>
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Filter career routes">
-        {scopeLabels.map(([value, label]) => <button key={value} type="button" aria-pressed={scope === value} onClick={() => changeScope(value)} className={`inline-flex min-h-11 items-center rounded-full border px-3.5 text-sm font-semibold transition ${scope === value ? "border-accent bg-accent text-white" : "border-border bg-surface text-foreground hover:border-accent hover:text-accent"}`}>{label}</button>)}
+        {scopeLabels.map(([value, label]) => <button key={value} type="button" aria-pressed={scope === value} onClick={() => changeScope(value)} className={`inline-flex min-h-11 items-center rounded-full border px-3.5 text-sm font-semibold transition-colors ${scope === value ? "border-accent bg-accent text-white" : "border-border bg-surface text-foreground hover:border-accent hover:text-accent"}`}>{label}</button>)}
       </div>
 
       {selectedOption ? (
@@ -130,8 +130,8 @@ export function CareerPathwayPicker({ occupations, selectedId, onSelect }: Caree
       </div>
 
       {filteredOptions.length === 0 ? <p className="rounded-lg border border-border bg-surface-muted p-5 text-sm leading-6 text-muted">No routes match yet. Try “technical”, “support”, or “operations”.</p> : null}
-      {!showAll && !normalizedQuery && scope === "all" && filteredOptions.length > 6 ? <button type="button" onClick={() => setShowAll(true)} className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-border bg-surface px-4 py-3 text-sm font-semibold text-accent transition hover:border-accent">All {filteredOptions.length} routes <span aria-hidden="true">↓</span></button> : null}
-      {showAll && !normalizedQuery && scope === "all" ? <button type="button" onClick={() => setShowAll(false)} className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-border bg-surface px-4 py-3 text-sm font-semibold text-muted transition hover:border-accent hover:text-accent">Show fewer <span aria-hidden="true">↑</span></button> : null}
+      {!showAll && !normalizedQuery && scope === "all" && filteredOptions.length > 6 ? <button type="button" onClick={() => setShowAll(true)} className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-border bg-surface px-4 py-3 text-sm font-semibold text-accent transition-colors hover:border-accent">All {filteredOptions.length} routes <span aria-hidden="true">↓</span></button> : null}
+      {showAll && !normalizedQuery && scope === "all" ? <button type="button" onClick={() => setShowAll(false)} className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-border bg-surface px-4 py-3 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent">Show fewer <span aria-hidden="true">↑</span></button> : null}
     </div>
   );
 }

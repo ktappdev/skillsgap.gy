@@ -26,7 +26,7 @@ export function PositionCard({ position }: { position: PublicPositionSummary }) 
           url={positionUrl}
           title={position.title}
           text={buildPositionShareText({ title: position.title, company: position.company.name, location: position.location })}
-          label="Share"
+          label="Share position"
           variant="light"
         />
       </div>
