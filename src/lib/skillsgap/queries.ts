@@ -295,8 +295,9 @@ export async function getApplicantInterviews(client: Client, applicantId: string
   const activeInvitations = invitations.filter((invitation) => {
     const fair = (fairs ?? []).find((item) => item.id === invitation.job_fair_id);
     const booking = (bookings ?? []).find((item) => item.invitation_id === invitation.id);
-    if (invitation.status === "invited" && invitation.job_fair_id === null) {
-      return !invitation.expires_at || new Date(invitation.expires_at) > now;
+    if (invitation.job_fair_id === null) {
+      return (invitation.status === "invited" || invitation.status === "accepted")
+        && (!invitation.expires_at || new Date(invitation.expires_at) > now);
     }
     return Boolean(booking) || Boolean(fair && fair.status === "open" && new Date(fair.ends_at) > now && (!invitation.expires_at || new Date(invitation.expires_at) > now));
   });

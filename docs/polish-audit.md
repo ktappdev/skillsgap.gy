@@ -37,6 +37,7 @@ The strongest improvements were therefore the ones that make that loop easy to e
 - Match-detail pages now separate applying, private profile sharing, and public position sharing.
 - Withdrawal of an application requires an explicit confirmation step.
 - Cancelling a direct interview invitation now requires confirmation.
+- Direct interview invitations now expire after 14 days, let applicants accept or decline, and show the company when an applicant is interested.
 - Removing a confirmed qualification now requires confirmation.
 - CV processing copy distinguishes upload, queued, reading, ready, and failure states, including the case where the external processor is not currently available.
 

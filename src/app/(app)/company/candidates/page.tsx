@@ -29,9 +29,9 @@ export default async function CandidatesPage() {
     : { data: [] };
   const appliedCandidates = new Set((applications ?? []).map((application) => candidateKey(application.applicant_id, application.job_role_id)));
   const { data: directInvitations } = roleIds.length > 0
-    ? await supabase.from("interview_invitations").select("id,applicant_id,job_role_id").is("job_fair_id", null).eq("status", "invited").in("job_role_id", roleIds)
+    ? await supabase.from("interview_invitations").select("id,applicant_id,job_role_id,status").is("job_fair_id", null).in("status", ["invited", "accepted"]).in("job_role_id", roleIds)
     : { data: [] };
-  const directInvitationByCandidate = new Map((directInvitations ?? []).map((invitation) => [candidateKey(invitation.applicant_id, invitation.job_role_id), invitation.id]));
+  const directInvitationByCandidate = new Map((directInvitations ?? []).map((invitation) => [candidateKey(invitation.applicant_id, invitation.job_role_id), { id: invitation.id, status: invitation.status === "accepted" ? "accepted" as const : "invited" as const }]));
 
   const { data: consents } = matchRows.length > 0
     ? await supabase.from("candidate_consents").select("applicant_id,job_role_id").eq("company_id", companyId).eq("status", "active").in("job_role_id", roleIds)
@@ -66,7 +66,7 @@ export default async function CandidatesPage() {
             const role = roleRows.find((item) => item.id === match.job_role_id);
             const key = candidateKey(match.applicant_id, match.job_role_id);
             const isApplied = appliedCandidates.has(key);
-            const directInvitationId = directInvitationByCandidate.get(key);
+            const directInvitation = directInvitationByCandidate.get(key);
             const isConsented = consentedMatches.has(key);
             const profile = profileByConsent.get(key);
             return (
@@ -75,7 +75,7 @@ export default async function CandidatesPage() {
                   <p className="text-sm text-muted">Candidate {String(index + 1).padStart(2, "0")} · {role?.title ?? "Active role"}</p>
                   {isApplied ? <span className="mt-2 inline-flex items-center rounded-md border border-accent px-2.5 py-1 text-xs font-semibold text-accent">Applied</span> : null}
                   {isConsented ? <><p className="mt-2 text-sm font-semibold text-foreground">{profile?.full_name || "Applicant profile shared"}</p><p className="mt-1 text-sm text-muted">Profile shared for this role{profile?.phone_number ? ` · ${profile.phone_number}` : ""}</p><div className="mt-3"><ConsentedResumeButton applicantId={match.applicant_id} roleId={match.job_role_id} /></div></> : <><p className="mt-2 text-sm font-semibold text-foreground">{match.interview_eligible ? "Eligible for invitation" : `${gapCounts.get(match.id) ?? 0} requirement${gapCounts.get(match.id) === 1 ? "" : "s"} remaining`}</p><p className="mt-1 text-sm text-muted">Anonymized profile · consent required for identity and CV</p></>}
-                  {(isApplied || directInvitationId) && role ? <div className="mt-4"><DirectInterviewButton applicantId={match.applicant_id} roleId={role.id} initialInvitationId={directInvitationId} /></div> : null}
+                  {(isApplied || directInvitation) && role ? <div className="mt-4"><DirectInterviewButton applicantId={match.applicant_id} roleId={role.id} initialInvitationId={directInvitation?.id} initialInvitationStatus={directInvitation?.status} /></div> : null}
                 </div>
                 <span className="w-fit shrink-0 rounded-md bg-surface-muted px-3 py-1.5 text-sm font-semibold text-accent">{match.score}% match</span>
               </li>

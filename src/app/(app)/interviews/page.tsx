@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { BookSlotForm } from "@/components/skillsgap/book-slot-form";
+import { DirectInterviewResponse } from "@/components/skillsgap/direct-interview-response";
 import { requireApplicant } from "@/lib/auth/queries";
 import { getApplicantInterviews } from "@/lib/skillsgap/queries";
 import { formatGuyanaDate, formatGuyanaDateTime } from "@/lib/guyana-time";
@@ -43,7 +44,9 @@ export default async function InterviewsPage() {
               <p className="text-sm font-semibold text-muted">Direct invitation</p>
               <h2 className="mt-2 text-xl font-semibold text-foreground">{role.title}</h2>
               <p className="mt-3 text-sm leading-6 text-muted">A company invited you to start an interview conversation for this role.</p>
-              <p className="mt-3 rounded-md border border-border bg-surface-muted px-4 py-3 text-sm leading-6 text-muted">Informational for now. Your name and CV stay private unless you share your profile separately.</p>
+              <p className="mt-3 rounded-md border border-border bg-surface-muted px-4 py-3 text-sm leading-6 text-muted">Your name and CV stay private unless you share your profile separately.</p>
+              {invitation.expires_at ? <p className="mt-3 text-sm text-muted">Please respond by {formatGuyanaDate(invitation.expires_at)} GYT.</p> : null}
+              <DirectInterviewResponse invitationId={invitation.id} initialStatus={invitation.status === "accepted" ? "accepted" : "invited"} />
             </section>
           ))}
         </div>

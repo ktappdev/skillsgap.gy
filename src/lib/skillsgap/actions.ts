@@ -765,7 +765,7 @@ export async function initiateDirectInterview(applicantId: string, roleId: strin
 
   const { data: invitation, error } = await supabase
     .from("interview_invitations")
-    .insert({ applicant_id: cleanApplicantId, job_role_id: role.id, job_fair_id: null, status: "invited" })
+    .insert({ applicant_id: cleanApplicantId, job_role_id: role.id, job_fair_id: null, status: "invited", expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() })
     .select("id")
     .single();
   if (error || !invitation) {
@@ -775,6 +775,37 @@ export async function initiateDirectInterview(applicantId: string, roleId: strin
   revalidatePath("/company/candidates");
   revalidatePath("/interviews");
   return { invitationId: invitation.id, message: "Interview invitation sent." };
+}
+
+export async function respondToDirectInterview(invitationId: string, response: "accepted" | "declined"): Promise<{ error?: string; message?: string }> {
+  const { supabase, user } = await requireApplicant();
+  const cleanInvitationId = invitationId.trim();
+  if (!cleanInvitationId || !["accepted", "declined"].includes(response)) return { error: "Choose a valid interview response." };
+
+  const { data: invitation, error: invitationError } = await supabase
+    .from("interview_invitations")
+    .select("id,expires_at")
+    .eq("id", cleanInvitationId)
+    .eq("applicant_id", user.id)
+    .is("job_fair_id", null)
+    .eq("status", "invited")
+    .maybeSingle();
+  if (invitationError) return { error: getDatabaseErrorMessage(invitationError, "We could not load that interview invitation.") };
+  if (!invitation) return { error: "That interview invitation is no longer available." };
+  if (invitation.expires_at && new Date(invitation.expires_at) <= new Date()) return { error: "That interview invitation has expired." };
+
+  const { error } = await supabase
+    .from("interview_invitations")
+    .update({ status: response })
+    .eq("id", invitation.id)
+    .eq("applicant_id", user.id)
+    .is("job_fair_id", null)
+    .eq("status", "invited");
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not save your interview response.") };
+
+  revalidatePath("/interviews");
+  revalidatePath("/company/candidates");
+  return { message: response === "accepted" ? "You told the company you are interested." : "You declined the interview invitation." };
 }
 
 export async function cancelDirectInterview(invitationId: string): Promise<{ error?: string; message?: string }> {
