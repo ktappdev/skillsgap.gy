@@ -10,16 +10,16 @@ A static public entry point into the skills → opportunities → gaps → train
 
 - Full-width offshore hero with an overlaid navigation, white headline, and links to signup and the career explorer.
 - Navigation retains Positions, Training, Build a route, FAQ, Sign in, and Get started. Its overlay appearance is opt-in; other public pages retain their existing header appearance.
-- Three steps explain profile confirmation, role matching, and training for missing qualifications.
+- Three short steps explain profile confirmation, role matching, and training for missing qualifications.
 - Two starting points support experienced workers and people exploring a career.
-- Public positions and training links remain available before signup.
+- An image-backed call to action links to public positions and training before signup.
 - Shared public footer.
 
 ## Image and accessibility
 
-`public/images/offshore-hero.webp` is an approximately 100 KB WebP derived from the user-approved image generated with the built-in image-generation tool. It depicts a fictional offshore platform, not an identified facility or employer. The hero labels it as an AI-generated illustration. The source prompt requested a distant platform on the right at blue hour, dark open sea and sky on the left for white text, and no text or branding.
+`public/images/offshore-hero.webp` is an approximately 100 KB WebP derived from the user-approved image generated with the built-in image-generation tool. `public/images/offshore-overhead.webp` is an approximately 170 KB WebP generated from that same scene as a straight-down view for the closing call to action. Both depict a fictional offshore platform, not an identified facility or employer. The hero labels the image as an AI-generated illustration; the source prompts requested no text or branding.
 
-Next.js serves responsive image sizes and preloads the hero. The decorative image has an empty alt attribute, with a dark overlay for readable text. Navigation wraps on narrow screens; content can expand vertically without a fixed height. White keyboard focus outlines remain visible over the image. No animation or carousel is used.
+Next.js serves responsive image sizes and preloads the hero. Both decorative images have empty alt attributes, with dark overlays for readable text. Navigation wraps on narrow screens; content can expand vertically without a fixed height. White keyboard focus outlines remain visible over the image. No animation or carousel is used.
 
 ## Data and access
 
