@@ -1,19 +1,12 @@
-import Image from "next/image";
 import Link from "next/link";
 
+import { HeroBackdrop } from "@/components/home/hero-backdrop";
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
 
 export function HomeHero() {
   return (
     <section className="home-hero relative isolate bg-foreground text-white" aria-labelledby="home-title">
-      <Image
-        src="/images/offshore-hero.webp"
-        alt=""
-        fill
-        sizes="100vw"
-        preload
-        className="-z-20 object-cover object-[70%_center] lg:object-center"
-      />
+      <HeroBackdrop />
       <div className="absolute inset-0 -z-10 bg-black/40" aria-hidden="true" />
       <div className="mx-auto flex min-h-svh max-w-7xl flex-col px-6 lg:px-12">
         <div className="border-b border-white/25 py-6">
