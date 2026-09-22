@@ -37,7 +37,7 @@ Requires an applicant and loads a current private match or a demo match. It has 
 
 Source: `src/app/(app)/interviews/page.tsx:8`
 
-Shows active fair invitations with role, location/date in GYT, and a slot-booking form, or direct invitations with informational copy. Empty state links back to the detailed dashboard. There is no explicit back action when invitations exist.
+Shows active fair invitations with role, location/date in GYT, and a slot-booking form, or direct invitations with a 14-day response window. Applicants can accept or decline a direct invitation; their name and CV remain private until they separately share their profile. Empty state links back to the detailed dashboard. There is no explicit back action when invitations exist.
 
 ## Current UX observations
 

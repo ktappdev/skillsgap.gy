@@ -29,9 +29,15 @@ export default async function CandidatesPage() {
     : { data: [] };
   const appliedCandidates = new Set((applications ?? []).map((application) => candidateKey(application.applicant_id, application.job_role_id)));
   const { data: directInvitations } = roleIds.length > 0
-    ? await supabase.from("interview_invitations").select("id,applicant_id,job_role_id,status").is("job_fair_id", null).in("status", ["invited", "accepted"]).in("job_role_id", roleIds)
+    ? await supabase.from("interview_invitations").select("id,applicant_id,job_role_id,status,expires_at").is("job_fair_id", null).in("status", ["invited", "accepted", "declined"]).in("job_role_id", roleIds)
     : { data: [] };
-  const directInvitationByCandidate = new Map((directInvitations ?? []).map((invitation) => [candidateKey(invitation.applicant_id, invitation.job_role_id), { id: invitation.id, status: invitation.status === "accepted" ? "accepted" as const : "invited" as const }]));
+  const now = new Date();
+  const directInvitationByCandidate = new Map((directInvitations ?? [])
+    .filter((invitation) => invitation.status !== "invited" || !invitation.expires_at || new Date(invitation.expires_at) > now)
+    .map((invitation) => [candidateKey(invitation.applicant_id, invitation.job_role_id), {
+      id: invitation.id,
+      status: invitation.status === "accepted" ? "accepted" as const : invitation.status === "declined" ? "declined" as const : "invited" as const,
+    }]));
 
   const { data: consents } = matchRows.length > 0
     ? await supabase.from("candidate_consents").select("applicant_id,job_role_id").eq("company_id", companyId).eq("status", "active").in("job_role_id", roleIds)

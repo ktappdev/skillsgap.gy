@@ -49,11 +49,11 @@ export function ShareProfileButton({ roleId, alreadyShared }: { roleId?: string;
 
   if (!roleId) return null;
   return (
-    <section className="border border-border bg-surface-muted p-5" aria-live="polite">
+    <section className="rounded-lg border border-border bg-surface-muted p-5" aria-live="polite">
       <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Privacy choice</p>
       <h2 className="mt-2 text-lg font-semibold">{shared ? "Your profile is shared privately for this role" : "Ready to be considered?"}</h2>
       <p className="mt-2 text-sm leading-6 text-muted">{shared ? "This company's approved team can now see your name and contact details for this opportunity. Your consent is limited to this role." : "Share your profile privately with this approved company so they can contact you if your pathway is a fit. You can revoke this later."}</p>
-      {shared ? <button type="button" disabled={saving} onClick={() => { void revoke(); }} className="mt-4 text-sm font-semibold text-danger underline-offset-4 hover:underline disabled:opacity-60">{saving ? "Updating…" : "Revoke private sharing"}</button> : <button type="button" disabled={saving} onClick={() => { void share(); }} className="mt-4 min-h-10 border border-accent px-4 text-sm font-semibold text-accent hover:bg-teal-50 disabled:cursor-wait disabled:opacity-60">{saving ? "Sharing privately…" : "Share profile privately"}</button>}
+      {shared ? <button type="button" disabled={saving} onClick={() => { void revoke(); }} className="mt-4 min-h-11 rounded-md px-1 text-sm font-semibold text-danger underline-offset-4 transition-colors hover:bg-red-50 hover:underline disabled:cursor-wait disabled:opacity-60">{saving ? "Updating…" : "Revoke private sharing"}</button> : <button type="button" disabled={saving} onClick={() => { void share(); }} className="mt-4 min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent transition-colors hover:bg-teal-50 disabled:cursor-wait disabled:opacity-60">{saving ? "Sharing privately…" : "Share profile privately"}</button>}
       {message ? <p className="mt-3 text-sm text-muted" role="status">{message}</p> : null}
     </section>
   );

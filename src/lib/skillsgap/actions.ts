@@ -417,6 +417,39 @@ export async function requestCompanyAccess(formData: FormData): Promise<void> {
   redirect("/company/request-access?submitted=1");
 }
 
+export async function resubmitCompanyAccess(formData: FormData): Promise<void> {
+  const { supabase, user } = await requireUser("/company/request-access");
+  const name = String(formData.get("company") ?? "").trim();
+  const website = normalizeCompanyWebsite(String(formData.get("website") ?? ""));
+  const description = String(formData.get("description") ?? "").trim();
+  if (name.length < 2 || name.length > 160 || !website.ok || !isCompanyDescription(description)) redirect("/company/request-access?error=company");
+
+  const { data: membership } = await supabase.from("company_members").select("company_id").eq("user_id", user.id).limit(1).maybeSingle();
+  if (!membership) redirect("/company/request-access?error=state");
+
+  const { data: company } = await supabase.from("companies").select("id,status,requested_by").eq("id", membership.company_id).maybeSingle();
+  if (!company || company.status !== "rejected" || company.requested_by !== user.id) redirect("/company/request-access?error=state");
+
+  const { error } = await supabase
+    .from("companies")
+    .update({
+      name,
+      website_url: website.value,
+      description: description || null,
+      requested_by: user.id,
+      reviewed_by: null,
+      reviewed_at: null,
+      status: "pending",
+    })
+    .eq("id", company.id)
+    .eq("status", "rejected")
+    .eq("requested_by", user.id);
+  if (error) redirect(`/company/request-access?error=${error.code === "23505" ? "duplicate" : "save"}`);
+
+  revalidatePath("/admin/companies");
+  redirect("/company/request-access?submitted=1");
+}
+
 export async function reviewCompany(companyId: string, status: "approved" | "rejected"): Promise<{ error?: string }> {
   const { supabase, user } = await requirePlatformAdmin();
   const { error } = await supabase.from("companies").update({ status, reviewed_by: user.id, reviewed_at: new Date().toISOString() }).eq("id", companyId);
@@ -755,13 +788,19 @@ export async function initiateDirectInterview(applicantId: string, roleId: strin
 
   const { data: existing, error: existingError } = await supabase
     .from("interview_invitations")
-    .select("id,status")
+    .select("id,status,expires_at")
     .eq("applicant_id", cleanApplicantId)
     .eq("job_role_id", role.id)
     .is("job_fair_id", null)
     .maybeSingle();
   if (existingError) return { error: getDatabaseErrorMessage(existingError, "We could not check interview invitations.") };
-  if (existing?.status === "invited") return { invitationId: existing.id, message: "Interview invitation already sent." };
+  if (existing?.status === "invited") {
+    if (!existing.expires_at || new Date(existing.expires_at) > new Date()) return { invitationId: existing.id, message: "Interview invitation already sent." };
+    const { error: expireError } = await supabase.from("interview_invitations").delete().eq("id", existing.id).eq("status", "invited");
+    if (expireError) return { error: getDatabaseErrorMessage(expireError, "We could not renew the expired interview invitation.") };
+  }
+  if (existing?.status === "accepted") return { error: "This applicant already accepted the interview invitation." };
+  if (existing?.status === "declined") return { error: "This applicant declined the previous interview invitation." };
 
   const { data: invitation, error } = await supabase
     .from("interview_invitations")

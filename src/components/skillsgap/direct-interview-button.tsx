@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { cancelDirectInterview, initiateDirectInterview } from "@/lib/skillsgap/actions";
 
-type DirectInvitationStatus = "invited" | "accepted";
+type DirectInvitationStatus = "invited" | "accepted" | "declined";
 
 export function DirectInterviewButton({ applicantId, roleId, initialInvitationId, initialInvitationStatus = "invited" }: { applicantId: string; roleId: string; initialInvitationId?: string; initialInvitationStatus?: DirectInvitationStatus }) {
   const [invitationId, setInvitationId] = useState(initialInvitationId ?? null);
@@ -15,7 +15,7 @@ export function DirectInterviewButton({ applicantId, roleId, initialInvitationId
   async function submit() {
     if (saving) return;
     if (invitationId && invitationStatus === "invited" && !window.confirm("Cancel this interview invitation?")) return;
-    if (invitationId && invitationStatus === "accepted") return;
+    if (invitationId && invitationStatus !== "invited") return;
     setSaving(true);
     setMessage(null);
     try {
@@ -47,7 +47,7 @@ export function DirectInterviewButton({ applicantId, roleId, initialInvitationId
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {invitationId ? <span className="inline-flex items-center rounded-md border border-accent px-2.5 py-1 text-xs font-semibold text-accent">{invitationStatus === "accepted" ? "Applicant interested" : "Interview invited"}</span> : <button type="button" disabled={saving} onClick={() => { void submit(); }} aria-busy={saving} className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent transition-colors hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60">{saving ? "Sending…" : "Invite to interview"}</button>}
+      {invitationId ? <span className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold ${invitationStatus === "accepted" ? "border-accent text-accent" : invitationStatus === "declined" ? "border-amber-300 text-amber-800" : "border-accent text-accent"}`}>{invitationStatus === "accepted" ? "Applicant interested" : invitationStatus === "declined" ? "Applicant declined" : "Interview invited"}</span> : <button type="button" disabled={saving} onClick={() => { void submit(); }} aria-busy={saving} className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent transition-colors hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60">{saving ? "Sending…" : "Invite to interview"}</button>}
       {invitationId && invitationStatus === "invited" ? <button type="button" disabled={saving} onClick={() => { void submit(); }} aria-busy={saving} className="inline-flex min-h-11 items-center text-sm font-semibold text-danger underline-offset-4 hover:underline disabled:cursor-wait disabled:opacity-60">{saving ? "Cancelling…" : "Cancel invitation"}</button> : null}
       {message ? <span className="text-xs text-muted" role="status">{message}</span> : null}
     </div>

@@ -18,7 +18,7 @@ Sources: `src/lib/skillsgap/actions.ts`, `src/app/(app)/matches/[matchId]/page.t
 
 ## Applicant interview page
 
-The page distinguishes fair invitations from direct invitations. Fair invitations expose date/location and booking; direct invitations are informational and do not automatically reveal identity/CV.
+The page distinguishes fair invitations from direct invitations. Fair invitations expose date/location and booking; direct invitations expire after 14 days, let applicants accept or decline, and do not automatically reveal identity/CV. Companies see accepted and declined direct-invitation states; expired invited rows can be renewed.
 
 ## Current risks
 

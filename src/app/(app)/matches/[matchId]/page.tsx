@@ -48,7 +48,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ ma
         <div className="mt-6 space-y-4">
           <ShareProfileButton roleId={match.roleId} alreadyShared={match.consented} />
           <ApplyButton roleId={match.roleId} initialStatus={match.applicationStatus} eligible={match.score >= match.threshold} threshold={match.threshold} />
-          <section className="border border-border bg-surface p-5" aria-labelledby="privacy-choices-heading">
+          <section className="rounded-lg border border-border bg-surface p-5" aria-labelledby="privacy-choices-heading">
             <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Your privacy choices</p>
             <h2 id="privacy-choices-heading" className="mt-2 text-lg font-semibold text-foreground">Interest and identity are separate.</h2>
             <ul className="mt-3 space-y-2 text-sm leading-6 text-muted" role="list">
