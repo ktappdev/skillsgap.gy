@@ -11,9 +11,9 @@ export const metadata: Metadata = {
 };
 
 const productSteps = [
-  { number: "01", title: "Choose a role", description: "Explore real energy roles and the qualifications they require." },
-  { number: "02", title: "Check your skills", description: "Add your experience and confirm what you already have." },
-  { number: "03", title: "Close the gaps", description: "Find training for the qualifications you still need." },
+  { number: "01", title: "Choose a role", description: "Explore real energy roles and the qualifications they require.", href: "/opportunities", linkLabel: "Browse roles" },
+  { number: "02", title: "Check your skills", description: "Add your experience and confirm what you already have.", href: "/signup", linkLabel: "Build my profile" },
+  { number: "03", title: "Close the gaps", description: "Find training for the qualifications you still need.", href: "/training", linkLabel: "Find training" },
 ];
 
 export default function Home() {
@@ -26,15 +26,20 @@ export default function Home() {
             <h2 id="how-it-works-title" className="max-w-lg text-3xl font-normal leading-tight sm:text-4xl">How SkillsGap.gy works.</h2>
             <p className="max-w-xl text-lg leading-8 text-muted">We help people in Guyana build the skills they need for work in the oil, gas, and energy sector.</p>
           </div>
-          <ol className="mt-14 grid gap-10 md:grid-cols-3 md:gap-8">
-            {productSteps.map((step) => (
-              <li key={step.number} className="border-t border-border pt-6">
-                <span className="text-sm font-semibold tabular-nums text-accent">{step.number}</span>
-                <h3 className="mt-6 text-xl font-semibold">{step.title}</h3>
-                <p className="mt-3 text-base leading-7 text-muted">{step.description}</p>
-              </li>
-            ))}
-          </ol>
+          <div className="mt-12 overflow-hidden rounded-lg border border-border bg-surface">
+            <ol className="divide-y divide-border md:grid md:grid-cols-3 md:divide-x md:divide-y-0">
+              {productSteps.map((step) => (
+                <li key={step.number} className="flex flex-col gap-6 p-6 sm:p-8">
+                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-accent text-base font-semibold tabular-nums text-white" aria-hidden="true">{step.number}</span>
+                  <div className="flex flex-1 flex-col">
+                    <h3 className="text-xl font-semibold">{step.title}</h3>
+                    <p className="mt-3 text-base leading-7 text-muted">{step.description}</p>
+                    <Link href={step.href} className="mt-6 inline-flex min-h-11 items-center gap-4 font-semibold text-accent underline-offset-4 hover:underline">{step.linkLabel} <span aria-hidden="true">→</span></Link>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
         </section>
 
         <section className="grid gap-10 py-20 md:grid-cols-2 md:gap-16 lg:py-28" aria-labelledby="career-start-title">
