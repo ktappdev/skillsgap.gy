@@ -14,7 +14,7 @@ import {
 import type { Tables } from "@/lib/supabase/database.types";
 
 const actionTypes = ["learn", "practice", "register", "find_work", "guidance"] as const;
-const inputClass = "min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground outline-none placeholder:text-muted focus:border-accent";
+const inputClass = "min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted focus:border-accent";
 const panelClass = "rounded-lg border border-border bg-surface p-5 sm:p-6";
 
 type CareerGuidanceManagerProps = {
@@ -55,6 +55,7 @@ export function CareerGuidanceManager({ initialOccupations, initialSubjects, ini
   const [actionDraft, setActionDraft] = useState<ActionDraft>({ actionType: "learn", title: "", instruction: "", whyItHelps: "", organizationName: "", location: "Guyana", url: "", sourceUrl: "", sourceLocator: "", sortOrder: 1, trainingProgramId: null });
   const [editingActionId, setEditingActionId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [savingAction, setSavingAction] = useState<string | null>(null);
 
   const selectedOccupation = occupations.find((occupation) => occupation.id === selectedOccupationId) ?? null;
   const occupationSubjects = useMemo(() => subjects.filter((subject) => subject.occupation_id === selectedOccupationId), [subjects, selectedOccupationId]);
@@ -69,44 +70,92 @@ export function CareerGuidanceManager({ initialOccupations, initialSubjects, ini
   }
 
   async function saveSummary() {
-    const result = await updateOccupationTransferSummary(selectedOccupationId, summary);
-    setMessage(result.error ?? "Transfer summary saved.");
-    if (!result.error) setOccupations((current) => current.map((occupation) => occupation.id === selectedOccupationId ? { ...occupation, industry_transfer_summary: summary.trim() } : occupation));
+    if (savingAction) return;
+    setSavingAction("summary");
+    setMessage(null);
+    try {
+      const result = await updateOccupationTransferSummary(selectedOccupationId, summary);
+      setMessage(result.error ?? "Transfer summary saved.");
+      if (!result.error) setOccupations((current) => current.map((occupation) => occupation.id === selectedOccupationId ? { ...occupation, industry_transfer_summary: summary.trim() } : occupation));
+    } catch {
+      setMessage("We couldn’t save the transfer summary. Please try again.");
+    } finally {
+      setSavingAction(null);
+    }
   }
 
   async function addSubject() {
-    const result = await createCareerPreparationSubject(selectedOccupationId, subjectName, subjectNote, subjectUrl, subjectLocator);
-    if (result.error) { setMessage(result.error); return; }
-    if (result.subject) setSubjects((current) => [...current, result.subject!]);
-    setSubjectName("");
-    setSubjectNote("");
-    setMessage("Preparation subject added.");
+    if (savingAction) return;
+    setSavingAction("subject");
+    setMessage(null);
+    try {
+      const result = await createCareerPreparationSubject(selectedOccupationId, subjectName, subjectNote, subjectUrl, subjectLocator);
+      if (result.error) { setMessage(result.error); return; }
+      const subject = result.subject;
+      if (subject) setSubjects((current) => [...current, subject]);
+      setSubjectName("");
+      setSubjectNote("");
+      setMessage("Preparation subject added.");
+    } catch {
+      setMessage("We couldn’t add that preparation subject. Please try again.");
+    } finally {
+      setSavingAction(null);
+    }
   }
 
   async function saveAction() {
+    if (savingAction) return;
     const input: OccupationPathwayActionInput = { occupationId: selectedOccupationId, ...actionDraft };
-    const result = editingActionId ? await updateOccupationPathwayAction(editingActionId, input) : await createOccupationPathwayAction(input);
-    if (result.error) { setMessage(result.error); return; }
-    if (result.action) {
-      setActions((current) => editingActionId ? current.map((action) => action.id === result.action!.id ? result.action! : action) : [...current, result.action!]);
+    const wasEditing = Boolean(editingActionId);
+    setSavingAction("action");
+    setMessage(null);
+    try {
+      const result = editingActionId ? await updateOccupationPathwayAction(editingActionId, input) : await createOccupationPathwayAction(input);
+      if (result.error) { setMessage(result.error); return; }
+      const savedAction = result.action;
+      if (savedAction) {
+        setActions((current) => wasEditing ? current.map((action) => action.id === savedAction.id ? savedAction : action) : [...current, savedAction]);
+      }
+      setActionDraft({ actionType: "learn", title: "", instruction: "", whyItHelps: "", organizationName: "", location: "Guyana", url: "", sourceUrl: "", sourceLocator: "", sortOrder: 1, trainingProgramId: null });
+      setEditingActionId(null);
+      setMessage(wasEditing ? "Action updated. Verify it again if the source changed." : "Action added. Verify it before publishing it publicly.");
+    } catch {
+      setMessage("We couldn’t save that pathway action. Please try again.");
+    } finally {
+      setSavingAction(null);
     }
-    setActionDraft({ actionType: "learn", title: "", instruction: "", whyItHelps: "", organizationName: "", location: "Guyana", url: "", sourceUrl: "", sourceLocator: "", sortOrder: 1, trainingProgramId: null });
-    setEditingActionId(null);
-    setMessage(editingActionId ? "Action updated. Verify it again if the source changed." : "Action added. Verify it before publishing it publicly.");
   }
 
   async function toggleVerified(action: Tables<"occupation_pathway_actions">) {
-    const result = await setOccupationPathwayActionVerified(action.id, !action.is_verified);
-    if (result.error) { setMessage(result.error); return; }
-    setActions((current) => current.map((item) => item.id === action.id ? { ...item, is_verified: !action.is_verified, last_verified_at: !action.is_verified ? new Date().toISOString().slice(0, 10) : item.last_verified_at } : item));
-    setMessage(action.is_verified ? "Action moved out of the verified public catalogue." : "Action verified and eligible for public results.");
+    if (savingAction) return;
+    setSavingAction(`verify:${action.id}`);
+    setMessage(null);
+    try {
+      const result = await setOccupationPathwayActionVerified(action.id, !action.is_verified);
+      if (result.error) { setMessage(result.error); return; }
+      setActions((current) => current.map((item) => item.id === action.id ? { ...item, is_verified: !action.is_verified, last_verified_at: !action.is_verified ? new Date().toISOString().slice(0, 10) : item.last_verified_at } : item));
+      setMessage(action.is_verified ? "Action moved out of the verified public catalogue." : "Action verified and eligible for public results.");
+    } catch {
+      setMessage("We couldn’t update that verification. Please try again.");
+    } finally {
+      setSavingAction(null);
+    }
   }
 
   async function toggleActive(action: Tables<"occupation_pathway_actions">) {
-    const result = await setOccupationPathwayActionActive(action.id, !action.is_active);
-    if (result.error) { setMessage(result.error); return; }
-    setActions((current) => current.map((item) => item.id === action.id ? { ...item, is_active: !action.is_active } : item));
-    setMessage(action.is_active ? "Action deactivated." : "Action activated.");
+    if (savingAction) return;
+    setSavingAction(`active:${action.id}`);
+    setMessage(null);
+    try {
+      const result = await setOccupationPathwayActionActive(action.id, !action.is_active);
+      if (result.error) { setMessage(result.error); return; }
+      setActions((current) => current.map((item) => item.id === action.id ? { ...item, is_active: !action.is_active } : item));
+      setMessage(action.is_active ? "Action deactivated." : "Action activated.");
+    } catch {
+      setMessage("We couldn’t update that action. Please try again.");
+    } finally {
+      setSavingAction(null);
+    }
   }
 
   return <section className="mt-6 space-y-6" aria-label="Career guidance catalogue">

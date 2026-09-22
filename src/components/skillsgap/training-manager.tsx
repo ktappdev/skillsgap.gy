@@ -13,7 +13,7 @@ type TrainingManagerProps = {
 };
 
 const panelClass = "rounded-lg border border-border bg-surface p-5 sm:p-6";
-const inputClass = "min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground outline-none placeholder:text-muted focus:border-accent";
+const inputClass = "min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted focus:border-accent";
 
 export function TrainingManager({ initialProviders, initialPrograms, initialOutcomes, qualifications }: TrainingManagerProps) {
   const [providers, setProviders] = useState(initialProviders);
@@ -29,35 +29,74 @@ export function TrainingManager({ initialProviders, initialPrograms, initialOutc
   const [outcomeProgramId, setOutcomeProgramId] = useState(initialPrograms[0]?.id ?? "");
   const [outcomeQualificationId, setOutcomeQualificationId] = useState(qualifications[0]?.id ?? "");
   const [message, setMessage] = useState<string | null>(null);
+  const [savingAction, setSavingAction] = useState<string | null>(null);
 
   async function addProvider() {
-    const result = await createTrainingProvider(providerName, providerLocation, providerDescription);
-    if (result.error) { setMessage(result.error); return; }
-    if (result.provider) { setProviders((current) => [...current, result.provider!]); setProgramProviderId(result.provider.id); }
-    setProviderName(""); setProviderDescription(""); setMessage("Provider added. Verify it before recommending its programs.");
+    if (savingAction) return;
+    setSavingAction("provider");
+    setMessage(null);
+    try {
+      const result = await createTrainingProvider(providerName, providerLocation, providerDescription);
+      if (result.error) { setMessage(result.error); return; }
+      const provider = result.provider;
+      if (provider) { setProviders((current) => [...current, provider]); setProgramProviderId(provider.id); }
+      setProviderName(""); setProviderDescription(""); setMessage("Provider added. Verify it before recommending its programs.");
+    } catch {
+      setMessage("We couldn’t add that provider. Please try again.");
+    } finally {
+      setSavingAction(null);
+    }
   }
 
   async function addProgram() {
-    const result = await createTrainingProgram(programProviderId, programName, programDuration, programUrl);
-    if (result.error) { setMessage(result.error); return; }
-    if (result.program) { setPrograms((current) => [...current, result.program!]); setOutcomeProgramId(result.program.id); }
-    setProgramName(""); setProgramDuration(""); setProgramUrl(""); setMessage("Program added. Map the qualification it delivers.");
+    if (savingAction) return;
+    setSavingAction("program");
+    setMessage(null);
+    try {
+      const result = await createTrainingProgram(programProviderId, programName, programDuration, programUrl);
+      if (result.error) { setMessage(result.error); return; }
+      const program = result.program;
+      if (program) { setPrograms((current) => [...current, program]); setOutcomeProgramId(program.id); }
+      setProgramName(""); setProgramDuration(""); setProgramUrl(""); setMessage("Program added. Map the qualification it delivers.");
+    } catch {
+      setMessage("We couldn’t add that program. Please try again.");
+    } finally {
+      setSavingAction(null);
+    }
   }
 
   async function addOutcome() {
-    const result = await mapTrainingOutcome(outcomeProgramId, outcomeQualificationId);
-    if (result.error) { setMessage(result.error); return; }
-    if (!outcomes.some((outcome) => outcome.training_program_id === outcomeProgramId && outcome.qualification_id === outcomeQualificationId)) {
-      setOutcomes((current) => [...current, { training_program_id: outcomeProgramId, qualification_id: outcomeQualificationId, created_at: new Date().toISOString() }]);
+    if (savingAction) return;
+    setSavingAction("outcome");
+    setMessage(null);
+    try {
+      const result = await mapTrainingOutcome(outcomeProgramId, outcomeQualificationId);
+      if (result.error) { setMessage(result.error); return; }
+      if (!outcomes.some((outcome) => outcome.training_program_id === outcomeProgramId && outcome.qualification_id === outcomeQualificationId)) {
+        setOutcomes((current) => [...current, { training_program_id: outcomeProgramId, qualification_id: outcomeQualificationId, created_at: new Date().toISOString() }]);
+      }
+      setMessage("Program outcome mapped.");
+    } catch {
+      setMessage("We couldn’t map that outcome. Please try again.");
+    } finally {
+      setSavingAction(null);
     }
-    setMessage("Program outcome mapped.");
   }
 
   async function toggle(provider: Tables<"training_providers">) {
-    const result = await setTrainingProviderVerified(provider.id, !provider.is_verified);
-    if (result.error) { setMessage(result.error); return; }
-    setProviders((current) => current.map((item) => item.id === provider.id ? { ...item, is_verified: !item.is_verified } : item));
-    setMessage(provider.is_verified ? "Provider marked as not verified." : "Provider verified and eligible for recommendations.");
+    if (savingAction) return;
+    setSavingAction(`provider:${provider.id}`);
+    setMessage(null);
+    try {
+      const result = await setTrainingProviderVerified(provider.id, !provider.is_verified);
+      if (result.error) { setMessage(result.error); return; }
+      setProviders((current) => current.map((item) => item.id === provider.id ? { ...item, is_verified: !item.is_verified } : item));
+      setMessage(provider.is_verified ? "Provider marked as not verified." : "Provider verified and eligible for recommendations.");
+    } catch {
+      setMessage("We couldn’t update that provider. Please try again.");
+    } finally {
+      setSavingAction(null);
+    }
   }
 
   return (
@@ -72,7 +111,7 @@ export function TrainingManager({ initialProviders, initialPrograms, initialOutc
           <label className="sr-only" htmlFor="training-provider-note">Verification note</label>
           <input id="training-provider-note" value={providerDescription} onChange={(event) => setProviderDescription(event.target.value)} placeholder="Verification note (optional)" className={`${inputClass} sm:col-span-2`} />
         </div>
-        <button type="button" onClick={() => { void addProvider(); }} className="mt-4 min-h-11 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">Add provider</button>
+        <button type="button" disabled={savingAction !== null} onClick={() => { void addProvider(); }} className="mt-4 min-h-11 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60">{savingAction === "provider" ? "Adding…" : "Add provider"}</button>
       </div>
       <div className={panelClass}>
         <h2 className="text-xl font-semibold">Add a training program</h2>
@@ -86,7 +125,7 @@ export function TrainingManager({ initialProviders, initialPrograms, initialOutc
           <label className="sr-only" htmlFor="training-program-url">Enrollment URL</label>
           <input id="training-program-url" value={programUrl} onChange={(event) => setProgramUrl(event.target.value)} placeholder="Enrollment URL (optional)" className={inputClass} />
         </div>
-        <button type="button" disabled={!programProviderId} onClick={() => { void addProgram(); }} className="mt-4 min-h-11 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-50">Add program</button>
+        <button type="button" disabled={!programProviderId || savingAction !== null} onClick={() => { void addProgram(); }} className="mt-4 min-h-11 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-50">{savingAction === "program" ? "Adding…" : "Add program"}</button>
       </div>
       <div className={panelClass}>
         <h2 className="text-xl font-semibold">Map a program outcome</h2>
@@ -96,7 +135,7 @@ export function TrainingManager({ initialProviders, initialPrograms, initialOutc
           <select id="training-outcome-program" value={outcomeProgramId} onChange={(event) => setOutcomeProgramId(event.target.value)} className={`${inputClass} flex-1`}><option value="" disabled>Select program</option>{programs.map((program) => <option key={program.id} value={program.id}>{program.name}</option>)}</select>
           <label className="sr-only" htmlFor="training-outcome-qualification">Qualification</label>
           <select id="training-outcome-qualification" value={outcomeQualificationId} onChange={(event) => setOutcomeQualificationId(event.target.value)} className={`${inputClass} flex-1`}><option value="" disabled>Select qualification</option>{qualifications.map((qualification) => <option key={qualification.id} value={qualification.id}>{qualification.name}</option>)}</select>
-          <button type="button" disabled={!outcomeProgramId || !outcomeQualificationId} onClick={() => { void addOutcome(); }} className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted disabled:cursor-wait disabled:opacity-50">Map outcome</button>
+          <button type="button" disabled={!outcomeProgramId || !outcomeQualificationId || savingAction !== null} onClick={() => { void addOutcome(); }} className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted disabled:cursor-wait disabled:opacity-50">{savingAction === "outcome" ? "Mapping…" : "Map outcome"}</button>
         </div>
       </div>
       {message ? <p className="text-sm text-muted" role="status">{message}</p> : null}
@@ -113,7 +152,7 @@ export function TrainingManager({ initialProviders, initialPrograms, initialOutc
                     <p className="mt-1 text-sm text-muted">{provider?.name ?? "Provider to be confirmed"} · {provider?.location ?? "Guyana"}{program.duration_text ? ` · ${program.duration_text}` : ""}</p>
                     <p className="mt-2 text-sm text-muted">Outcomes: {programOutcomes.map((outcome) => qualifications.find((qualification) => qualification.id === outcome.qualification_id)?.name).filter((name): name is string => Boolean(name)).join(", ") || "Not mapped yet"}</p>
                   </div>
-                  {provider ? <button type="button" onClick={() => { void toggle(provider); }} aria-pressed={provider.is_verified} className={`min-h-11 shrink-0 rounded-md px-4 text-sm font-semibold ${provider.is_verified ? "bg-accent text-white hover:bg-accent-strong" : "border border-accent text-accent hover:bg-surface-muted"}`}>{provider.is_verified ? "Verified" : "Mark verified"}</button> : null}
+                  {provider ? <button type="button" disabled={savingAction !== null} onClick={() => { void toggle(provider); }} aria-pressed={provider.is_verified} className={`min-h-11 shrink-0 rounded-md px-4 text-sm font-semibold disabled:cursor-wait disabled:opacity-60 ${provider.is_verified ? "bg-accent text-white hover:bg-accent-strong" : "border border-accent text-accent hover:bg-surface-muted"}`}>{savingAction === `provider:${provider.id}` ? "Updating…" : provider.is_verified ? "Verified" : "Mark verified"}</button> : null}
                 </div>
               </li>
             );
