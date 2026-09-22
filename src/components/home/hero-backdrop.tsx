@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 const heroImages = [
   "/images/offshore-hero.webp",
   "/images/energy-hero.webp",
+  "/images/energy-office-hero.webp",
 ] as const;
 
 export function HeroBackdrop() {
@@ -32,7 +33,7 @@ export function HeroBackdrop() {
           fill
           sizes="100vw"
           preload={index === 0}
-          className={`absolute inset-0 object-cover object-[70%_center] transition-opacity duration-700 ease-in-out motion-reduce:transition-none lg:object-center ${activeIndex === index ? "opacity-100" : "opacity-0"}`}
+          className={`absolute inset-0 object-cover object-[70%_center] transition-opacity duration-1000 ease-in-out motion-reduce:transition-none lg:object-center ${activeIndex === index ? "opacity-100" : "opacity-0"}`}
         />
       ))}
     </div>
