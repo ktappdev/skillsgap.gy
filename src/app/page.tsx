@@ -11,9 +11,9 @@ export const metadata: Metadata = {
 };
 
 const productSteps = [
-  { number: "01", title: "Start with your skills", description: "Add your CV or experience. Confirm your skills." },
-  { number: "02", title: "Find your opportunities", description: "See roles that match, and what is missing." },
-  { number: "03", title: "Build what comes next", description: "Find training for the qualifications you need." },
+  { number: "01", title: "Choose a role", description: "Explore real energy roles and the qualifications they require." },
+  { number: "02", title: "Check your skills", description: "Add your experience and confirm what you already have." },
+  { number: "03", title: "Close the gaps", description: "Find training for the qualifications you still need." },
 ];
 
 export default function Home() {
@@ -23,8 +23,8 @@ export default function Home() {
       <div className="mx-auto max-w-7xl px-6 lg:px-12">
         <section id="how-it-works" className="scroll-mt-6 border-b border-border py-20 lg:py-28" aria-labelledby="how-it-works-title">
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-16">
-            <h2 id="how-it-works-title" className="max-w-lg text-3xl font-normal leading-tight sm:text-4xl">Find your next move.</h2>
-            <p className="max-w-xl text-lg leading-8 text-muted">See how your experience connects to work and training in Guyana.</p>
+            <h2 id="how-it-works-title" className="max-w-lg text-3xl font-normal leading-tight sm:text-4xl">How SkillsGap.gy works.</h2>
+            <p className="max-w-xl text-lg leading-8 text-muted">We help people in Guyana build the skills they need for work in the oil, gas, and energy sector.</p>
           </div>
           <ol className="mt-14 grid gap-10 md:grid-cols-3 md:gap-8">
             {productSteps.map((step) => (

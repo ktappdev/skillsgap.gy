@@ -10,7 +10,7 @@ A static public entry point into the skills → opportunities → gaps → train
 
 - Full-width offshore hero with an overlaid navigation, white headline, and links to signup and the career explorer.
 - Navigation retains Positions, Training, Build a route, FAQ, Sign in, and Get started. Its overlay appearance is opt-in; other public pages retain their existing header appearance.
-- Three short steps explain profile confirmation, role matching, and training for missing qualifications.
+- Three short steps explain role selection, skill confirmation, and training for missing qualifications.
 - Two starting points support experienced workers and people exploring a career.
 - An image-backed call to action links to public positions and training before signup.
 - Shared public footer.
@@ -27,4 +27,4 @@ No database, auth, or server action dependency. The page renders for everyone an
 
 ## Current UX implication
 
-The energy imagery establishes the corporate visual direction; the copy keeps the service focused on careers and skills. Catalogue freshness still depends on the connected position and training data.
+The energy imagery establishes the corporate visual direction; the copy explains how the service helps people in Guyana build skills for oil, gas, and energy work. Catalogue freshness still depends on the connected position and training data.
