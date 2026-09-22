@@ -113,3 +113,8 @@ a,
 button {
   touch-action: manipulation;
 }
+
+/* White focus rings stay visible over the homepage photograph. */
+.home-hero a:focus-visible {
+  outline-color: white;
+}

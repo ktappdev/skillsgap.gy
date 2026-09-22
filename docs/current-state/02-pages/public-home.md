@@ -1,27 +1,30 @@
 # `/` — public home
 
-Source: `src/app/page.tsx:57`
+Sources: `src/app/page.tsx`, `src/components/home/home-hero.tsx`, `src/components/shareable/public-content-header.tsx`.
 
 ## Purpose
 
-This is a static public entry point into the implemented product loop. It lets a visitor choose between matching existing experience and exploring a career direction without a CV.
+A static public entry point into the skills → opportunities → gaps → training loop. Visitors can match existing experience or explore a career direction without a CV.
 
 ## Visible structure
 
-- Header with the SkillsGap.gy logo, Positions, Training, Build a route, FAQ, Sign in, and Get started links.
-- Main proposition: move from existing skills to local opportunities and training.
-- A short note explaining the rebuild after second place in the challenge.
-- “What we are building” panel with three steps: recognize experience, find closest opportunities, close the gaps.
-- Footer: `SkillsGap.gy` and `Skills → opportunities → training`.
+- Full-width offshore hero with an overlaid navigation, white headline, and links to signup and the career explorer.
+- Navigation retains Positions, Training, Build a route, FAQ, Sign in, and Get started. Its overlay appearance is opt-in; other public pages retain their existing header appearance.
+- Three steps explain profile confirmation, role matching, and training for missing qualifications.
+- Two starting points support experienced workers and people exploring a career.
+- Public positions and training links remain available before signup.
+- Shared public footer.
 
-## Interactions
+## Image and accessibility
 
-The primary CTAs lead to applicant signup or the no-CV career explorer. Secondary links lead to public positions, training, and FAQ.
+`public/images/offshore-hero.webp` is an approximately 100 KB WebP derived from the user-approved image generated with the built-in image-generation tool. It depicts a fictional offshore platform, not an identified facility or employer. The hero labels it as an AI-generated illustration. The source prompt requested a distant platform on the right at blue hour, dark open sea and sky on the left for white text, and no text or branding.
+
+Next.js serves responsive image sizes and preloads the hero. The decorative image has an empty alt attribute, with a dark overlay for readable text. Navigation wraps on narrow screens; content can expand vertically without a fixed height. White keyboard focus outlines remain visible over the image. No animation or carousel is used.
 
 ## Data and access
 
-No database, auth, or server action dependency. It renders for everyone and is statically generated.
+No database, auth, or server action dependency. The page renders for everyone and is statically generated. Primary CTAs lead to applicant signup or the no-CV career explorer.
 
 ## Current UX implication
 
-The old funnel gap is resolved in the current implementation. The remaining public risk is catalogue freshness, which depends on the connected position and training data.
+The energy imagery establishes the corporate visual direction; the copy keeps the service focused on careers and skills. Catalogue freshness still depends on the connected position and training data.
