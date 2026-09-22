@@ -25,13 +25,13 @@
 
 :root {
   --background: #fafaf9;
-  --foreground: #142522;
+  --foreground: #171717;
   --surface: #ffffff;
-  --surface-muted: #eaf2ef;
-  --border: #d7e4df;
-  --muted: #60736e;
-  --accent: #0b5f4c;
-  --accent-strong: #08473a;
+  --surface-muted: #f1f1f1;
+  --border: #d6d6d6;
+  --muted: #666666;
+  --accent: #171717;
+  --accent-strong: #000000;
   --danger: #b42318;
 }
 
@@ -44,6 +44,8 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
+  /* Keep legacy teal utility classes neutral while areas migrate to tokens. */
+  --color-teal-50: var(--surface-muted);
   --color-danger: var(--danger);
   --font-sans: var(--font-inter);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -89,8 +91,8 @@ textarea {
 }
 
 ::selection {
-  background: #bfe3d8;
-  color: #08382d;
+  background: #e5e5e5;
+  color: #171717;
 }
 
 :focus-visible {
