@@ -833,14 +833,17 @@ export async function respondToDirectInterview(invitationId: string, response: "
   if (!invitation) return { error: "That interview invitation is no longer available." };
   if (invitation.expires_at && new Date(invitation.expires_at) <= new Date()) return { error: "That interview invitation has expired." };
 
-  const { error } = await supabase
+  const { data: updatedInvitation, error } = await supabase
     .from("interview_invitations")
     .update({ status: response })
     .eq("id", invitation.id)
     .eq("applicant_id", user.id)
     .is("job_fair_id", null)
-    .eq("status", "invited");
+    .eq("status", "invited")
+    .select("id")
+    .maybeSingle();
   if (error) return { error: getDatabaseErrorMessage(error, "We could not save your interview response.") };
+  if (!updatedInvitation) return { error: "That interview invitation is no longer available." };
 
   revalidatePath("/interviews");
   revalidatePath("/company/candidates");
