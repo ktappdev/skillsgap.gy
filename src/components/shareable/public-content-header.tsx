@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { MobilePublicNav } from "@/components/shareable/mobile-public-nav";
+
 type PublicContentHeaderProps = {
   appearance?: "default" | "overlay";
   active?: "positions" | "training" | "faq";
@@ -17,7 +19,7 @@ export function PublicContentHeader({ appearance = "default", active, accountHre
   const linkClass = isOverlay ? "min-h-11 inline-flex items-center text-white hover:underline underline-offset-4" : idleLink;
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+    <header className="flex items-center justify-between gap-6">
       <Link href="/" className="inline-flex min-h-11 items-center gap-3" aria-label="SkillsGap.gy home">
         <Image
           src="/skillsgap-logo.webp"
@@ -29,7 +31,7 @@ export function PublicContentHeader({ appearance = "default", active, accountHre
         />
         {isOverlay ? <span className="text-xl font-semibold text-white sm:text-2xl">SkillsGap.gy</span> : null}
       </Link>
-      <div className={`flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-1 ${isOverlay ? "basis-full justify-start lg:basis-auto lg:justify-end" : "justify-end"}`}>
+      <div className={`hidden min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-1 lg:flex ${isOverlay ? "justify-end" : "justify-end"}`}>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm font-semibold" aria-label="Explore SkillsGap.gy">
           <Link
             href="/opportunities"
@@ -57,6 +59,7 @@ export function PublicContentHeader({ appearance = "default", active, accountHre
         <Link href={accountHref} className={`${linkClass} underline underline-offset-4`}>{accountLabel}</Link>
         {showGetStarted ? <Link href="/signup" className={`inline-flex min-h-11 items-center justify-center rounded-md px-4 text-sm font-semibold transition-colors ${isOverlay ? "bg-white text-foreground hover:bg-surface-muted" : "bg-accent text-white hover:bg-accent-strong"}`}>Get started</Link> : null}
       </div>
+      <MobilePublicNav appearance={appearance} active={active} accountHref={accountHref} accountLabel={accountLabel} showGetStarted={showGetStarted} />
     </header>
   );
 }

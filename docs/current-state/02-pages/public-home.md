@@ -9,7 +9,7 @@ A static public entry point into the skills → opportunities → gaps → train
 ## Visible structure
 
 - Full-width offshore hero with an overlaid navigation, white headline, and links to signup and the career explorer.
-- Navigation retains Positions, Training, Build a route, FAQ, Sign in, and Get started. Its overlay appearance is opt-in; other public pages retain their existing header appearance.
+- Navigation retains Positions, Training, Build a route, FAQ, Sign in, and Get started. On small screens these links move into an accessible menu button; its overlay appearance is opt-in, and other public pages retain their existing header appearance.
 - Three short steps explain role selection, skill confirmation, and training for missing qualifications.
 - Two starting points support experienced workers and people exploring a career.
 - An image-backed call to action links to public positions and training before signup.
