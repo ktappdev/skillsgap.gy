@@ -5,6 +5,7 @@ import { useActionState } from "react";
 
 import { DemoLoginButtons } from "@/components/auth/demo-login-buttons";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
+import { SignupPitch } from "@/components/auth/signup-pitch";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { signIn, signUp, type AuthActionState } from "@/lib/auth/actions";
 import { env } from "@/lib/env";
@@ -29,10 +30,13 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
   const switchLabel = isSignUp ? "Already have an account? Sign in" : "Need an account? Create one";
   const switchHref = next ? `${switchPath}?next=${encodeURIComponent(next)}` : switchPath;
   const showDemoLogin = !isSignUp && env.demoLoginEnabled;
+  const showApplicantSignupPitch = isSignUp && audience === "applicant";
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className={showApplicantSignupPitch ? "grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,28rem)] lg:items-stretch" : "mx-auto max-w-md"}>
+      {showApplicantSignupPitch ? <SignupPitch /> : null}
+      <div className={showApplicantSignupPitch ? "order-1 space-y-6 lg:order-2" : "space-y-6"}>
+        <div>
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
           {isCompany
             ? isSignUp
@@ -58,9 +62,9 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
                   : "Pick up where you left off."}
         </p>
         {next ? <p className="mt-2 text-xs leading-5 text-muted">You’ll return to the page you started from after you sign in.</p> : null}
-      </div>
+        </div>
 
-      <form action={formAction} className="space-y-4">
+        <form action={formAction} className="space-y-4">
         <input type="hidden" name="next" value={next} />
 
         {isSignUp ? (
@@ -148,25 +152,26 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
             <Link href="/forgot-password" className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">Forgot password?</Link>
           </p>
         ) : null}
-      </form>
+        </form>
 
-      <OAuthButtons next={next} />
+        <OAuthButtons next={next} />
 
-      {showDemoLogin ? <DemoLoginButtons next={next} /> : null}
+        {showDemoLogin ? <DemoLoginButtons next={next} /> : null}
 
-      <p className="text-center text-sm text-muted">
-        <Link href={switchHref} className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">
-          {switchLabel}
-        </Link>
-      </p>
+        <p className="text-center text-sm text-muted">
+          <Link href={switchHref} className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">
+            {switchLabel}
+          </Link>
+        </p>
 
-      {audience === "applicant" ? <div className="border-t border-border pt-5 text-center text-sm text-muted">
-        <p>Creating a workspace instead?</p>
-        <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-2">
-          <Link href="/signup/company" className="font-semibold text-accent underline-offset-4 hover:underline">Company account</Link>
-          <Link href="/signup/provider" className="font-semibold text-accent underline-offset-4 hover:underline">Training provider account</Link>
-        </div>
-      </div> : null}
+        {audience === "applicant" ? <div className="border-t border-border pt-5 text-center text-sm text-muted">
+          <p>Creating a workspace instead?</p>
+          <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-2">
+            <Link href="/signup/company" className="font-semibold text-accent underline-offset-4 hover:underline">Company account</Link>
+            <Link href="/signup/provider" className="font-semibold text-accent underline-offset-4 hover:underline">Training provider account</Link>
+          </div>
+        </div> : null}
+      </div>
     </div>
   );
 }

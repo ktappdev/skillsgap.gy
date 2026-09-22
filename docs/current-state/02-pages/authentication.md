@@ -4,7 +4,7 @@
 
 Source: `src/app/(auth)/layout.tsx:4`
 
-All auth pages use a centered, max-width card on the background, with the logo linking home. The shell does not provide an explicit back link or a role-selection breadcrumb.
+Auth pages use a centered card on the background, with the logo linking home. Applicant signup adds a two-column pitch panel with the overhead offshore illustration and a short explanation of the skills-to-training pathway; login and company/provider auth forms remain compact. The shell does not provide an explicit back link or a role-selection breadcrumb.
 
 ## `/login`
 
