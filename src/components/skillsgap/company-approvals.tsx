@@ -13,12 +13,16 @@ export function CompanyApprovals({ requests }: { requests: Tables<"companies">[]
   function update(companyId: string, status: "approved" | "rejected") {
     setError(null);
     startTransition(async () => {
-      const result = await reviewCompany(companyId, status);
-      if (result.error) {
-        setError(result.error);
-        return;
+      try {
+        const result = await reviewCompany(companyId, status);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+        setItems((current) => current.filter((item) => item.id !== companyId));
+      } catch {
+        setError("We could not update that company request. Check your connection and try again.");
       }
-      setItems((current) => current.filter((item) => item.id !== companyId));
     });
   }
 

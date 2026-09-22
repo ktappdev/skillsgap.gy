@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
           <form action={signOut}>
             <SubmitButton
               pendingLabel="Signing out…"
-              className="min-h-11 border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-60"
+              className="min-h-11 rounded-md border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-60"
             >
               Sign out
             </SubmitButton>

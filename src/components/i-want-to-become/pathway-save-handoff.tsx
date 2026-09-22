@@ -40,15 +40,19 @@ export function PathwaySaveHandoff({ viewer }: { viewer: PathwaySaveViewer }) {
         return;
       }
 
-      const result = await saveApplicantPathwayPlan(draft);
-      if (cancelled) return;
-      if (result.error) {
-        setState({ status: "error", message: result.error, draft });
-        return;
+      try {
+        const result = await saveApplicantPathwayPlan(draft);
+        if (cancelled) return;
+        if (result.error) {
+          setState({ status: "error", message: result.error, draft });
+          return;
+        }
+        clearSavedPathwayBrowserState(window.localStorage, window.sessionStorage, draft);
+        router.replace("/dashboard?pathway=saved");
+        router.refresh();
+      } catch {
+        if (!cancelled) setState({ status: "error", message: "We could not save this route. Your browser copy is still available, so try again.", draft });
       }
-      clearSavedPathwayBrowserState(window.localStorage, window.sessionStorage, draft);
-      router.replace("/dashboard?pathway=saved");
-      router.refresh();
     });
     return () => {
       cancelled = true;
@@ -57,15 +61,19 @@ export function PathwaySaveHandoff({ viewer }: { viewer: PathwaySaveViewer }) {
 
   function retry(draft: PathwayPlanDraft) {
     setState({ status: "saving" });
-    void saveApplicantPathwayPlan(draft).then((result) => {
-      if (result.error) {
-        setState({ status: "error", message: result.error, draft });
-        return;
-      }
-      clearSavedPathwayBrowserState(window.localStorage, window.sessionStorage, draft);
-      router.replace("/dashboard?pathway=saved");
-      router.refresh();
-    });
+    void saveApplicantPathwayPlan(draft)
+      .then((result) => {
+        if (result.error) {
+          setState({ status: "error", message: result.error, draft });
+          return;
+        }
+        clearSavedPathwayBrowserState(window.localStorage, window.sessionStorage, draft);
+        router.replace("/dashboard?pathway=saved");
+        router.refresh();
+      })
+      .catch(() => {
+        setState({ status: "error", message: "We could not save this route. Your browser copy is still available, so try again.", draft });
+      });
   }
 
   const retryDraft = state.status === "error" ? state.draft : null;

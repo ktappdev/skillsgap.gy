@@ -20,23 +20,28 @@ export function OAuthButtons({ next }: { next: string }) {
     setPendingProvider(provider);
     setError(null);
 
-    const supabase = createClient();
-    const callbackUrl = new URL("/auth/callback", window.location.origin);
-    if (next) callbackUrl.searchParams.set("next", next);
-    const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: callbackUrl.toString(),
-      },
-    });
+    try {
+      const supabase = createClient();
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      if (next) callbackUrl.searchParams.set("next", next);
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: callbackUrl.toString(),
+        },
+      });
 
-    if (oauthError || !data.url) {
+      if (oauthError || !data.url) {
+        setError(getAuthErrorMessage(oauthError));
+        return;
+      }
+
+      window.location.assign(data.url);
+    } catch {
+      setError("We could not start that sign-in. Check your connection and try again.");
+    } finally {
       setPendingProvider(null);
-      setError(getAuthErrorMessage(oauthError));
-      return;
     }
-
-    window.location.assign(data.url);
   }
 
   return (

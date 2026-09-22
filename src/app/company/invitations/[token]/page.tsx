@@ -29,7 +29,7 @@ export default async function RecruiterInvitationPage({ params }: RecruiterInvit
     <main id="main-content" className="min-h-screen bg-background px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-xl">
         <Link href="/" className="font-semibold text-accent underline-offset-4 hover:underline">← skillsgap.gy</Link>
-        <section className="mt-10 border border-border bg-surface p-6 shadow-sm sm:p-8">
+        <section className="mt-10 rounded-lg border border-border bg-surface p-6 sm:p-8">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Recruiter invitation</p>
           {invitation ? (
             <>

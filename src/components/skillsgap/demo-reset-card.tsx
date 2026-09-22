@@ -18,14 +18,19 @@ export function DemoResetCard() {
     setIsPending(true);
     setError(null);
     setMessage(null);
-    const result = await resetDemoFallback(password);
-    setIsPending(false);
-    if (result.error) {
-      setError(result.error);
-      return;
+    try {
+      const result = await resetDemoFallback(password);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setPassword("");
+      setMessage(result.message ?? "Fallback rebuilt.");
+    } catch {
+      setError("We could not reset the demo. Check your connection and try again.");
+    } finally {
+      setIsPending(false);
     }
-    setPassword("");
-    setMessage(result.message ?? "Fallback rebuilt.");
   }
 
   return (

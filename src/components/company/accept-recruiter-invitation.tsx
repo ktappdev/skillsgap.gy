@@ -11,14 +11,18 @@ export function AcceptRecruiterInvitation({ token }: { token: string }) {
   function accept() {
     setError(null);
     startTransition(async () => {
-      const result = await acceptRecruiterInvitation(token);
-      if (result?.error) setError(result.error);
+      try {
+        const result = await acceptRecruiterInvitation(token);
+        if (result?.error) setError(result.error);
+      } catch {
+        setError("We could not join this company workspace. Check your connection and try again.");
+      }
     });
   }
 
   return (
     <div className="mt-6">
-      <button type="button" disabled={isPending} onClick={accept} className="min-h-12 w-full bg-accent px-5 font-semibold text-white transition hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60">
+      <button type="button" disabled={isPending} onClick={accept} className="min-h-12 w-full rounded-md bg-accent px-5 font-semibold text-white transition-colors hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60">
         {isPending ? "Joining company…" : "Join company workspace"}
       </button>
       {error ? <p className="mt-3 text-sm text-danger" role="alert">{error}</p> : null}
