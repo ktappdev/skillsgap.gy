@@ -393,7 +393,7 @@ export async function createProviderQualification(formData: FormData): Promise<P
 
   if (!programId || !name) return { error: "Choose a program and qualification name." };
   if (name.length < NAME_MIN || name.length > NAME_MAX) return { error: "Add a qualification name between 2 and 160 characters." };
-  const allowedCategories: RequirementKind[] = ["technical_skill", "certification", "compliance", "experience"];
+  const allowedCategories: RequirementKind[] = ["technical_skill", "certification", "compliance", "experience", "education"];
   if (!category || !allowedCategories.includes(category as RequirementKind)) return { error: "Choose a valid category." };
   if (description.length > 500) return { error: "Descriptions must be 500 characters or fewer." };
 

@@ -11,7 +11,7 @@ export type Match = {
   threshold: number;
   eligible: boolean;
   strengths: string[];
-  gaps: Array<{ id?: string; name: string; type: "Certification" | "Technical skill" | "Experience"; mandatory?: boolean; training: string | null; trainingProgramId?: string | null; trainingDescription?: string | null; trainingDuration?: string | null; trainingUrl?: string | null; projectedScore?: number; status?: "unresolved" | "plan_started" | "completed" | "resolved" }>;
+  gaps: Array<{ id?: string; name: string; type: "Certification" | "Technical skill" | "Experience" | "Education"; mandatory?: boolean; training: string | null; trainingProgramId?: string | null; trainingDescription?: string | null; trainingDuration?: string | null; trainingUrl?: string | null; projectedScore?: number; status?: "unresolved" | "plan_started" | "completed" | "resolved" }>;
 };
 
 const demoRoleIds: Record<string, string> = {

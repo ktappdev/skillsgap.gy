@@ -125,5 +125,5 @@ function toDraft(item: Qualification): QualificationDraft {
 }
 
 function CategoryOptions() {
-  return <><option value="technical_skill">Technical skill</option><option value="certification">Certification</option><option value="compliance">Compliance</option><option value="experience">Experience</option></>;
+  return <><option value="technical_skill">Technical skill</option><option value="certification">Certification</option><option value="compliance">Compliance</option><option value="experience">Experience</option><option value="education">Education</option></>;
 }

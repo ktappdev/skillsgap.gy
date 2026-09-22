@@ -492,6 +492,7 @@ function OutcomeSearch({
               <option value="certification">Certification</option>
               <option value="compliance">Compliance</option>
               <option value="experience">Experience</option>
+              <option value="education">Education</option>
             </select>
           </label>
           <label

@@ -107,7 +107,7 @@ export async function getApplicantProgress(client: Client, applicantId: string):
         return [{
           id: gap.id,
           name: qualificationNames.get(requirement.qualification_id) ?? "Qualification to verify",
-          type: requirement.kind === "certification" ? "Certification" as const : requirement.kind === "experience" ? "Experience" as const : "Technical skill" as const,
+          type: requirement.kind === "certification" ? "Certification" as const : requirement.kind === "experience" ? "Experience" as const : requirement.kind === "education" ? "Education" as const : "Technical skill" as const,
           mandatory: requirement.mandatory,
           training: trainingByQualification.get(requirement.qualification_id)?.label ?? null,
           trainingProgramId: trainingByQualification.get(requirement.qualification_id)?.id ?? null,
@@ -265,7 +265,7 @@ export async function getApplicantMatch(client: Client, applicantId: string, mat
     gaps: gapRequirements.map((requirement) => ({
       id: (gaps ?? []).find((gap) => gap.job_requirement_id === requirement.id)?.id,
       name: names.get(requirement.qualification_id) ?? "Qualification to verify",
-      type: requirement.kind === "certification" ? "Certification" as const : requirement.kind === "experience" ? "Experience" as const : "Technical skill" as const,
+      type: requirement.kind === "certification" ? "Certification" as const : requirement.kind === "experience" ? "Experience" as const : requirement.kind === "education" ? "Education" as const : "Technical skill" as const,
       training: trainingByQualification.get(requirement.qualification_id)?.label ?? null,
       trainingProgramId: trainingByQualification.get(requirement.qualification_id)?.id ?? null,
       trainingUrl: trainingByQualification.get(requirement.qualification_id)?.url ?? null,

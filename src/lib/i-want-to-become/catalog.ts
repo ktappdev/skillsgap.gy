@@ -2,7 +2,7 @@ export type CsecResult = { subject: string; grade: string };
 
 export type CareerRequirement = {
   name: string;
-  kind: "Certification" | "Technical skill" | "Compliance" | "Experience";
+  kind: "Certification" | "Technical skill" | "Compliance" | "Experience" | "Education";
   mandatory: boolean;
   detail: string | null;
   minimumYears: number | null;

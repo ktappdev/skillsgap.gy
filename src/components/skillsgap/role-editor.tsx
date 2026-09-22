@@ -20,6 +20,7 @@ const requirementKinds: Array<{ value: RequirementKind; label: string }> = [
   { value: "certification", label: "Certification" },
   { value: "compliance", label: "Compliance" },
   { value: "experience", label: "Experience" },
+  { value: "education", label: "Education" },
 ];
 
 const inputClass = "mt-2 min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm font-normal text-foreground outline-none focus:border-accent";

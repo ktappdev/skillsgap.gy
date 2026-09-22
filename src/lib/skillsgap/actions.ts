@@ -441,7 +441,7 @@ export async function addJobRequirement(
   minimumYears: number | null,
 ): Promise<{ error?: string; requirement?: Tables<"job_requirements"> }> {
   const { supabase } = await requireApprovedCompanyMember();
-  const allowedKinds: Tables<"job_requirements">["kind"][] = ["technical_skill", "certification", "compliance", "experience"];
+  const allowedKinds: Tables<"job_requirements">["kind"][] = ["technical_skill", "certification", "compliance", "experience", "education"];
   if (!allowedKinds.includes(kind) || typeof mandatory !== "boolean" || !Number.isInteger(weight) || weight < 1 || weight > 5 || (minimumYears !== null && (!Number.isFinite(minimumYears) || minimumYears < 0 || minimumYears > 60))) {
     return { error: "Use a weight from 1 to 5 and experience from 0 to 60 years." };
   }
@@ -489,7 +489,7 @@ export async function openJobFair(fairId: string, status: "open" | "closed"): Pr
   return {};
 }
 
-export async function createQualification(name: string, slug: string, category: "technical_skill" | "certification" | "compliance" | "experience"): Promise<{ error?: string; qualification?: Tables<"qualifications"> }> {
+export async function createQualification(name: string, slug: string, category: "technical_skill" | "certification" | "compliance" | "experience" | "education"): Promise<{ error?: string; qualification?: Tables<"qualifications"> }> {
   const { supabase } = await requirePlatformAdmin();
   const cleanName = name.trim();
   const cleanSlug = slug.trim().toLowerCase();
@@ -510,7 +510,7 @@ export async function updateQualification(
   const { supabase } = await requirePlatformAdmin();
   const cleanName = name.trim();
   const cleanDescription = description.trim();
-  const allowedCategories: Tables<"qualifications">["category"][] = ["technical_skill", "certification", "compliance", "experience"];
+  const allowedCategories: Tables<"qualifications">["category"][] = ["technical_skill", "certification", "compliance", "experience", "education"];
   if (!qualificationId || cleanName.length < 2 || cleanName.length > 160 || !allowedCategories.includes(category) || cleanDescription.length > 500) {
     return { error: "Use a valid qualification name, category, and description." };
   }
