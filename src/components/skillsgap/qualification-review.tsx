@@ -101,51 +101,73 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
   }
 
   async function rejectFinding(finding: ApplicantExtractionFindingView) {
-    const result = await rejectExtractionFinding(finding.id);
-    if (result.error) return setMessage(result.error);
-    setFindings((current) => current.filter((item) => item.id !== finding.id));
-    setMessage("Suggestion dismissed. It will not affect your role matches.");
-    router.refresh();
+    try {
+      const result = await rejectExtractionFinding(finding.id);
+      if (result.error) return setMessage(result.error);
+      setFindings((current) => current.filter((item) => item.id !== finding.id));
+      setMessage("Suggestion dismissed. It will not affect your role matches.");
+      router.refresh();
+    } catch {
+      setMessage("We couldn’t dismiss that suggestion. Please try again.");
+    }
   }
 
   async function saveYears(item: ApplicantQualificationView) {
     const value = years[item.id] ?? "";
-    const result = await updateApplicantQualificationYears(item.qualification_id, value);
-    if (result.error) return setMessage(result.error);
-    setQualifications((current) => current.map((candidate) => candidate.id === item.id ? { ...candidate, years_experience: value.trim() ? Number(value) : null, source: "applicant_confirmed", review_status: "confirmed" } : candidate));
-    setMessage("Experience updated. This strength can now improve your role matches.");
+    try {
+      const result = await updateApplicantQualificationYears(item.qualification_id, value);
+      if (result.error) return setMessage(result.error);
+      setQualifications((current) => current.map((candidate) => candidate.id === item.id ? { ...candidate, years_experience: value.trim() ? Number(value) : null, source: "applicant_confirmed", review_status: "confirmed" } : candidate));
+      setMessage("Experience updated. This strength can now improve your role matches.");
+    } catch {
+      setMessage("We couldn’t update the experience value. Please try again.");
+    }
   }
 
   async function correct(item: ApplicantQualificationView) {
     const corrected = availableQualifications.find((qualification) => qualification.id === corrections[item.id]);
     if (!corrected) return setMessage("Choose the correct transferable skill.");
-    const result = await correctApplicantQualification(item.qualification_id, corrected.id);
-    if (result.error) return setMessage(result.error);
-    setQualifications((current) => current.map((candidate) => candidate.id === item.id ? { ...candidate, qualification_id: corrected.id, qualificationName: corrected.name, source: "applicant_confirmed", review_status: "confirmed" } : candidate));
-    setMessage("Skill corrected. Your role matches are being recalculated.");
+    try {
+      const result = await correctApplicantQualification(item.qualification_id, corrected.id);
+      if (result.error) return setMessage(result.error);
+      setQualifications((current) => current.map((candidate) => candidate.id === item.id ? { ...candidate, qualification_id: corrected.id, qualificationName: corrected.name, source: "applicant_confirmed", review_status: "confirmed" } : candidate));
+      setMessage("Skill corrected. Your role matches are being recalculated.");
+    } catch {
+      setMessage("We couldn’t correct that skill. Please try again.");
+    }
   }
 
   async function add() {
     const item = availableQualifications.find((qualification) => qualification.id === selectedQualification);
     if (!item) return;
-    const result = await addApplicantQualification(item.id);
-    if (result.error) return setMessage(result.error);
-    const id = crypto.randomUUID();
-    setQualifications((current) => [...current, {
-      id, applicant_id: applicantId, qualification_id: item.id, qualificationName: item.name, resume_id: null,
-      years_experience: null, source: "applicant_confirmed", review_status: "confirmed", original_term: null,
-      evidence: null, evidence_page: null, evidence_method: null, confidence: null,
-      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-    }]);
-    setYears((current) => ({ ...current, [id]: "" }));
-    setMessage("Skill added. Your role matches are being recalculated.");
+    try {
+      const result = await addApplicantQualification(item.id);
+      if (result.error) return setMessage(result.error);
+      const id = crypto.randomUUID();
+      setQualifications((current) => [...current, {
+        id, applicant_id: applicantId, qualification_id: item.id, qualificationName: item.name, resume_id: null,
+        years_experience: null, source: "applicant_confirmed", review_status: "confirmed", original_term: null,
+        evidence: null, evidence_page: null, evidence_method: null, confidence: null,
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      }]);
+      setYears((current) => ({ ...current, [id]: "" }));
+      setSelectedQualification("");
+      setMessage("Skill added. Your role matches are being recalculated.");
+    } catch {
+      setMessage("We couldn’t add that skill. Please try again.");
+    }
   }
 
   async function remove(item: ApplicantQualificationView) {
-    const result = await removeApplicantQualification(item.qualification_id);
-    if (result.error) return setMessage(result.error);
-    setQualifications((current) => current.filter((candidate) => candidate.id !== item.id));
-    setMessage("Skill removed. It will not affect your role matches.");
+    if (!window.confirm(`Remove ${item.qualificationName} from your confirmed skills?`)) return;
+    try {
+      const result = await removeApplicantQualification(item.qualification_id);
+      if (result.error) return setMessage(result.error);
+      setQualifications((current) => current.filter((candidate) => candidate.id !== item.id));
+      setMessage("Skill removed. It will not affect your role matches.");
+    } catch {
+      setMessage("We couldn’t remove that skill. Please try again.");
+    }
   }
 
   const knownIds = new Set(qualifications.map((item) => item.qualification_id));

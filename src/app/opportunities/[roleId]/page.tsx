@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
+import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 import { ShareButton } from "@/components/shareable/share-button";
 import { buildPositionShareText } from "@/lib/share/messages";
 import { getPublicPosition, type PublicPositionRequirement } from "@/lib/share/public-content";
@@ -143,10 +144,7 @@ export default async function PositionPage({ params }: PositionPageProps) {
         <p className="mx-auto mt-6 max-w-3xl text-sm leading-6 text-muted">
           Vacancies and requirements can change. Confirm current details with the employer.
         </p>
-        <footer className="flex flex-col gap-2 py-6 text-sm text-muted sm:flex-row sm:justify-between">
-          <Link href="/opportunities" className="inline-flex min-h-11 items-center font-semibold text-accent hover:underline">← All positions</Link>
-          <span>SkillsGap.gy</span>
-        </footer>
+        <PublicSiteFooter />
       </div>
     </main>
   );

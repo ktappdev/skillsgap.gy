@@ -2,15 +2,15 @@
 
 ## Current implementation
 
-The Go service in `services/processor` builds an `llmClient` with three config values:
+The Go service in `services/processor` builds an `llmClient` with three endpoint values:
 
-- `VLLM_URL`, default `http://127.0.0.1:8000/v1`
-- `VLLM_API_KEY`, required
-- `VLLM_MODEL`, default `qwen3.6-35b-a3b`
+- `LLM_BASE_URL`, normally ending in `/v1`
+- `LLM_API_KEY`, optional for keyless local servers and required by hosted providers that authenticate with bearer tokens
+- `LLM_MODEL`, the exact model identifier exposed by the endpoint
 
 It sends `POST {base URL}/chat/completions` with a model name, temperature `0`, a system extraction prompt, ordered page images as `data:` URLs, and a strict JSON-schema response format. It also uses the same client shape for optional CSEC/CXC result-slip reading.
 
-The client is technically compatible with providers that implement the OpenAI chat-completions shape, but the configuration, naming, comments, runbooks, and operational assumptions are still VLLM/Thunder-specific. There is no provider enum, generic LLM endpoint config, capability negotiation, provider-specific request adapter, or local-vs-hosted switch.
+The client is intentionally built around the OpenAI-compatible chat-completions shape. The environment boundary is provider-neutral, while deployment runbooks can still name a particular private host or model. The readiness check verifies model discovery, image input, and strict JSON-schema output before a live rehearsal.
 
 ## Resume extraction contract
 
@@ -33,9 +33,9 @@ The HTTP service exposes `GET /healthz` and authenticated `POST /webhooks/resume
 
 If the Go service and model server are off, new CV uploads can still land in Storage and create queued jobs, but no worker claims them. The UI remains in waiting/queued state until the external processor returns or a failure is recorded. The app does not currently detect or explain “processor is intentionally offline” as a distinct state.
 
-## Desired next direction: provider-agnostic configuration
+## Operational boundary
 
-The requested future behavior is: configure an OpenAI-compatible endpoint through environment variables and use the same processor with OpenRouter, a local Ollama server, or another compatible service. The current snapshot does not implement that abstraction. The likely boundary is the `profileExtractor`/`llmClient` seam, while preserving the extraction contract and validation above. Any future implementation must verify the exact request/response capabilities needed for vision input and strict structured output; model/provider configuration alone cannot guarantee those capabilities.
+Configure an OpenAI-compatible endpoint through environment variables and use the same processor with a hosted service or a compatible local server. The `profileExtractor`/`llmClient` seam remains the correct boundary for future provider-specific behavior, while preserving the extraction contract and validation above. Model/provider configuration alone cannot guarantee vision input or strict structured output, so the readiness check remains mandatory.
 
 ## Security constraints to preserve
 

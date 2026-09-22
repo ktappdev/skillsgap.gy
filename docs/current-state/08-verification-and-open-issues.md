@@ -12,27 +12,25 @@ Run from the repository root unless noted:
 
 No dev server was started, and no browser/GUI testing was performed.
 
-## Confirmed current gaps
+## Snapshot gaps and current resolution
 
-1. The root landing page does not link into the working product.
+1. **Resolved in checkpoint 86:** the root landing page now links into the working product.
 2. The Go/model service is external and currently offline by user report; queued CV processing cannot complete without a processor.
-3. Processor configuration is VLLM-specific in names and operational documentation.
-4. There is no generic provider adapter/capability check for OpenRouter, Ollama, or another OpenAI-compatible endpoint.
-5. The applicant detailed pathway page is long and has no explicit global back/section navigation.
-6. The authenticated overview and detailed pathway are two separate dashboard destinations and need a clearer relationship.
-7. Public position “Check if I fit” links to generic `/signup` without preserving `roleId`.
-8. Error/not-found recovery returns to the coming-soon root instead of a context-aware account/public parent.
-9. Company/provider/admin management screens expose many tasks at once.
-10. Public/static/live career catalogue sources can drift.
+3. **Resolved in checkpoint 85:** processor configuration uses `LLM_BASE_URL`, optional `LLM_API_KEY`, and `LLM_MODEL`; provider capability readiness is checked by the private readiness script.
+4. **Resolved at the configuration boundary:** the same processor can target a compatible hosted or local endpoint, subject to the required vision and strict-schema capability check.
+5. **Improved in checkpoint 86:** the applicant pathway now has explicit stage navigation, anchored sections, and return actions. The detailed page remains intentionally information-rich.
+6. **Improved in checkpoint 86:** overview and detailed pathway navigation now have distinct labels and an explicit relationship.
+7. **Resolved in checkpoint 86:** public position CTAs preserve `roleId` through signup.
+8. **Resolved in checkpoint 86:** not-found and error recovery now offer context-appropriate public/product destinations.
+9. **Still a scale opportunity:** management screens are functional but can be split into task-focused routes as the number of records grows.
+10. **Still operational:** public/static/live career catalogue sources can drift and need an owner and verification cadence.
 
 ## Suggested work order for the next implementation phase
 
-1. Define the canonical user journeys and route transitions.
-2. Introduce provider-agnostic LLM configuration while preserving the validated extraction contract.
-3. Restore public entry CTAs and deep-link preservation.
-4. Refactor applicant pathway presentation into progressive stages with explicit return actions.
-5. Refactor dense management pages into task-oriented sections/routes.
-6. Add end-to-end CLI/headless HTTP coverage for the journey and processor-provider matrix.
+1. Keep the canonical user journeys and route transitions covered by headless/end-to-end checks.
+2. Split dense management pages into task-focused sections when the catalogue grows.
+3. Assign a verification owner and cadence to public career and training sources.
+4. Add end-to-end CLI/headless HTTP coverage for the journey and processor-provider matrix.
 
 ## Confidence
 

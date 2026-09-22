@@ -25,9 +25,9 @@ Defined by `services/processor/config.go` and its README:
 | `WEBHOOK_SECRET` | Authenticates Supabase-to-Go resume webhooks |
 | `SUPABASE_URL` | Supabase REST/Storage base URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Processor server credential |
-| `VLLM_URL` | OpenAI-compatible base URL; default local vLLM URL |
-| `VLLM_API_KEY` | Required model endpoint bearer key |
-| `VLLM_MODEL` | Served model identifier |
+| `LLM_BASE_URL` | OpenAI-compatible model API base URL; normally ending in `/v1` |
+| `LLM_API_KEY` | Optional model endpoint bearer key; required when the selected provider requires it |
+| `LLM_MODEL` | Exact model identifier served by the selected endpoint |
 | `PROCESSOR_SCRATCH_DIR` | Temporary PDF/render directory; default `/ephemeral/skillsgap-processor` |
 | `OCR_URL`, `OCR_SERVICE_SECRET` | Dormant rollback path settings |
 | `CSEC_SLIP_PROCESSOR_SECRET` | Optional public slip endpoint secret |

@@ -35,43 +35,82 @@ export function RoleEditor({ companyName, initialRoles, initialRequirements, qua
   const [mandatory, setMandatory] = useState(false);
   const [minimumYears, setMinimumYears] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
+  const [savingAction, setSavingAction] = useState<string | null>(null);
 
   async function createRole() {
-    const result = await createJobRole(title, threshold === "" ? null : threshold);
-    if (result.error) {
-      setMessage(result.error);
+    if (savingAction) return;
+    if (!title.trim()) {
+      setMessage("Add a role title first.");
       return;
     }
-    if (result.role) setRoles((current) => [result.role!, ...current]);
-    setTitle("");
-    setMessage("Draft role created. Add requirements before publishing.");
+    setSavingAction("create-role");
+    setMessage(null);
+    try {
+      const result = await createJobRole(title, threshold === "" ? null : threshold);
+      if (result.error) {
+        setMessage(result.error);
+        return;
+      }
+      const newRole = result.role;
+      if (newRole) setRoles((current) => [newRole, ...current]);
+      setTitle("");
+      setMessage("Draft role created. Add requirements before publishing.");
+    } catch {
+      setMessage("We couldn’t create that role. Please try again.");
+    } finally {
+      setSavingAction(null);
+    }
   }
 
   async function addRequirement(roleId: string) {
+    if (savingAction) return;
     if (!selectedQualification) {
       setMessage("Choose a qualification first.");
       return;
     }
-    const result = await addJobRequirement(roleId, selectedQualification, kind, weight, mandatory, minimumYears || null);
-    if (result.error) {
-      setMessage(result.error);
-      return;
+    setSavingAction(`add-requirement:${roleId}`);
+    setMessage(null);
+    try {
+      const result = await addJobRequirement(roleId, selectedQualification, kind, weight, mandatory, minimumYears || null);
+      if (result.error) {
+        setMessage(result.error);
+        return;
+      }
+      const newRequirement = result.requirement;
+      if (newRequirement) setRequirements((current) => [...current, newRequirement]);
+      setMessage("Requirement added. Publish the role when the list is complete.");
+    } catch {
+      setMessage("We couldn’t add that requirement. Please try again.");
+    } finally {
+      setSavingAction(null);
     }
-    if (result.requirement) setRequirements((current) => [...current, result.requirement!]);
-    setMessage("Requirement added. Publish the role when the list is complete.");
   }
 
   async function toggle(role: Tables<"job_roles">) {
-    const nextStatus = role.status === "active" ? "draft" : "active";
-    const result = await setJobRoleStatus(role.id, nextStatus);
-    if (result.error) {
-      setMessage(result.error);
+    if (savingAction) return;
+    const roleRequirements = requirements.filter((requirement) => requirement.job_role_id === role.id);
+    if (role.status !== "active" && roleRequirements.length === 0) {
+      setMessage("Add at least one requirement before publishing this role.");
       return;
     }
-    setRoles((current) => current.map((item) => item.id === role.id
-      ? { ...item, status: nextStatus, published_at: nextStatus === "active" ? new Date().toISOString() : item.published_at }
-      : item));
-    setMessage(nextStatus === "active" ? "Role published. Existing matches are being recalculated." : "Role moved back to draft.");
+    const nextStatus = role.status === "active" ? "draft" : "active";
+    setSavingAction(`toggle:${role.id}`);
+    setMessage(null);
+    try {
+      const result = await setJobRoleStatus(role.id, nextStatus);
+      if (result.error) {
+        setMessage(result.error);
+        return;
+      }
+      setRoles((current) => current.map((item) => item.id === role.id
+        ? { ...item, status: nextStatus, published_at: nextStatus === "active" ? new Date().toISOString() : item.published_at }
+        : item));
+      setMessage(nextStatus === "active" ? "Role published. Existing matches are being recalculated." : "Role moved back to draft.");
+    } catch {
+      setMessage("We couldn’t update that role. Please try again.");
+    } finally {
+      setSavingAction(null);
+    }
   }
 
   return (
@@ -89,7 +128,7 @@ export function RoleEditor({ companyName, initialRoles, initialRequirements, qua
             <input type="number" min={1} max={100} value={threshold} onChange={(event) => setThreshold(event.target.value === "" ? "" : Number(event.target.value))} placeholder={String(DEFAULT_ELIGIBILITY_THRESHOLD)} className={inputClass} />
             <span className="mt-1 block text-xs font-normal text-muted">Optional · defaults to {DEFAULT_ELIGIBILITY_THRESHOLD}%</span>
           </label>
-          <button type="button" onClick={() => { void createRole(); }} className="min-h-11 self-end rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">Create draft</button>
+          <button type="button" disabled={savingAction !== null} onClick={() => { void createRole(); }} className="min-h-11 self-end rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60">{savingAction === "create-role" ? "Creating…" : "Create draft"}</button>
         </div>
         {message ? <p className="mt-3 text-sm text-muted" role="status">{message}</p> : null}
       </div>
@@ -106,8 +145,8 @@ export function RoleEditor({ companyName, initialRoles, initialRequirements, qua
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {role.status === "active" ? <ShareButton url={`/opportunities/${role.id}`} title={role.title} text={buildPositionShareText({ title: role.title, company: companyName, location: role.location })} label="Share position" variant="light" /> : null}
-                <button type="button" onClick={() => { void toggle(role); }} className={`min-h-11 rounded-md px-4 text-sm font-semibold ${role.status === "active" ? "bg-accent text-white hover:bg-accent-strong" : "border border-accent text-accent hover:bg-surface-muted"}`}>
-                  {role.status === "active" ? "Unpublish role" : "Publish role"}
+                <button type="button" disabled={savingAction !== null || (role.status !== "active" && roleRequirements.length === 0)} onClick={() => { void toggle(role); }} className={`min-h-11 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${role.status === "active" ? "bg-accent text-white hover:bg-accent-strong" : "border border-accent text-accent hover:bg-surface-muted"}`}>
+                  {savingAction === `toggle:${role.id}` ? "Updating…" : role.status === "active" ? "Unpublish role" : "Publish role"}
                 </button>
               </div>
             </div>
@@ -144,7 +183,7 @@ export function RoleEditor({ companyName, initialRoles, initialRequirements, qua
                 <input type="checkbox" checked={mandatory} onChange={(event) => setMandatory(event.target.checked)} className="size-4 accent-accent" />
                 Mandatory
               </label>
-              <button type="button" onClick={() => { void addRequirement(role.id); }} className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted">Add requirement</button>
+              <button type="button" disabled={savingAction !== null} onClick={() => { void addRequirement(role.id); }} className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60">{savingAction === `add-requirement:${role.id}` ? "Adding…" : "Add requirement"}</button>
             </div>
           </article>
         );

@@ -71,8 +71,8 @@ export default function Home() {
             <p className="mt-4 text-sm text-muted">No exact job title required. No perfect CV required to start exploring.</p>
           </div>
 
-          <div className="relative" aria-label="The SkillsGap.gy pathway" role="img">
-            <div className="border border-accent bg-accent p-6 text-white sm:p-8">
+          <div className="relative">
+            <div className="rounded-lg border border-accent bg-accent p-6 text-white sm:p-8">
               <div className="flex items-start justify-between gap-4 border-b border-white/20 pb-6">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/70">One clear loop</p>
@@ -104,13 +104,13 @@ export default function Home() {
             <p className="mt-4 text-base leading-7 text-muted">Start with evidence from your work, or start with a direction you want to explore. Both paths lead to a practical next step.</p>
           </div>
           <div className="mt-10 grid gap-4 md:grid-cols-2">
-            <article className="border border-border bg-surface p-6 sm:p-8">
+            <article className="rounded-lg border border-border bg-surface p-6 sm:p-8">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">For experienced workers</p>
               <h3 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">“I know what I can do.”</h3>
               <p className="mt-3 text-sm leading-7 text-muted">Upload your CV, review the skills we find, and see which opportunities are closest to your confirmed experience.</p>
               <Link href="/signup" className="mt-6 inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">Build my profile <span aria-hidden="true" className="ml-2">→</span></Link>
             </article>
-            <article className="border border-border bg-surface p-6 sm:p-8">
+            <article className="rounded-lg border border-border bg-surface p-6 sm:p-8">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">For future workers</p>
               <h3 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">“I know where I want to go.”</h3>
               <p className="mt-3 text-sm leading-7 text-muted">Choose a direction, add your interests and CSEC/CXC starting point, and leave with three honest next moves.</p>
@@ -139,7 +139,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="border border-accent bg-surface-muted p-6 sm:p-8 lg:flex lg:items-center lg:justify-between lg:gap-8" aria-labelledby="home-cta-title">
+        <section className="rounded-lg border border-accent bg-surface-muted p-6 sm:p-8 lg:flex lg:items-center lg:justify-between lg:gap-8" aria-labelledby="home-cta-title">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Start with one decision</p>
             <h2 id="home-cta-title" className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Do you want to match your experience or explore a direction?</h2>

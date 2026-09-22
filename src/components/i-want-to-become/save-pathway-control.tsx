@@ -38,14 +38,18 @@ export function SavePathwayControl({ plan, viewer }: SavePathwayControlProps) {
     }
 
     startTransition(async () => {
-      const result = await saveApplicantPathwayPlan(draft);
-      if (result.error) {
-        setError(result.error);
-        return;
+      try {
+        const result = await saveApplicantPathwayPlan(draft);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+        clearSavedPathwayBrowserState(window.localStorage, window.sessionStorage, draft);
+        router.push("/dashboard?pathway=saved");
+        router.refresh();
+      } catch {
+        setError("We couldn’t save this route right now. Please try again.");
       }
-      clearSavedPathwayBrowserState(window.localStorage, window.sessionStorage, draft);
-      router.push("/dashboard?pathway=saved");
-      router.refresh();
     });
   }
 

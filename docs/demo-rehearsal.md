@@ -31,12 +31,12 @@ When Qwen proposes the porter evidence as either manual handling or warehouse op
 
 ## Live-processing add-on
 
-Once Thunder is healthy, verify the Qwen model identifier and synthetic image/strict-JSON gate, then use a synthetic CV from `services/processor/testdata/generated/`. Every PDF page is rendered and sent to Qwen vision with the extraction prompt; show the applicant upload → processing → evidence-backed review cards → confirmation flow and point out the `vision` evidence method. OCR is not required for this path. If Thunder or Qwen is unavailable, return to the prepared fallback account and say plainly that the live inference demonstration is unavailable while the product’s deterministic, privacy-gated workflow remains live.
+Once the private processor and configured model endpoint are healthy, verify model discovery and the synthetic image/strict-JSON gate, then use a synthetic CV from `services/processor/testdata/generated/`. Every PDF page is rendered and sent to the configured vision model with the extraction prompt; show the applicant upload → processing → evidence-backed review cards → confirmation flow and point out the `vision` evidence method. OCR is not required for this path. If the processor or model endpoint is unavailable, return to the prepared fallback account and say plainly that the live inference demonstration is unavailable while the product’s deterministic, privacy-gated workflow remains live.
 
 Before uploading the fixture, confirm:
 
 - Go `/healthz` returns `{"status":"ok"}`.
-- Qwen `/v1/models` reports the exact `VLLM_MODEL` configured for the processor.
+- The model endpoint’s `/v1/models` reports the exact `LLM_MODEL` configured for the processor.
 - A synthetic page image is accepted with strict JSON output.
 - The active processor environment does not require `OCR_SERVICE_SECRET`.
 

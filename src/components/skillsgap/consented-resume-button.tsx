@@ -11,13 +11,18 @@ export function ConsentedResumeButton({ applicantId, roleId }: { applicantId: st
   async function openResume() {
     setLoading(true);
     setError(null);
-    const result = await getConsentedCandidateResumeUrl(applicantId, roleId);
-    setLoading(false);
-    if (result.error || !result.url) {
-      setError(result.error ?? "The CV link is unavailable.");
-      return;
+    try {
+      const result = await getConsentedCandidateResumeUrl(applicantId, roleId);
+      if (result.error || !result.url) {
+        setError(result.error ?? "The CV link is unavailable.");
+        return;
+      }
+      window.open(result.url, "_blank", "noopener,noreferrer");
+    } catch {
+      setError("The CV link is unavailable. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    window.open(result.url, "_blank", "noopener,noreferrer");
   }
 
   return (

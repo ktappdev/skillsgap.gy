@@ -12,27 +12,39 @@ export function ShareProfileButton({ roleId, alreadyShared }: { roleId?: string;
   async function share() {
     if (!roleId) return;
     setSaving(true);
-    const result = await shareProfileForRole(roleId);
-    setSaving(false);
-    if (result.error) {
-      setMessage(result.error);
-      return;
+    setMessage(null);
+    try {
+      const result = await shareProfileForRole(roleId);
+      if (result.error) {
+        setMessage(result.error);
+        return;
+      }
+      setShared(true);
+      setMessage(result.message ?? "Profile shared for this role.");
+    } catch {
+      setMessage("We couldn’t share your profile. Please try again.");
+    } finally {
+      setSaving(false);
     }
-    setShared(true);
-    setMessage(result.message ?? "Profile shared for this role.");
   }
 
   async function revoke() {
     if (!roleId) return;
     setSaving(true);
-    const result = await revokeProfileShare(roleId);
-    setSaving(false);
-    if (result.error) {
-      setMessage(result.error);
-      return;
+    setMessage(null);
+    try {
+      const result = await revokeProfileShare(roleId);
+      if (result.error) {
+        setMessage(result.error);
+        return;
+      }
+      setShared(false);
+      setMessage(result.message ?? "Profile sharing was revoked for this role.");
+    } catch {
+      setMessage("We couldn’t update profile sharing. Please try again.");
+    } finally {
+      setSaving(false);
     }
-    setShared(false);
-    setMessage(result.message ?? "Profile sharing was revoked for this role.");
   }
 
   if (!roleId) return null;

@@ -13,7 +13,7 @@ The detail page validates the UUID and calls `getPublicPosition`. It shows:
 - Public header with positions active.
 - Demo/company label, role title, company, location, and employment type.
 - Share button.
-- `Check if I fit` and `Find my route` links, both currently pointing to `/signup`.
+- `Compare my experience` links preserve the role through signup and return the applicant to the role-aware dashboard.
 - A demo notice when `is_demo=true`.
 - Role description.
 - Requirements sorted with mandatory items first, each showing canonical qualification name, kind, optional minimum years, and Required/Preferred label.
@@ -26,4 +26,4 @@ These pages are public and dynamic. They use a service-role server client throug
 
 ## Current UX observations
 
-The detail page has an explicit back-to-list link. The “Check if I fit” path drops a user into generic signup with no role identifier, so the intended role-specific onboarding context is not retained by that CTA.
+The detail page has an explicit back-to-list link and the role-aware onboarding CTA retains the intended position context.

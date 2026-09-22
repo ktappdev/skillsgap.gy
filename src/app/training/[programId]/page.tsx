@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
+import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 import { ShareButton } from "@/components/shareable/share-button";
 import { buildCourseShareText } from "@/lib/share/messages";
 import { getPublicCourse } from "@/lib/share/public-content";
@@ -154,10 +155,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
           <span className="font-semibold text-foreground">Before enrolling:</span> dates, fees, and
           entry requirements can change. Confirm with the provider.
         </aside>
-        <footer className="flex flex-col gap-2 py-6 text-sm text-muted sm:flex-row sm:justify-between">
-          <Link href="/training" className="inline-flex min-h-11 items-center font-semibold text-accent hover:underline">← All training</Link>
-          <span>SkillsGap.gy</span>
-        </footer>
+        <PublicSiteFooter />
       </div>
     </main>
   );

@@ -8,16 +8,15 @@ Explains what the product does, how CV reading and matching work, privacy bounda
 
 ## Visible structure
 
-- Logo header and “In development” pill.
+- Shared public header with Positions, Training, Build a route, FAQ, account, and Get started links.
 - Intro section: “A clearer way to understand the pathway.”
 - Four expandable groups: Getting started; Your CV and matches; Privacy and trust; Training and employers.
 - Each question is a native `<details>` disclosure with a plus icon that rotates when open.
-- Bottom “More is on the way” panel says positions, training, and the full applicant experience are paused while the next chapter is built.
-- Link back to `/`.
+- Bottom panel links to Build a route and public positions.
 
 ## Interactions
 
-Questions open/close locally. The only navigation is back to the coming-soon page.
+Questions open/close locally. The page also links visitors directly to the career explorer, positions, training, and account entry points.
 
 ## Data and access
 
@@ -25,4 +24,4 @@ All content is static. No auth or database dependency.
 
 ## Current UX implication
 
-The FAQ accurately documents the intended product, but its closing copy says the product is paused while many routes remain implemented. It also has no direct “start a route”, “sign in”, opportunities, or training action.
+The previous paused-product copy and dead-end navigation were removed. Keep FAQ answers synchronized with changes to privacy, CV processing, matching, and training freshness.

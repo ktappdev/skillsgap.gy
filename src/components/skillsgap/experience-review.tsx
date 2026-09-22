@@ -43,13 +43,18 @@ export function ExperienceReview({ initialExperience }: ExperienceReviewProps) {
     if (!draft) return;
     setSavingId(item.id);
     setMessage(null);
-    const result = await updateApplicantExperience(item.id, draft.title, draft.employer, draft.years);
-    setSavingId(null);
-    if (result.error) {
-      setMessage(result.error);
-      return;
+    try {
+      const result = await updateApplicantExperience(item.id, draft.title, draft.employer, draft.years);
+      if (result.error) {
+        setMessage(result.error);
+        return;
+      }
+      setMessage("Saved. Matches refresh shortly.");
+    } catch {
+      setMessage("We couldn’t save that work history. Please try again.");
+    } finally {
+      setSavingId(null);
     }
-    setMessage("Saved. Matches refresh shortly.");
   }
 
   return (

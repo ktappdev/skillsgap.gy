@@ -23,14 +23,14 @@ The MVP must demonstrate one complete outcome: a worker uploads a CV, receives t
 
 - Applicant, company, and super-admin workflows.
 - Private PDF CV uploads and asynchronous processing.
-- Private PDF page rendering, Qwen vision extraction, and deterministic matching.
+- Private PDF page rendering, OpenAI-compatible vision extraction, and deterministic matching.
 - Curated Guyana-focused demonstration data plus admin CRUD.
 - In-app interview invitations and 15-minute slot booking.
 
 ### Out of scope for the MVP
 
 - Job scraping, third-party job feeds, payments, billing, and email delivery.
-- OpenRouter or any hosted LLM provider.
+- Provider-specific hosting operations beyond the OpenAI-compatible processor contract.
 - Multi-language OCR, production-scale queues, Redis, and multi-server orchestration.
 - Automated rejection, automated hiring decisions, and claims that a company formally endorses the platform.
 
@@ -103,14 +103,14 @@ Use plain progress language such as `You are closer to Offshore Mechanical Techn
 - The Go worker claims jobs atomically, retries transient failures up to three times, and records a safe failure message if processing cannot finish.
 - A claim older than 15 minutes is recoverable by the poller, which prevents a crashed worker from leaving a job stuck forever; the worker itself times out after 10 minutes.
 - The worker validates PDF structure and page count with `pdfinfo`, then renders every page locally at 144 DPI.
-- Qwen3.6-35B-A3B receives an instruction prompt plus the ordered page images. The prompt is part of every request; native PDF text and OCR text are not sent to the model.
+- The configured vision model receives an instruction prompt plus the ordered page images. The prompt is part of every request; native PDF text and OCR text are not sent to the model.
 - One vision request returns one complete replacement extraction. The worker never merges competing model outputs, and there is no OCR or text-extraction fallback in the active MVP path.
 - Processing rejects PDFs larger than 15 MB or eight pages and rendered vision payloads beyond 20 MB. It never scores a truncated CV.
 - Raw CV text, page images, prompts, and model responses never appear in application logs. Temporary CV files and rendered images are stored on the Thunder instance's ephemeral scratch path and deleted immediately after processing.
 
 ### Profile extraction and correction
 
-Qwen3.6-35B-A3B, served through vLLM, receives only a bounded extraction prompt and private rendered page images. It returns strict JSON and must not calculate scores, decide eligibility, or invent qualifications.
+The configured OpenAI-compatible vision model receives only a bounded extraction prompt and private rendered page images. It returns strict JSON and must not calculate scores, decide eligibility, or invent qualifications.
 
 The model boundary is deliberately narrow:
 
@@ -122,11 +122,11 @@ The model boundary is deliberately narrow:
 
 ### Model-selection gate
 
-The processor keeps the served model name configurable through `VLLM_MODEL`. It must match the identifier returned by the Thunder vLLM server. Verify it before live processing:
+The processor keeps the served model name configurable through `LLM_MODEL`. It must match the identifier returned by the configured OpenAI-compatible endpoint. Verify it before live processing:
 
 | Gate | Pass condition | If it fails |
 | --- | --- | --- |
-| Model discovery | `GET /v1/models` reports the configured Qwen3.6-35B-A3B identifier. | Do not process live CVs until `VLLM_MODEL` agrees with the served model. |
+| Model discovery | `GET /v1/models` reports the configured `LLM_MODEL` identifier. | Do not process live CVs until `LLM_MODEL` agrees with the served model. |
 | Vision smoke test | A synthetic page image plus the production-style instruction prompt is accepted through the OpenAI-compatible image request and returns schema-valid JSON. | Keep jobs queued and fix the multimodal serving configuration before processing CVs. |
 | Representative CV benchmark | Clean, scanned, mixed, two-column, and table-heavy fixtures meet the demo latency and accuracy bar without unsafe GPU memory pressure. | Use the prepared processed applicant while the private pipeline is repaired. |
 
@@ -177,13 +177,13 @@ The applicant can choose or reject pending findings, correct a translation to an
 ```text
 Next.js on Vercel
   └─ Supabase Auth, PostgreSQL, private Storage, Realtime
-       └─ Database webhook → Thunder Go API :8080
+       └─ Database webhook → private Go processor :8080
             ├─ PDF validation and rendering (private Go process)
-            ├─ vLLM / Qwen3.6-35B-A3B :8000 (localhost only)
+            ├─ OpenAI-compatible vision model (private endpoint)
             └─ Supabase service APIs
 ```
 
-Thunder port forwarding exposes only Go port `8080` using the generated HTTPS URL. The vLLM port remains private, and the dormant OCR port stays unforwarded. Services run under systemd, matching the existing Thunder runbooks:
+The current private-host deployment exposes only the Go processor port `8080` using its configured HTTPS URL. The model endpoint remains private, and the dormant OCR port stays unforwarded. Services run under systemd, matching the current private-host runbooks:
 
 - [Go API runbook](thundercompute/01-go-backend.md)
 - [vLLM runbook](thundercompute/02-qwen3.6-35b-vllm.md)
@@ -202,7 +202,7 @@ The webhook never contains CV bytes. The Go worker retrieves the job and CV from
 
 | Service | Address | Contract |
 | --- | --- | --- |
-| vLLM | `http://127.0.0.1:8000/v1/chat/completions` | Local API-key-protected Qwen request using the extraction prompt and ordered base64 page images. |
+| Configured vision model | `{LLM_BASE_URL}/chat/completions` | OpenAI-compatible request using the extraction prompt and ordered base64 page images. |
 
 Run one resume at a time until Qwen latency and GPU memory use are measured. Keep Qwen resident on the RTX 6000-class GPU. No OCR process is required for the active MVP deployment.
 
@@ -312,7 +312,7 @@ before spending money.
 
 - Unit-test matching weights, mandatory gates, top-three ordering, taxonomy aliasing, gap creation, training mappings, and slot-booking conflicts.
 - Test JSON-schema validation for malformed model outputs, unknown/duplicate/third candidate slugs, unsupported qualifications, missing evidence, prompt-like instructions embedded in CV images, and oversized extraction output. Verify semantic examples use taxonomy descriptions/context (house cleaning, catering, porter/materials handling, computer support, security, and teaching) while unsupported terms remain unmapped.
-- Test PDF-only, 15 MB, eight-page, and 20 MB rendered-image limits; page ordering; image-only prompt construction; strict vision provenance; retry behavior; duplicate webhooks; failed workers; unavailable vLLM; and temporary-file cleanup.
+- Test PDF-only, 15 MB, eight-page, and 20 MB rendered-image limits; page ordering; image-only prompt construction; strict vision provenance; retry behavior; duplicate webhooks; failed workers; unavailable configured vision endpoint; and temporary-file cleanup.
 - Test RLS as anonymous, applicant, company, admin, and service roles. Confirm a company cannot read another company's roles, any unconsented applicant PII, or arbitrary Storage objects.
 - Add end-to-end coverage for applicant upload-to-booking, company approval-to-candidate-view, and admin management flows.
 
@@ -323,7 +323,7 @@ before spending money.
 - Progression: confirm that upload, extraction, qualification confirmation, training-plan selection, and interview eligibility each produce a clear next-step message.
 - Company: request approval, become approved, publish a role, define mandatory and weighted requirements, create slots, and see only anonymized candidates before consent.
 - Admin: approve a company, edit a qualification's description/category/active state and aliases, create a training outcome, and confirm that the next CV sees the updated taxonomy without a processor restart.
-- Privacy: verify that browser network calls never contain a service-role key; verify no CV, page image, prompt, response, or PII appears in Go/vLLM logs.
+- Privacy: verify that browser network calls never contain a service-role key; verify no CV, page image, prompt, response, or PII appears in Go/model-service logs.
 - Reliability: restart the Go process during a queued job and confirm the job can be retried safely.
 
 ## 9. Demo Script and Operations
@@ -342,9 +342,9 @@ The executable rehearsal, fallback setup, and recovery steps are in [`docs/demo-
 
 ### Health checklist before presentation
 
-- Thunder vLLM (Qwen3.6-35B-A3B) and the Go systemd service are active; OCR remains stopped unless rollback is intentionally enabled.
-- `GET /healthz`, vLLM model discovery, the production-style vision prompt, and synthetic image smoke tests succeed locally.
-- Thunder HTTPS forwarding reaches only the Go health endpoint.
+- The configured OpenAI-compatible vision endpoint and the Go systemd service are active; OCR remains stopped unless rollback is intentionally enabled.
+- `GET /healthz`, model discovery, the production-style vision prompt, and synthetic image smoke tests succeed locally.
+- The public service URL reaches only the Go health endpoint.
 - Supabase Realtime is enabled for processing jobs and match/invitation updates.
 - The fallback applicant account has completed matches and an available slot.
 - The live demo CV is available and does not contain sensitive real-world data without consent.

@@ -54,8 +54,9 @@ The priority matters when one user has more than one relationship. Admin wins; a
 - A company sees an anonymized candidate until the applicant grants role-specific consent or a fair-based interview path exposes the allowed information.
 - Model output is treated as untrusted. Taxonomy slugs, evidence pages, methods, text lengths, counts, and numeric bounds are validated before persistence.
 
-## Current product posture
+## Snapshot posture and current update
 
 - The product code is broad and feature-rich for a demo: applicant, company, provider, admin, public positions, public training, career explorer, sharing, applications, and interviews all exist.
-- The root marketing surface intentionally says “In development” and “Under construction”; it does not currently link visitors into the product loop.
-- The next requested direction is to restore a complete user journey, improve progressive disclosure and back navigation, and make the model endpoint configurable without tying the implementation to Thunder/vLLM naming.
+- This snapshot described a root marketing surface that said “In development” and “Under construction”. Checkpoint 86 replaced it with a connected public entry point, public directory navigation, and role-preserving CTAs.
+- Checkpoint 87 hardened the highest-risk async interactions, focus behavior, destructive confirmations, and date formatting. See [`docs/polish-audit.md`](../polish-audit.md) for the current implementation record.
+- The processor configuration is now provider-neutral at the environment boundary (`LLM_BASE_URL`, optional `LLM_API_KEY`, and `LLM_MODEL`), while the deployment runbooks may still describe the current private host.

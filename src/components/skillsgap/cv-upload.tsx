@@ -132,7 +132,7 @@ export function CvUpload({ userId, hasUploadedCv, resumeStatus, processingStatus
   const showFilePicker = !hasCv && (status === "idle" || status === "error");
 
   return (
-    <section className={`border bg-surface p-5 shadow-sm sm:p-6 ${(status === "queued" || status === "waiting") || status === "uploading" ? "border-accent" : "border-border"}`} aria-labelledby="cv-upload-heading">
+    <section className={`rounded-lg border bg-surface p-5 sm:p-6 ${(status === "queued" || status === "waiting") || status === "uploading" ? "border-accent" : "border-border"}`} aria-labelledby="cv-upload-heading">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Your CV</p>
@@ -166,8 +166,8 @@ export function CvUpload({ userId, hasUploadedCv, resumeStatus, processingStatus
       </button> : null}
 
       {status === "uploading" || (status === "queued" || status === "waiting") ? <div className="mt-5 flex items-start gap-3 rounded-md bg-teal-50 p-4" role="status" aria-live="polite">
-        <span className="mt-0.5 size-5 shrink-0 animate-spin rounded-full border-2 border-accent/25 border-t-accent motion-reduce:animate-none" aria-hidden="true" />
-        <div><p className="font-semibold text-foreground">{status === "uploading" ? "Keep this page open while the upload finishes." : "No action needed right now."}</p><p className="mt-1 text-sm leading-6 text-muted">{status === "uploading" ? "Reading starts automatically after the file is received." : "This page updates automatically. You can also leave and come back later."}</p></div>
+        <span className={`mt-0.5 size-5 shrink-0 rounded-full border-2 ${status === "waiting" ? "border-accent bg-accent/10" : "animate-spin border-accent/25 border-t-accent motion-reduce:animate-none"}`} aria-hidden="true" />
+        <div><p className="font-semibold text-foreground">{status === "uploading" ? "Keep this page open while the upload finishes." : status === "waiting" ? "Your CV is queued securely." : "No action needed right now."}</p><p className="mt-1 text-sm leading-6 text-muted">{status === "uploading" ? "Reading starts automatically after the file is received." : status === "waiting" ? "We’ll start reading automatically when the processing service is available. You can leave and come back later." : "We’re finding your skills and work history. This page updates automatically."}</p></div>
       </div> : null}
 
       {status === "ready" ? <a href="#skills-review" className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong sm:w-auto">Review the skills we found <span className="ml-2" aria-hidden="true">↓</span></a> : null}

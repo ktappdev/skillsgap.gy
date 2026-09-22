@@ -28,18 +28,26 @@ export function TeamAccessList({ members, invitations, canManage }: { members: T
     if (!window.confirm("Remove this recruiter's company access?")) return;
     setError(null);
     startTransition(async () => {
-      const result = await removeRecruiter(userId);
-      if (result.error) setError(result.error);
-      else router.refresh();
+      try {
+        const result = await removeRecruiter(userId);
+        if (result.error) setError(result.error);
+        else router.refresh();
+      } catch {
+        setError("We couldn’t remove that access. Please try again.");
+      }
     });
   }
 
   function revoke(invitationId: string) {
     setError(null);
     startTransition(async () => {
-      const result = await revokeRecruiterInvitation(invitationId);
-      if (result.error) setError(result.error);
-      else router.refresh();
+      try {
+        const result = await revokeRecruiterInvitation(invitationId);
+        if (result.error) setError(result.error);
+        else router.refresh();
+      } catch {
+        setError("We couldn’t revoke that invite. Please try again.");
+      }
     });
   }
 

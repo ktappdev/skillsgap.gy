@@ -120,6 +120,7 @@ export function ShareButton({
         type="button"
         aria-controls={panelId}
         aria-expanded={open}
+        aria-haspopup="dialog"
         onClick={() => { void share(); }}
         className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition ${buttonClass}`}
       >

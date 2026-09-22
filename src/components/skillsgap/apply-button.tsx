@@ -21,15 +21,20 @@ export function ApplyButton({ roleId, initialStatus, eligible, threshold }: { ro
     if (!canApply || saving) return;
     setSaving(true);
     setMessage(null);
-    const result = applied ? await withdrawApplication(targetRoleId) : await applyToJob(targetRoleId);
-    setSaving(false);
-    if (result.error) {
-      setMessage(result.error);
-      return;
+    try {
+      const result = applied ? await withdrawApplication(targetRoleId) : await applyToJob(targetRoleId);
+      if (result.error) {
+        setMessage(result.error);
+        return;
+      }
+      setStatus(applied ? "withdrawn" : "applied");
+      setConfirmingWithdraw(false);
+      setMessage(result.message ?? (applied ? "Your application was withdrawn." : "Application submitted."));
+    } catch {
+      setMessage("We couldn’t update your application. Please try again.");
+    } finally {
+      setSaving(false);
     }
-    setStatus(applied ? "withdrawn" : "applied");
-    setConfirmingWithdraw(false);
-    setMessage(result.message ?? (applied ? "Your application was withdrawn." : "Application submitted."));
   }
 
   function handleButtonClick() {
