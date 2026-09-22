@@ -16,7 +16,7 @@ export default async function RequestAccessPage({ searchParams }: { searchParams
   const errorMessage = params.error === "duplicate" ? "That company already has a request." : params.error ? "Check the company name and try again." : null;
 
   return (
-    <main className="min-h-screen bg-background px-4 py-6 sm:px-6">
+    <main id="main-content" className="min-h-screen bg-background px-4 py-6 sm:px-6">
       <div className="mx-auto max-w-xl">
         <Link
           href="/"

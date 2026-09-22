@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
+
+import { PublicContentHeader } from "@/components/shareable/public-content-header";
+import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 
 export const metadata: Metadata = {
   title: "Questions and answers",
@@ -88,24 +90,9 @@ const faqGroups = [
 
 export default function FaqPage() {
   return (
-    <main className="min-h-screen bg-background">
+    <main id="main-content" className="min-h-screen bg-background">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-        <header className="flex items-center justify-between gap-4">
-          <Link href="/" className="inline-flex min-h-11 items-center" aria-label="SkillsGap.gy home">
-            <Image
-              src="/skillsgap-logo.webp"
-              alt="SkillsGap.gy"
-              width={1200}
-              height={728}
-              priority
-              className="h-7 w-auto object-contain sm:h-8"
-            />
-          </Link>
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-accent">
-            <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
-            In development
-          </span>
-        </header>
+        <PublicContentHeader active="faq" />
 
         <section className="mt-12 max-w-3xl" aria-labelledby="faq-title">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Questions and answers</p>
@@ -138,22 +125,22 @@ export default function FaqPage() {
           ))}
         </div>
 
-        <section className="mt-12 border border-border bg-surface p-5 sm:p-6" aria-labelledby="faq-next-step">
-          <h2 id="faq-next-step" className="text-xl font-semibold tracking-tight text-foreground">More is on the way.</h2>
+        <section className="mt-12 border border-accent bg-surface-muted p-5 sm:p-6" aria-labelledby="faq-next-step">
+          <h2 id="faq-next-step" className="text-xl font-semibold tracking-tight text-foreground">Ready to take the next step?</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-            Positions, training, and the full applicant experience are paused while we build the next chapter.
+            Start with the route that fits you. You can browse without an account, then sign up when you are ready to build a private pathway.
           </p>
-          <div className="mt-4">
-            <Link href="/" className="inline-flex min-h-11 items-center justify-center rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface">
-              Back to the coming-soon page
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/i-want-to-become" className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">
+              Build a career route
+            </Link>
+            <Link href="/opportunities" className="inline-flex min-h-11 items-center justify-center rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface">
+              Browse positions
             </Link>
           </div>
         </section>
 
-        <footer className="flex flex-col gap-2 py-8 text-sm text-muted sm:flex-row sm:justify-between">
-          <span>SkillsGap.gy</span>
-          <span>Skills → opportunities → training</span>
-        </footer>
+        <PublicSiteFooter />
       </div>
     </main>
   );

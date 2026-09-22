@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { PositionCard } from "@/components/shareable/position-card";
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
+import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 import { getPublicPositions } from "@/lib/share/public-content";
 
 export const metadata: Metadata = {
@@ -15,7 +17,7 @@ export default async function OpportunitiesPage() {
   const positions = await getPublicPositions();
 
   return (
-    <main className="min-h-screen bg-background">
+    <main id="main-content" className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <PublicContentHeader active="positions" />
 
@@ -43,9 +45,10 @@ export default async function OpportunitiesPage() {
               {positions.map((position) => <PositionCard key={position.id} position={position} />)}
             </div>
           ) : (
-            <div className="mt-6 rounded-lg border border-dashed border-border bg-surface p-6 text-sm leading-6 text-muted">
-              No public positions right now. Check back soon, or build a career
-              route from your current skills.
+            <div className="mt-6 rounded-lg border border-dashed border-border bg-surface p-6">
+              <h3 className="text-lg font-semibold text-foreground">No public positions right now.</h3>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-muted">You can still build a route from your interests and starting point, then return when new roles are published.</p>
+              <Link href="/i-want-to-become" className="mt-4 inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">Build a career route <span aria-hidden="true" className="ml-2">→</span></Link>
             </div>
           )}
         </section>
@@ -54,10 +57,7 @@ export default async function OpportunitiesPage() {
           Position details can change. Confirm the vacancy and requirements with
           the employer before deciding.
         </p>
-        <footer className="flex flex-col gap-2 py-6 text-sm text-muted sm:flex-row sm:justify-between">
-          <span>SkillsGap.gy</span>
-          <span>Skills → opportunities → training</span>
-        </footer>
+        <PublicSiteFooter />
       </div>
     </main>
   );

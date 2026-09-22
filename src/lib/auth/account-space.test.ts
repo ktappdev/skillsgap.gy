@@ -8,10 +8,13 @@ describe("account spaces", () => {
     expect(getAccountNavigation("admin")).toEqual([{ href: "/admin", label: "Admin" }]);
   });
 
-  it("gives applicants a dashboard, pathway, and interview entry point", () => {
+  it("gives applicants their pathway and public discovery entry points", () => {
     expect(getAccountNavigation("applicant")).toEqual([
       { href: "/dashboard/overview", label: "Dashboard" },
       { href: "/dashboard", label: "My pathway" },
+      { href: "/opportunities", label: "Positions" },
+      { href: "/training", label: "Training" },
+      { href: "/i-want-to-become", label: "Build a route" },
       { href: "/interviews", label: "Interviews" },
     ]);
   });

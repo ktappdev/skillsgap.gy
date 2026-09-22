@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { CareerExplorer } from "@/components/i-want-to-become/career-explorer";
 import { PathwaySaveHandoff } from "@/components/i-want-to-become/pathway-save-handoff";
+import { PublicContentHeader } from "@/components/shareable/public-content-header";
+import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 import { resolveUserHome } from "@/lib/auth/queries";
 import type { PathwaySaveViewer } from "@/lib/i-want-to-become/pathway-plan";
 import { createClient } from "@/lib/supabase/server";
@@ -32,18 +33,9 @@ export default async function IWantToBecomePage({ searchParams }: IWantToBecomeP
   const isSavingPathway = params.save === "pathway";
 
   return (
-    <main className="min-h-screen bg-background">
+    <main id="main-content" className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        <header className="flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-3 font-semibold tracking-tight text-foreground">
-            <span className="grid size-9 place-items-center bg-accent text-sm font-black text-white">SG</span>
-            <span>skillsgap<span className="text-accent">.gy</span></span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <span className="hidden text-xs font-semibold uppercase tracking-[0.14em] text-muted sm:inline">No CV required</span>
-            <Link href={accountHref} className="text-sm font-semibold text-foreground underline-offset-4 hover:text-accent hover:underline">{accountLabel}</Link>
-          </div>
-        </header>
+        <PublicContentHeader accountHref={accountHref} accountLabel={accountLabel} showGetStarted={!data.user} />
 
         <section className="mt-8 border-b border-border py-10 sm:py-12" aria-labelledby="page-title">
           <div className="max-w-3xl">
@@ -66,7 +58,7 @@ export default async function IWantToBecomePage({ searchParams }: IWantToBecomeP
         </div>
 
         <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-6 text-muted">Career and training information is curated for this SkillsGap.gy demonstration. Confirm current entry requirements directly with a guidance counsellor, provider, or employer.</p>
-        <footer className="flex flex-col gap-2 py-8 text-sm text-muted sm:flex-row sm:justify-between"><span>SkillsGap.gy</span><span>Skills → opportunities → training</span></footer>
+        <PublicSiteFooter />
       </div>
     </main>
   );

@@ -50,10 +50,10 @@ export function RealtimeSync({ userId, isProcessing }: RealtimeSyncProps) {
   }, [isProcessing, router]);
 
   const isLive = connectionState === "live";
-  const label = isLive ? "Updating automatically" : connectionState === "connecting" ? "Connecting updates" : isProcessing ? "Checking for results" : "Updates paused";
+  const label = isLive ? "Updating automatically" : connectionState === "connecting" ? "Connecting updates" : isProcessing ? "Checking for results manually" : "Live updates unavailable";
 
   return (
-    <span className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted">
+    <span className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted" role="status" aria-live="polite">
       <span className={`size-2 rounded-full ${isLive ? "bg-emerald-500" : "bg-amber-400"}`} aria-hidden="true" />
       {label}
     </span>

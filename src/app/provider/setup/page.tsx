@@ -21,7 +21,7 @@ export default async function ProviderSetupPage({ searchParams }: { searchParams
   const errorMessage = params.error ? decodeURIComponent(params.error) : null;
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 sm:px-6">
+    <main id="main-content" className="min-h-screen bg-background px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-xl">
         <Link href="/" className="inline-flex min-h-11 items-center" aria-label="SkillsGap.gy home">
           <Image

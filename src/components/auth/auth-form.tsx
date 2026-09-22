@@ -53,10 +53,11 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
               ? isSignUp
                 ? "Sign up to manage your training programs."
                 : "Sign in to manage your training programs."
-              : isSignUp
-                ? "Start with the experience you already have."
-                : "Pick up where you left off."}
+                : isSignUp
+                  ? "Start with the experience you already have."
+                  : "Pick up where you left off."}
         </p>
+        {next ? <p className="mt-2 text-xs leading-5 text-muted">You’ll return to the page you started from after you sign in.</p> : null}
       </div>
 
       <form action={formAction} className="space-y-4">
@@ -83,6 +84,7 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
                   name="username"
                   type="text"
                   autoComplete="username"
+                  spellCheck={false}
                   placeholder="your-handle"
                   className="min-h-11 w-full rounded-md border border-border bg-surface px-3.5 text-sm font-normal outline-none transition placeholder:text-muted focus:border-accent"
                 />
@@ -98,6 +100,7 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
             name="email"
             type="email"
             autoComplete="email"
+            spellCheck={false}
             placeholder="you@example.com"
             required
             className="min-h-11 w-full rounded-md border border-border bg-surface px-3.5 text-sm font-normal outline-none transition placeholder:text-muted focus:border-accent"
@@ -156,6 +159,14 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
           {switchLabel}
         </Link>
       </p>
+
+      {audience === "applicant" ? <div className="border-t border-border pt-5 text-center text-sm text-muted">
+        <p>Creating a workspace instead?</p>
+        <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-2">
+          <Link href="/signup/company" className="font-semibold text-accent underline-offset-4 hover:underline">Company account</Link>
+          <Link href="/signup/provider" className="font-semibold text-accent underline-offset-4 hover:underline">Training provider account</Link>
+        </div>
+      </div> : null}
     </div>
   );
 }

@@ -30,7 +30,7 @@ function GapAction({ gap, isDemo, isFirst = false }: { gap: Gap; isDemo: boolean
           {gap.projectedScore !== undefined ? <p className="mt-2 text-sm font-semibold text-accent">Match after confirmation: {gap.projectedScore}%</p> : null}
           <div className="mt-3 flex flex-wrap items-center gap-3">
             {gap.trainingProgramId ? <Link href={`/training/${gap.trainingProgramId}`} className="inline-flex min-h-11 items-center rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted">View course <span className="ml-1" aria-hidden="true">→</span></Link> : null}
-            {gap.trainingProgramId ? <ShareButton url={`/training/${gap.trainingProgramId}`} title={gap.training ?? "Local training route"} text={buildCourseShareText({ name: gap.training ?? "Local training route", provider: gap.training?.split(" · ").slice(1).join(" · ") || "a verified local provider" })} label="Share" variant="light" /> : null}
+            {gap.trainingProgramId ? <ShareButton url={`/training/${gap.trainingProgramId}`} title={gap.training ?? "Local training route"} text={buildCourseShareText({ name: gap.training ?? "Local training route", provider: gap.training?.split(" · ").slice(1).join(" · ") || "a verified local provider" })} label="Share course" variant="light" /> : null}
             {gap.trainingUrl?.startsWith("https://") ? (
               <a href={gap.trainingUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">
                 Check training <span className="ml-1" aria-hidden="true">↗</span>

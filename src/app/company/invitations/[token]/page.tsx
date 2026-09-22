@@ -25,7 +25,7 @@ export default async function RecruiterInvitationPage({ params }: RecruiterInvit
   const invitation = invitationRow && company ? { ...invitationRow, companyName: company.name } : null;
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 sm:px-6">
+    <main id="main-content" className="min-h-screen bg-background px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-xl">
         <Link href="/" className="font-semibold text-accent underline-offset-4 hover:underline">← skillsgap.gy</Link>
         <section className="mt-10 border border-border bg-surface p-6 shadow-sm sm:p-8">

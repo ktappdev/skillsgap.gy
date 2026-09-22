@@ -45,9 +45,10 @@ export default async function PositionPage({ params }: PositionPageProps) {
 
   const positionUrl = `/opportunities/${position.id}`;
   const shareText = buildPositionShareText({ title: position.title, company: position.company.name, location: position.location });
+  const pathwayHref = `/signup?next=${encodeURIComponent(`/dashboard?roleId=${position.id}`)}`;
 
   return (
-    <main className="min-h-screen bg-background">
+    <main id="main-content" className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <PublicContentHeader active="positions" />
 
@@ -65,10 +66,10 @@ export default async function PositionPage({ params }: PositionPageProps) {
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <ShareButton url={positionUrl} title={position.title} text={shareText} label="Share this position" variant="accent" />
             <Link
-              href="/signup"
+              href={pathwayHref}
               className="inline-flex min-h-11 items-center justify-center rounded-md border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent"
             >
-              Check if I fit <span aria-hidden="true" className="ml-2">→</span>
+              Compare my experience <span aria-hidden="true" className="ml-2">→</span>
             </Link>
           </div>
         </section>
@@ -121,10 +122,10 @@ export default async function PositionPage({ params }: PositionPageProps) {
                 points to training for the gaps that matter.
               </p>
               <Link
-                href="/signup"
+                href={pathwayHref}
                 className="mt-3 inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-4 text-sm font-semibold text-white transition hover:bg-accent-strong"
               >
-                Find my route <span aria-hidden="true" className="ml-2">→</span>
+                Compare my experience <span aria-hidden="true" className="ml-2">→</span>
               </Link>
             </section>
             {position.company.website_url?.startsWith("https://") ? (

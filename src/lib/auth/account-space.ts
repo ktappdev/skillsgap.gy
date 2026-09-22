@@ -26,6 +26,9 @@ export function getAccountNavigation(space: AccountSpace) {
   return [
     { href: "/dashboard/overview", label: "Dashboard" },
     { href: "/dashboard", label: "My pathway" },
+    { href: "/opportunities", label: "Positions" },
+    { href: "/training", label: "Training" },
+    { href: "/i-want-to-become", label: "Build a route" },
     { href: "/interviews", label: "Interviews" },
   ] as const;
 }

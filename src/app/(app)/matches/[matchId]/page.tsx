@@ -36,7 +36,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ ma
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">{match.title}</h1>
           <div className="flex flex-wrap items-center gap-3">
             <StatusPill tone="accent">{match.score}% match</StatusPill>
-            {match.roleId ? <ShareButton url={`/opportunities/${match.roleId}`} title={match.title} text={buildPositionShareText({ title: match.title, company: match.company, location: null })} label="Share" variant="light" /> : null}
+            {match.roleId ? <ShareButton url={`/opportunities/${match.roleId}`} title={match.title} text={buildPositionShareText({ title: match.title, company: match.company, location: null })} label="Share position" variant="light" /> : null}
           </div>
         </div>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
@@ -48,6 +48,15 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ ma
         <div className="mt-6 space-y-4">
           <ShareProfileButton roleId={match.roleId} alreadyShared={match.consented} />
           <ApplyButton roleId={match.roleId} initialStatus={match.applicationStatus} eligible={match.score >= match.threshold} threshold={match.threshold} />
+          <section className="border border-border bg-surface p-5" aria-labelledby="privacy-choices-heading">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Your privacy choices</p>
+            <h2 id="privacy-choices-heading" className="mt-2 text-lg font-semibold text-foreground">Interest and identity are separate.</h2>
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-muted" role="list">
+              <li><span className="font-semibold text-foreground">Apply</span> tells the company you are interested without sharing your name or CV.</li>
+              <li><span className="font-semibold text-foreground">Share your profile privately</span> lets this company see your contact details for this role.</li>
+              <li><span className="font-semibold text-foreground">Share position</span> sends a public role link to someone else.</li>
+            </ul>
+          </section>
         </div>
       ) : null}
 

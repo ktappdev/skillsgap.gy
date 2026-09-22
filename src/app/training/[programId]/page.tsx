@@ -55,7 +55,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const enrollmentUrl = course.enrollmentUrl?.startsWith("https://") ? course.enrollmentUrl : null;
 
   return (
-    <main className="min-h-screen bg-background">
+    <main id="main-content" className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <PublicContentHeader active="training" />
 

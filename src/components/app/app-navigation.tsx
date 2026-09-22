@@ -19,7 +19,7 @@ const mobileLink = "inline-flex min-h-11 items-center whitespace-nowrap hover:te
 const mobileActiveLink = "inline-flex min-h-11 items-center whitespace-nowrap text-accent";
 
 function isActivePath(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
 }
 
 export function AppNavigation({ items, mobile = false }: AppNavigationProps) {

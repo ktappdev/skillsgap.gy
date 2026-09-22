@@ -57,7 +57,7 @@ export function MatchCard({ match }: { match: Match }) {
         <Link href={`/matches/${match.id}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">
           Open pathway <span aria-hidden="true" className="ml-1">→</span>
         </Link>
-        {match.roleId ? <ShareButton url={`/opportunities/${match.roleId}`} title={match.title} text={buildPositionShareText({ title: match.title, company: match.company, location: null })} label="Share" variant="light" /> : null}
+        {match.roleId ? <ShareButton url={`/opportunities/${match.roleId}`} title={match.title} text={buildPositionShareText({ title: match.title, company: match.company, location: null })} label="Share position" variant="light" /> : null}
       </div>
     </article>
   );

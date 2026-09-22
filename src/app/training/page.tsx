@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { CourseCard } from "@/components/shareable/course-card";
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
+import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 import { getPublicCourses } from "@/lib/share/public-content";
 
 export const metadata: Metadata = {
@@ -15,7 +17,7 @@ export default async function TrainingPage() {
   const courses = await getPublicCourses();
 
   return (
-    <main className="min-h-screen bg-background">
+    <main id="main-content" className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <PublicContentHeader active="training" />
 
@@ -43,9 +45,10 @@ export default async function TrainingPage() {
               {courses.map((course) => <CourseCard key={course.id} course={course} />)}
             </div>
           ) : (
-            <div className="mt-6 rounded-lg border border-dashed border-border bg-surface p-6 text-sm leading-6 text-muted">
-              No verified courses right now. Build a profile to see training
-              recommendations when your pathway is ready.
+            <div className="mt-6 rounded-lg border border-dashed border-border bg-surface p-6">
+              <h3 className="text-lg font-semibold text-foreground">No verified courses right now.</h3>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-muted">Build a profile to see training recommendations when your pathway is ready, or check back when providers publish a new program.</p>
+              <Link href="/signup" className="mt-4 inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">Build my profile <span aria-hidden="true" className="ml-2">→</span></Link>
             </div>
           )}
         </section>
@@ -54,10 +57,7 @@ export default async function TrainingPage() {
           Dates, fees, and entry requirements can change. Confirm details with
           the provider before enrolling.
         </p>
-        <footer className="flex flex-col gap-2 py-6 text-sm text-muted sm:flex-row sm:justify-between">
-          <span>SkillsGap.gy</span>
-          <span>Skills → opportunities → training</span>
-        </footer>
+        <PublicSiteFooter />
       </div>
     </main>
   );

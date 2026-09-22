@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { MatchRecalculationProvider } from "@/components/dashboard/match-recalculation-context";
 import { MatchResultsSection } from "@/components/dashboard/match-results-section";
+import { PathwaySteps, type PathwayStep } from "@/components/dashboard/pathway-steps";
 import { RealtimeSync } from "@/components/dashboard/realtime-sync";
 import { SavedCareerRoute } from "@/components/dashboard/saved-career-route";
 import { CvUpload } from "@/components/skillsgap/cv-upload";
@@ -9,6 +11,7 @@ import { ExperienceReview } from "@/components/skillsgap/experience-review";
 import { QualificationReview } from "@/components/skillsgap/qualification-review";
 import { isDemoApplicantMetadata } from "@/lib/auth/demo";
 import { requireApplicant } from "@/lib/auth/queries";
+import { getPublicPosition, type PublicPosition } from "@/lib/share/public-content";
 import { getApplicantProgress } from "@/lib/skillsgap/queries";
 import { demoMatches, shouldUseDemoMatches } from "@/lib/skillsgap-demo";
 
@@ -21,6 +24,7 @@ type DashboardPageProps = {
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const { supabase, user } = await requireApplicant();
   const [progress, params] = await Promise.all([getApplicantProgress(supabase, user.id), searchParams]);
+  const requestedRole = typeof params.roleId === "string" ? await getPublicPosition(params.roleId) : null;
   const usingDemoMatches = shouldUseDemoMatches({
     isDemoApplicant: isDemoApplicantMetadata(user.user_metadata),
     matchCount: progress.matches.length,
@@ -62,6 +66,32 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const name = typeof metadataName === "string" && metadataName.trim()
     ? metadataName.trim()
     : user.email?.split("@")[0] || "there";
+  const pathwaySteps: readonly PathwayStep[] = [
+    {
+      label: "Build your profile",
+      detail: isResumeProcessing ? "Your CV is being read" : showProfileResults ? "Your profile is ready" : "Upload a private CV",
+      href: "#cv-upload",
+      state: isResumeProcessing ? "current" : showProfileResults ? "complete" : "current",
+    },
+    {
+      label: "Confirm your skills",
+      detail: needsReview ? `${progress.findings.length || "Add"} to review` : progress.qualifications.length > 0 ? `${progress.qualifications.length} confirmed` : "Review after upload",
+      href: "#skills-review",
+      state: needsReview ? "current" : progress.qualifications.length > 0 ? "complete" : "next",
+    },
+    {
+      label: "Explore your routes",
+      detail: matches.length > 0 ? `${matches.length} closest route${matches.length === 1 ? "" : "s"}` : "Matches follow confirmation",
+      href: "#matches-area",
+      state: matches.length > 0 ? "complete" : progress.qualifications.length > 0 ? "current" : "next",
+    },
+    {
+      label: "Take the next step",
+      detail: matches.some((match) => match.eligible) ? "Interview options are ready" : matches.length > 0 ? "Choose a gap or course" : "Your next move appears here",
+      href: matches.some((match) => match.eligible) ? "/interviews" : "#matches-area",
+      state: matches.some((match) => match.eligible) ? "complete" : matches.length > 0 ? "current" : "next",
+    },
+  ];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
@@ -74,18 +104,26 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Upload your CV, confirm your skills, then explore jobs and training.</p>
       </header>
 
+      <div className="mt-6">
+        <PathwaySteps steps={pathwaySteps} />
+      </div>
+
+      {requestedRole ? <RoleContextBanner role={requestedRole} /> : null}
+
       {params.pathway === "saved" ? <p className="mt-6 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status">Your career route is saved privately to this dashboard.</p> : null}
 
       <div className="mt-8">
         <div className="space-y-8">
-          {showProfileResults && progress.latestResume && !scanFailed ? <details className="border-b border-border pb-4"><summary className="cursor-pointer py-2 text-sm font-semibold text-muted">CV uploaded · Manage your file</summary><div className="mt-3"><CvUpload userId={user.id} hasUploadedCv={Boolean(progress.latestResume)} resumeStatus={progress.latestResume?.status ?? null} processingStatus={progress.processingStatus} processingError={progress.processingError} /></div></details> : <CvUpload
-            key={progress.latestResume?.id ?? "no-resume"}
-            userId={user.id}
-            hasUploadedCv={Boolean(progress.latestResume)}
-            resumeStatus={progress.latestResume?.status ?? null}
-            processingStatus={progress.processingStatus}
-            processingError={progress.processingError}
-          />}
+          <div id="cv-upload" className="scroll-mt-6">
+            {showProfileResults && progress.latestResume && !scanFailed ? <details className="border-b border-border pb-4"><summary className="cursor-pointer py-2 text-sm font-semibold text-muted">CV uploaded · Manage your file</summary><div className="mt-3"><CvUpload userId={user.id} hasUploadedCv={Boolean(progress.latestResume)} resumeStatus={progress.latestResume?.status ?? null} processingStatus={progress.processingStatus} processingError={progress.processingError} /></div></details> : <CvUpload
+              key={progress.latestResume?.id ?? "no-resume"}
+              userId={user.id}
+              hasUploadedCv={Boolean(progress.latestResume)}
+              resumeStatus={progress.latestResume?.status ?? null}
+              processingStatus={progress.processingStatus}
+              processingError={progress.processingError}
+            />}
+          </div>
           {showProfileResults ? <MatchRecalculationProvider key={matchRevision}>
             <QualificationReview applicantId={user.id} initialFindings={progress.findings} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} unmappedTerms={progress.unmappedTerms} />
             {progress.qualifications.length > 0 || usingDemoMatches ? <MatchResultsSection matches={matches} roleLabel={roleLabel} isRecalculating={isMatchRecalculating} recalculationError={matchRecalculationError} /> : <p id="matches-area" className="scroll-mt-6 rounded-md bg-surface-muted p-4 text-sm text-muted">Your job matches will appear here after you confirm a skill above.</p>}
@@ -95,5 +133,18 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         </div>
       </div>
     </div>
+  );
+}
+
+function RoleContextBanner({ role }: { role: PublicPosition }) {
+  return (
+    <section className="mt-6 flex flex-col gap-4 border border-accent/30 bg-teal-50/50 p-4 sm:flex-row sm:items-center sm:justify-between" aria-labelledby="role-context-heading">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">You came from a position</p>
+        <h2 id="role-context-heading" className="mt-1 text-base font-semibold text-foreground">Keep {role.title} in view</h2>
+        <p className="mt-1 text-sm leading-6 text-muted">Build your private profile here, then return to this role to compare your confirmed experience.</p>
+      </div>
+      <Link href={`/opportunities/${role.id}`} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-white">Review position</Link>
+    </section>
   );
 }

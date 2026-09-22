@@ -39,7 +39,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
           <AppNavigation items={navigation} mobile />
         </div>
       </header>
-      <main>{children}</main>
+      <main id="main-content">{children}</main>
     </div>
   );
 }
