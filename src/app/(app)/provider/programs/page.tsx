@@ -4,7 +4,7 @@ import { requireTrainingProvider } from "@/lib/auth/queries";
 import type { Tables } from "@/lib/supabase/database.types";
 
 export default async function ProviderProgramsPage() {
-  const { supabase, provider } = await requireTrainingProvider();
+  const { supabase, provider } = await requireTrainingProvider("/provider/programs");
 
   const { data: programs } = await supabase
     .from("training_programs")

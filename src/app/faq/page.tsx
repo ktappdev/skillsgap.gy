@@ -4,12 +4,23 @@ import Link from "next/link";
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
 import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 
+type FaqQuestion = {
+  question: string;
+  answer: string;
+  link?: { href: string; label: string };
+};
+
+type FaqGroup = {
+  title: string;
+  questions: readonly FaqQuestion[];
+};
+
 export const metadata: Metadata = {
   title: "Questions and answers",
   description: "Answers about CV analysis, skills matching, training pathways, privacy, and local-content careers in Guyana.",
 };
 
-const faqGroups = [
+const faqGroups: readonly FaqGroup[] = [
   {
     title: "Getting started",
     questions: [
@@ -74,7 +85,8 @@ const faqGroups = [
       },
       {
         question: "Can training providers add their programs?",
-        answer: "Yes. Verified providers can manage their profile and programs, including the skills or qualifications each program supports.",
+        answer: "Yes. Training providers can manage their profile and programs, including the skills or qualifications each program supports. New providers can prepare their listing while verification is pending; only verified providers appear in public recommendations.",
+        link: { href: "/signup/provider", label: "Create a training provider account" },
       },
       {
         question: "Can companies use SkillsGap.gy?",
@@ -118,6 +130,7 @@ export default function FaqPage() {
                       <span className="shrink-0 text-xl font-normal text-accent transition-transform group-open:rotate-45" aria-hidden="true">+</span>
                     </summary>
                     <p className="max-w-3xl pb-5 pr-10 text-sm leading-7 text-muted">{item.answer}</p>
+                    {item.link ? <Link href={item.link.href} className="-mt-3 mb-5 inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">{item.link.label} <span aria-hidden="true">→</span></Link> : null}
                   </details>
                 ))}
               </div>

@@ -1,27 +1,34 @@
 import Link from "next/link";
 
+import { getSafeRedirectPath } from "@/lib/validation";
+
 type AuthErrorPageProps = {
-  searchParams: Promise<{ reason?: string }>;
+  searchParams: Promise<{ next?: string; reason?: string }>;
 };
 
 export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps) {
-  const { reason } = await searchParams;
+  const { next: nextValue, reason } = await searchParams;
   const isRecoveryError = reason === "recovery";
+  const next = getSafeRedirectPath(nextValue, "");
+  const signInHref = next ? `/login?next=${encodeURIComponent(next)}` : "/login";
+  const resetHref = next ? `/forgot-password?next=${encodeURIComponent(next)}` : "/forgot-password";
 
   return (
     <main id="main-content" className="grid min-h-screen place-items-center bg-background px-4 py-12">
       <section className="w-full max-w-md rounded-lg border border-border bg-surface p-6 text-center">
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          {isRecoveryError ? "That reset link expired." : "That link did not work."}
+          {isRecoveryError ? "That reset link expired." : reason === "workspace" ? "We could not load your workspace." : "That link did not work."}
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted">
           {isRecoveryError
             ? "Request a fresh reset link and use the newest email."
-            : "The confirmation link may have expired. Start again for a fresh one."}
+            : reason === "workspace"
+              ? "Refresh and try again. Your account and provider listing have not been changed."
+              : "The confirmation link may have expired. Start again for a fresh one."}
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
-            href={isRecoveryError ? "/forgot-password" : "/login"}
+            href={isRecoveryError ? resetHref : signInHref}
             className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-strong"
           >
             {isRecoveryError ? "Request a new link" : "Return to sign in"}

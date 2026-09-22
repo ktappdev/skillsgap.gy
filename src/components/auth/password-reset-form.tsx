@@ -8,7 +8,7 @@ import { requestPasswordReset, updatePassword, type AuthActionState } from "@/li
 
 const initialState: AuthActionState = {};
 
-export function PasswordResetForm({ mode }: { mode: "request" | "update" }) {
+export function PasswordResetForm({ mode, next = "" }: { mode: "request" | "update"; next?: string }) {
   const isUpdate = mode === "update";
   const [state, formAction] = useActionState(isUpdate ? updatePassword : requestPasswordReset, initialState);
 
@@ -25,6 +25,7 @@ export function PasswordResetForm({ mode }: { mode: "request" | "update" }) {
         </p>
       </div>
       <form action={formAction} className="space-y-4">
+        {next ? <input type="hidden" name="next" value={next} /> : null}
         {isUpdate ? (
           <>
             <PasswordField id="new-password" name="password" label="New password" autoComplete="new-password" />
@@ -42,7 +43,7 @@ export function PasswordResetForm({ mode }: { mode: "request" | "update" }) {
           {isUpdate ? "Update password" : "Send reset link"}
         </SubmitButton>
       </form>
-      {!isUpdate ? <p className="text-center text-sm"><Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">Back to sign in</Link></p> : null}
+      {!isUpdate ? <p className="text-center text-sm"><Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">Back to sign in</Link></p> : null}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { CourseDirectory } from "@/components/shareable/course-directory";
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
@@ -29,6 +30,11 @@ export default async function TrainingPage() {
             Local courses tied to real skills needs. Send the right next step to
             someone you want to see move.
           </p>
+          <div className="mt-6 border-l-2 border-accent pl-4 text-sm leading-6">
+            <p className="font-semibold text-foreground">Are you a training provider?</p>
+            <p className="mt-1 text-muted">Create a provider account to manage your organisation and programs. Verification is required before programs appear in public recommendations.</p>
+            <Link href="/signup/provider" className="mt-2 inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">Create a training provider account <span aria-hidden="true">→</span></Link>
+          </div>
         </section>
 
         <CourseDirectory courses={courses} />

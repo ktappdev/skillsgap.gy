@@ -32,6 +32,16 @@ describe("account spaces", () => {
     expect(resolveAccountSpace(false, ["pending"], true)).toBe("provider");
   });
 
+  it("routes an unfinished provider signup to setup", () => {
+    expect(resolveAccountSpace(false, [], false, true)).toBe("provider-pending");
+    expect(getAccountHome("provider-pending")).toBe("/provider/setup");
+  });
+
+  it("routes a new company account to its access request", () => {
+    expect(resolveAccountSpace(false, [], false, false, true)).toBe("company-pending");
+    expect(getAccountHome("company-pending")).toBe("/company/request-access");
+  });
+
   it("keeps approved-company priority above provider", () => {
     expect(resolveAccountSpace(false, ["approved"], true)).toBe("company");
   });

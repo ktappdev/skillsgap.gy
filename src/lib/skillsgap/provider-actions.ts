@@ -75,43 +75,81 @@ type ProviderUpdateValues = {
   description: string | null;
 };
 
+type ProviderSetupFormValues = {
+  name: string;
+  location: string;
+  contact_phone: string;
+  contact_url: string;
+  description: string;
+};
+
+function redirectToProviderSetup(error: string, values: ProviderSetupFormValues): never {
+  const params = new URLSearchParams({ error });
+  for (const [key, value] of Object.entries(values)) {
+    if (value) params.set(key, value);
+  }
+  redirect(`/provider/setup?${params.toString()}`);
+}
+
 /**
  * Self-signup: creates an unverified training provider owned by the signed-in
  * user. RLS enforces `is_verified = false` on insert; this action never sets it.
  */
 export async function createProviderAccount(formData: FormData): Promise<void> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await requireUser("/provider/setup");
 
-  // A user may only own one provider. If they already do, send them there.
-  const { data: existing } = await supabase
-    .from("training_providers")
-    .select("id")
-    .eq("owner_user_id", user.id)
-    .maybeSingle();
+  const values: ProviderSetupFormValues = {
+    name: getTrimmedFormString(formData, "name"),
+    location: getTrimmedFormString(formData, "location"),
+    contact_phone: getTrimmedFormString(formData, "contact_phone"),
+    contact_url: getTrimmedFormString(formData, "contact_url"),
+    description: getTrimmedFormString(formData, "description"),
+  };
+
+  const [{ data: existing, error: existingError }, { data: profile, error: profileError }] = await Promise.all([
+    supabase.from("training_providers").select("id").eq("owner_user_id", user.id).maybeSingle(),
+    supabase.from("profiles").select("account_type").eq("id", user.id).maybeSingle(),
+  ]);
+
+  if (existingError || profileError || !profile) {
+    redirectToProviderSetup("We could not load your provider account. Refresh and try again.", values);
+  }
   if (existing) redirect("/provider");
+  if (profile.account_type !== "provider") {
+    redirectToProviderSetup("Use a separate account for training provider work.", values);
+  }
 
-  const name = getTrimmedFormString(formData, "name");
-  const location = getTrimmedFormString(formData, "location");
-  const contactPhone = getTrimmedFormString(formData, "contact_phone");
-  const contactUrl = getTrimmedFormString(formData, "contact_url");
-  const description = getTrimmedFormString(formData, "description");
-
-  const check = validateProviderFields(name, location, contactPhone, contactUrl, description);
-  if (check.error) redirect(`/provider/setup?error=${encodeURIComponent(check.error)}`);
+  const check = validateProviderFields(
+    values.name,
+    values.location,
+    values.contact_phone,
+    values.contact_url,
+    values.description,
+  );
+  if (check.error || !check.values) redirectToProviderSetup(check.error ?? "Check the provider details and try again.", values);
 
   const { error } = await supabase.from("training_providers").insert({
     owner_user_id: user.id,
-    name: check.values!.name,
-    location: check.values!.location,
-    contact_phone: check.values!.contact_phone,
-    contact_url: check.values!.contact_url,
-    description: check.values!.description,
+    name: check.values.name,
+    location: check.values.location,
+    contact_phone: check.values.contact_phone,
+    contact_url: check.values.contact_url,
+    description: check.values.description,
     is_verified: false,
   });
 
   if (error) {
-    const message = error.code === "23505" ? "That provider already exists at this location." : getDatabaseErrorMessage(error, "We could not create your provider profile.");
-    redirect(`/provider/setup?error=${encodeURIComponent(message)}`);
+    if (error.code === "23505") {
+      const { data: ownerProvider, error: ownerError } = await supabase
+        .from("training_providers")
+        .select("id")
+        .eq("owner_user_id", user.id)
+        .maybeSingle();
+      if (ownerError) redirectToProviderSetup("Your provider account may still be being created. Refresh and try again.", values);
+      if (ownerProvider) redirect("/provider");
+      redirectToProviderSetup("That provider is already listed at this location. Choose a different name or ask a platform administrator to connect the existing listing.", values);
+    }
+    redirectToProviderSetup(getDatabaseErrorMessage(error, "We could not create your provider profile. Refresh and try again."), values);
   }
 
   revalidatePath("/provider");
@@ -123,7 +161,7 @@ export async function createProviderAccount(formData: FormData): Promise<void> {
  * only platform admins can change verification state.
  */
 export async function updateProviderProfile(formData: FormData): Promise<ProviderActionResult> {
-  const { supabase, provider } = await requireTrainingProvider();
+  const { supabase, provider } = await requireTrainingProvider("/provider");
 
   const name = getTrimmedFormString(formData, "name");
   const location = getTrimmedFormString(formData, "location");
@@ -155,7 +193,7 @@ export async function updateProviderProfile(formData: FormData): Promise<Provide
 }
 
 export async function createProviderProgram(formData: FormData): Promise<ProviderActionResult> {
-  const { supabase, provider } = await requireTrainingProvider();
+  const { supabase, provider } = await requireTrainingProvider("/provider/programs");
 
   const name = getTrimmedFormString(formData, "name");
   const description = getTrimmedFormString(formData, "description");
@@ -197,7 +235,7 @@ export async function createProviderProgram(formData: FormData): Promise<Provide
 }
 
 export async function updateProviderProgram(formData: FormData): Promise<ProviderActionResult> {
-  const { supabase, provider } = await requireTrainingProvider();
+  const { supabase, provider } = await requireTrainingProvider("/provider/programs");
 
   const programId = getTrimmedFormString(formData, "programId");
   if (!programId) return { error: "Choose a program to edit." };
@@ -251,7 +289,7 @@ export async function updateProviderProgram(formData: FormData): Promise<Provide
 }
 
 export async function setProviderProgramActive(formData: FormData): Promise<ProviderActionResult> {
-  const { supabase, provider } = await requireTrainingProvider();
+  const { supabase, provider } = await requireTrainingProvider("/provider/programs");
 
   const programId = getTrimmedFormString(formData, "programId");
   const rawActive = getTrimmedFormString(formData, "isActive");
@@ -281,7 +319,7 @@ export async function setProviderProgramActive(formData: FormData): Promise<Prov
 }
 
 export async function mapProviderOutcome(formData: FormData): Promise<ProviderActionResult> {
-  const { supabase, provider } = await requireTrainingProvider();
+  const { supabase, provider } = await requireTrainingProvider("/provider/programs");
 
   const programId = getTrimmedFormString(formData, "programId");
   const qualificationId = getTrimmedFormString(formData, "qualificationId");
@@ -311,7 +349,7 @@ export async function mapProviderOutcome(formData: FormData): Promise<ProviderAc
 }
 
 export async function removeProviderOutcome(formData: FormData): Promise<ProviderActionResult> {
-  const { supabase, provider } = await requireTrainingProvider();
+  const { supabase, provider } = await requireTrainingProvider("/provider/programs");
 
   const programId = getTrimmedFormString(formData, "programId");
   const qualificationId = getTrimmedFormString(formData, "qualificationId");
@@ -345,7 +383,7 @@ export async function removeProviderOutcome(formData: FormData): Promise<Provide
  * action never sets `is_verified` on the provider.
  */
 export async function createProviderQualification(formData: FormData): Promise<ProviderActionResult> {
-  const { supabase, provider } = await requireTrainingProvider();
+  const { supabase, provider } = await requireTrainingProvider("/provider/programs");
   if (!provider.is_verified) return { error: "Only verified training providers can add new qualifications." };
 
   const programId = getTrimmedFormString(formData, "programId");

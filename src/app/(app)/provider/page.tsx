@@ -3,7 +3,7 @@ import { ProviderDashboard } from "@/components/skillsgap/provider-dashboard";
 import { requireTrainingProvider } from "@/lib/auth/queries";
 
 export default async function ProviderPage() {
-  const { supabase, provider } = await requireTrainingProvider();
+  const { supabase, provider } = await requireTrainingProvider("/provider");
   const { count: programCount } = await supabase
     .from("training_programs")
     .select("id", { count: "exact", head: true })

@@ -13,6 +13,7 @@ export function PublicSiteFooter() {
           <Link href="/training" className="inline-flex min-h-11 items-center hover:text-accent hover:underline">Training</Link>
           <Link href="/i-want-to-become" className="inline-flex min-h-11 items-center hover:text-accent hover:underline">Build a route</Link>
           <Link href="/faq" className="inline-flex min-h-11 items-center hover:text-accent hover:underline">FAQ</Link>
+          <Link href="/signup/provider" className="inline-flex min-h-11 items-center hover:text-accent hover:underline">For training providers</Link>
         </nav>
       </div>
     </footer>

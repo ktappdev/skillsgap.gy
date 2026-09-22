@@ -19,5 +19,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL("/auth/error", requestUrl.origin));
+  const errorUrl = new URL("/auth/error", requestUrl.origin);
+  if (requestedNext) errorUrl.searchParams.set("next", requestedNext);
+  return NextResponse.redirect(errorUrl);
 }

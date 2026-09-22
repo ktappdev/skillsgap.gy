@@ -46,9 +46,11 @@ export async function updateProfile(
     username: username || null,
   };
 
-  const result = existingProfile
-    ? await supabase.from("profiles").update(profileValues).eq("id", user.id)
-    : await supabase.from("profiles").insert({ id: user.id, ...profileValues });
+  if (!existingProfile) {
+    return { error: "We could not find your profile. Refresh and try again." };
+  }
+
+  const result = await supabase.from("profiles").update(profileValues).eq("id", user.id);
 
   if (result.error) {
     return { error: getDatabaseErrorMessage(result.error, "We could not save your profile.") };

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -47,6 +48,14 @@ export function ProviderDashboard({ initialProvider, programCount }: ProviderDas
           <dd className="mt-1 text-sm leading-6 text-muted">{initialProvider.is_verified ? "Your programs are eligible for recommendations." : "An admin reviews new providers. You can still edit and add programs while you wait."}</dd>
         </div>
       </dl>
+
+      {programCount === 0 ? (
+        <section className="rounded-lg border border-accent bg-surface-muted p-5 sm:p-6" aria-labelledby="first-program-heading">
+          <h2 id="first-program-heading" className="text-xl font-semibold">Add your first program</h2>
+          <p className="mt-2 text-sm leading-6 text-muted">Add a course or certification and map it to the skills or qualifications it supports. Applicants can find it after your provider is verified.</p>
+          <Link href="/provider/programs#create-program-heading" className="mt-4 inline-flex min-h-11 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">Add a training program</Link>
+        </section>
+      ) : null}
 
       <section
         className="rounded-lg border border-border bg-surface p-5 sm:p-6"

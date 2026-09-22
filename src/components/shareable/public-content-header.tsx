@@ -29,7 +29,6 @@ export function PublicContentHeader({ appearance = "default", active, accountHre
           preload
           className={`h-7 w-auto object-contain sm:h-8 ${isOverlay ? "brightness-0 invert" : ""}`}
         />
-        {isOverlay ? <span className="text-xl font-semibold text-white sm:text-2xl">SkillsGap.gy</span> : null}
       </Link>
       <div className={`hidden min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-1 lg:flex ${isOverlay ? "justify-end" : "justify-end"}`}>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm font-semibold" aria-label="Explore SkillsGap.gy">

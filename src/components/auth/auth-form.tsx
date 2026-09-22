@@ -5,6 +5,7 @@ import { useActionState } from "react";
 
 import { DemoLoginButtons } from "@/components/auth/demo-login-buttons";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
+import { ProviderSignupGuide } from "@/components/auth/provider-signup-guide";
 import { SignupPitch } from "@/components/auth/signup-pitch";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { signIn, signUp, type AuthActionState } from "@/lib/auth/actions";
@@ -30,12 +31,16 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
   const switchLabel = isSignUp ? "Already have an account? Sign in" : "Need an account? Create one";
   const switchHref = next ? `${switchPath}?next=${encodeURIComponent(next)}` : switchPath;
   const showDemoLogin = !isSignUp && env.demoLoginEnabled;
+  const showOAuth = !isSignUp || !isProvider;
   const showApplicantSignupPitch = isSignUp && audience === "applicant";
+  const showProviderSignupGuide = isSignUp && isProvider;
+  const accountType = isCompany ? "company" : isProvider ? "provider" : "applicant";
 
   return (
     <div className={showApplicantSignupPitch ? "grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,28rem)] lg:items-stretch" : "mx-auto max-w-md"}>
       {showApplicantSignupPitch ? <SignupPitch /> : null}
       <div className={showApplicantSignupPitch ? "order-1 space-y-6 lg:order-2" : "space-y-6"}>
+        {showProviderSignupGuide ? <ProviderSignupGuide /> : null}
         <div>
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
           {isCompany
@@ -44,7 +49,7 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
               : "Sign in"
             : isProvider
               ? isSignUp
-                ? "Create your provider account"
+                ? "Create your training provider account"
                 : "Sign in"
               : isSignUp
                 ? "Create an account"
@@ -55,7 +60,7 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
             ? "Use your own account to request or join a verified company workspace."
             : isProvider
               ? isSignUp
-                ? "Sign up to manage your training programs."
+                ? "Create a separate account for your organisation, then add your training programs."
                 : "Sign in to manage your training programs."
                 : isSignUp
                   ? "Start with the experience you already have."
@@ -66,17 +71,18 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
 
         <form action={formAction} className="space-y-4">
         <input type="hidden" name="next" value={next} />
+        {isSignUp ? <input type="hidden" name="account_type" value={accountType} /> : null}
 
         {isSignUp ? (
           <>
             <label className="block space-y-2 text-sm font-semibold text-foreground" htmlFor="full_name">
-              Name <span className="font-normal text-muted">(optional)</span>
+              {isProvider ? "Contact name" : "Name"} <span className="font-normal text-muted">(optional)</span>
               <input
                 id="full_name"
                 name="full_name"
                 type="text"
                 autoComplete="name"
-                placeholder="Ken Taylor"
+                placeholder={isProvider ? "Training coordinator" : "Ken Taylor"}
                 className="min-h-11 w-full rounded-md border border-border bg-surface px-3.5 text-sm font-normal outline-none transition placeholder:text-muted focus:border-accent"
               />
             </label>
@@ -145,16 +151,16 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
           pendingLabel={isSignUp ? "Creating account…" : "Signing in…"}
           className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-accent px-5 font-semibold text-white transition hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
         >
-          {isSignUp ? "Create account" : "Sign in"}
+          {isSignUp ? (isProvider ? "Create training provider account" : "Create account") : "Sign in"}
         </SubmitButton>
         {!isSignUp ? (
           <p className="text-right text-sm">
-            <Link href="/forgot-password" className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">Forgot password?</Link>
+            <Link href={next ? `/forgot-password?next=${encodeURIComponent(next)}` : "/forgot-password"} className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">Forgot password?</Link>
           </p>
         ) : null}
         </form>
 
-        <OAuthButtons next={next} />
+        {showOAuth ? <OAuthButtons next={next} /> : null}
 
         {showDemoLogin ? <DemoLoginButtons next={next} /> : null}
 

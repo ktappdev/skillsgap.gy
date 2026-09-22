@@ -8,6 +8,9 @@ import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { getFormString, getSafeRedirectPath, getTrimmedFormString } from "@/lib/validation";
 import { DEMO_REDIRECTS, getDemoCredentials, parseDemoRole, type DemoRole } from "@/lib/auth/demo";
+import { parseAccountType } from "@/lib/auth/account-type";
+import { getCompanySignupNext } from "@/lib/auth/company-signup";
+import { getProviderSignupNext } from "@/lib/auth/provider-signup";
 import { resolveUserHome } from "@/lib/auth/queries";
 
 export type AuthActionState = {
@@ -78,7 +81,13 @@ export async function signUp(
     return { error: "Your username must be between 3 and 40 characters." };
   }
 
-  const next = getSafeRedirectPath(getTrimmedFormString(formData, "next"));
+  const accountType = parseAccountType(getTrimmedFormString(formData, "account_type"));
+  const requestedNext = getTrimmedFormString(formData, "next");
+  const next = accountType === "provider"
+    ? getProviderSignupNext(requestedNext)
+    : accountType === "company"
+      ? getCompanySignupNext(requestedNext)
+      : getSafeRedirectPath(requestedNext);
   const callbackUrl = new URL("/auth/callback", env.siteUrl);
   callbackUrl.searchParams.set("next", next);
   const supabase = await createClient();
@@ -88,6 +97,7 @@ export async function signUp(
     options: {
       emailRedirectTo: callbackUrl.toString(),
       data: {
+        account_type: accountType,
         ...(fullName ? { full_name: fullName } : {}),
         ...(username ? { username } : {}),
       },
@@ -95,6 +105,9 @@ export async function signUp(
   });
 
   if (error) {
+    if (accountType === "provider" && getAuthErrorMessage(error).includes("already exists")) {
+      return { error: "That email is already linked to an account. Sign in if it is your provider account; otherwise use a different email for this separate workspace." };
+    }
     return { error: getAuthErrorMessage(error) };
   }
 
@@ -113,6 +126,13 @@ export async function signOut() {
   redirect("/");
 }
 
+export async function signOutForProviderSignup() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  redirect("/signup/provider");
+}
+
 export async function requestPasswordReset(
   _previousState: AuthActionState,
   formData: FormData,
@@ -120,8 +140,11 @@ export async function requestPasswordReset(
   const email = getTrimmedFormString(formData, "email");
   if (!email || !email.includes("@")) return { error: "Enter a valid email address." };
 
+  const requestedNext = getSafeRedirectPath(getTrimmedFormString(formData, "next"), "");
+  const updatePasswordUrl = new URL("/update-password", env.siteUrl);
+  if (requestedNext) updatePasswordUrl.searchParams.set("next", requestedNext);
   const callbackUrl = new URL("/auth/callback", env.siteUrl);
-  callbackUrl.searchParams.set("next", "/update-password");
+  callbackUrl.searchParams.set("next", `${updatePasswordUrl.pathname}${updatePasswordUrl.search}`);
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: callbackUrl.toString(),
@@ -137,6 +160,7 @@ export async function updatePassword(
 ): Promise<AuthActionState> {
   const password = getFormString(formData, "password");
   const confirmation = getFormString(formData, "password_confirmation");
+  const requestedNext = getSafeRedirectPath(getTrimmedFormString(formData, "next"), "");
   if (password.length < 8) return { error: "Use a password with at least 8 characters." };
   if (password !== confirmation) return { error: "Those passwords do not match." };
 
@@ -149,7 +173,7 @@ export async function updatePassword(
 
   const home = await resolveUserHome(supabase, userResult.user.id);
   revalidatePath("/", "layout");
-  redirect(home);
+  redirect(requestedNext || home);
 }
 
 /**

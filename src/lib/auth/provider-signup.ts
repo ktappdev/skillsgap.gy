@@ -3,10 +3,10 @@ import { getSafeRedirectPath } from "@/lib/validation";
 const providerSetupPath = "/provider/setup";
 
 /**
- * Provider signup continues to the provider setup page. Any other
- * destination is collapsed back to the provider setup path so the
- * provider auth entry point stays scoped.
+ * Provider registration always starts with the provider setup page. Deep
+ * links belong to provider sign-in, not account creation.
  */
-export function getProviderSignupNext(value: string | null | undefined) {
-  return getSafeRedirectPath(value, providerSetupPath);
+export function getProviderSignupNext(_value: string | null | undefined) {
+  const requestedPath = _value?.trim();
+  return requestedPath === providerSetupPath ? getSafeRedirectPath(requestedPath, providerSetupPath) : providerSetupPath;
 }

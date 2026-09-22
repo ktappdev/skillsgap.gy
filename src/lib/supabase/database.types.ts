@@ -16,6 +16,7 @@ type Table<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
 type Timestamps = { created_at: string; updated_at: string };
 
 export type CompanyStatus = "pending" | "approved" | "rejected";
+export type AccountType = "applicant" | "company" | "provider";
 export type CompanyMemberRole = "owner" | "recruiter";
 export type JobStatus = "draft" | "active" | "archived";
 export type RequirementKind = "technical_skill" | "certification" | "compliance" | "experience";
@@ -37,6 +38,7 @@ export type BookingStatus = "confirmed" | "cancelled";
 export type PathwayKind = "guided" | "occupation";
 
 type Profile = {
+  account_type: AccountType;
   avatar_url: string | null;
   created_at: string;
   full_name: string | null;
@@ -140,6 +142,7 @@ export type Database = {
       get_public_occupation_pathway: { Args: { occupation_slug: string }; Returns: Array<{ id: string; slug: string; title: string; isco08_code: string; isco08_level: "unit" | "minor" | "sub_major" | "major"; role_family: string; value_chain_stages: string[]; source_summary: string; source_url: string; source_locator: string | null; local_content_categories: string[]; example_titles: string[]; industry_transfer_summary: string; preparation_subjects: Json; actions: Json }> };
     };
     Enums: {
+      account_type: AccountType;
       company_status: CompanyStatus;
       company_member_role: CompanyMemberRole;
       job_status: JobStatus;

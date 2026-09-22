@@ -13,10 +13,10 @@ type LoginPageProps = {
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  await redirectAuthenticatedUser();
   const params = await searchParams;
   const nextValue = params.next;
   const next = getSafeRedirectPath(typeof nextValue === "string" ? nextValue : null, "");
+  await redirectAuthenticatedUser(next);
 
   return <AuthForm mode="login" next={next} />;
 }
