@@ -1,27 +1,26 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { SubmitButton } from "@/components/ui/submit-button";
-import { requestCompanyAccess, resubmitCompanyAccess } from "@/lib/skillsgap/actions";
+import { CompanyRequestForm } from "@/components/company/company-request-form";
 import { requireUser } from "@/lib/auth/queries";
 
 export default async function RequestAccessPage({ searchParams }: { searchParams: Promise<{ submitted?: string; error?: string }> }) {
   const { supabase, user } = await requireUser("/company/request-access");
-  const { data: membership } = await supabase.from("company_members").select("company_id").eq("user_id", user.id).maybeSingle();
-  const company = membership
-    ? (await supabase.from("companies").select("name,status,website_url,description").eq("id", membership.company_id).maybeSingle()).data
+  const membershipResult = await supabase.from("company_members").select("company_id").eq("user_id", user.id).maybeSingle();
+  if (membershipResult.error) throw new Error("Company request lookup failed. Please try again.");
+  const membership = membershipResult.data;
+  const companyResult = membership
+    ? await supabase.from("companies").select("name,status,website_url,description,requested_by").eq("id", membership.company_id).maybeSingle()
     : null;
+  if (companyResult?.error || (membership && !companyResult?.data)) throw new Error("Company request lookup failed. Please try again.");
+  const company = companyResult?.data;
   if (company?.status === "approved") redirect("/company");
-
-  const params = await searchParams;
-  const submitted = params.submitted === "1";
-  const errorMessage = params.error === "duplicate"
-    ? "That company already has a request."
-    : params.error === "state"
-      ? "This company request is no longer available. Refresh and try again."
-      : params.error
-        ? "Check the company name and try again."
-        : null;
+  if (!company) {
+    const profile = await supabase.from("profiles").select("account_type").eq("id", user.id).maybeSingle();
+    if (profile.error || !profile.data) throw new Error("Company account lookup failed. Please try again.");
+    if (profile.data.account_type !== "company") redirect("/signup/company");
+  }
+  const submitted = (await searchParams).submitted === "1";
 
   return (
     <main id="main-content" className="min-h-screen bg-background px-4 py-6 sm:px-6">
@@ -41,14 +40,16 @@ export default async function RequestAccessPage({ searchParams }: { searchParams
           {submitted ? <p className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-800" role="status">Your company request was sent for review. We&apos;ll show your workspace here once it is approved.</p> : null}
           {company ? <>
             <CompanyRequestStatus name={company.name} status={company.status} />
-            {company.status === "rejected" ? <CompanyRequestForm
-              action={resubmitCompanyAccess}
-              errorMessage={errorMessage}
+            {company.status === "rejected" && company.requested_by === user.id ? <CompanyRequestForm
+              mode="resubmit"
               initialValues={{ name: company.name, website: company.website_url ?? "", description: company.description ?? "" }}
               pendingLabel="Resubmitting…"
               submitLabel="Resubmit for review"
             /> : null}
-          </> : <CompanyRequestForm action={requestCompanyAccess} errorMessage={errorMessage} />}
+          </> : <CompanyRequestForm />}
+          <p className="mt-6 text-sm leading-6 text-muted">
+            Existing company listings cannot be claimed automatically. An administrator must arrange access and ownership.
+          </p>
           <p className="mt-6 text-sm leading-6 text-muted">
             Once approved, you can post roles and see anonymized matches.
           </p>
@@ -65,32 +66,5 @@ function CompanyRequestStatus({ name, status }: { name: string; status: "pending
       <p className="font-semibold">{name}</p>
       <p>{pending ? "Verification is pending. You enter the company workspace after approval." : "This request was not approved. Update the details below and send it back for review."}</p>
     </div>
-  );
-}
-
-function CompanyRequestForm({ action, errorMessage, initialValues, pendingLabel = "Sending request…", submitLabel = "Request access" }: { action: (formData: FormData) => Promise<void>; errorMessage: string | null; initialValues?: { name: string; website: string; description: string }; pendingLabel?: string; submitLabel?: string }) {
-  return (
-    <form action={action} className="mt-6 space-y-4">
-      <Field label="Company name" name="company" defaultValue={initialValues?.name} />
-      <Field label="Company website (optional)" name="website" type="url" defaultValue={initialValues?.website} />
-      <label className="block text-sm font-semibold text-foreground" htmlFor="company-description">
-        What work do you do?
-        <textarea id="company-description" name="description" defaultValue={initialValues?.description} maxLength={2000} rows={4} className="mt-2 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm font-normal outline-none focus:border-accent" />
-      </label>
-      {errorMessage ? <p className="text-sm text-danger" role="alert">{errorMessage}</p> : null}
-      <SubmitButton pendingLabel={pendingLabel} className="min-h-11 w-full rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60">
-        {submitLabel}
-      </SubmitButton>
-    </form>
-  );
-}
-
-function Field({ label, name, type = "text", defaultValue }: { label: string; name: string; type?: "text" | "url"; defaultValue?: string }) {
-  const id = `company-${name}`;
-  return (
-    <label className="block text-sm font-semibold text-foreground" htmlFor={id}>
-      {label}
-      <input id={id} required={name === "company"} defaultValue={defaultValue} maxLength={name === "company" ? 160 : 2048} name={name} type={type} className="mt-2 min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm font-normal outline-none focus:border-accent" />
-    </label>
   );
 }

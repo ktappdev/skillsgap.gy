@@ -1,25 +1,19 @@
 import { isRecruiterInvitationToken } from "@/lib/company/recruiter-invitations";
-import { getSafeRedirectPath } from "@/lib/validation";
 
 const companyRequestPath = "/company/request-access";
+const companyPaths = new Set([
+  "/signup/company", "/company", companyRequestPath, "/company/team",
+  "/company/jobs", "/company/candidates", "/company/job-fairs",
+]);
 
-/**
- * Company signup may continue to an access request or back to a recruiter
- * invitation. Every other destination is intentionally collapsed to the
- * company request page so the company auth entry point stays scoped.
- */
+export function getCompanyReturnPath(value: string | null | undefined, fallback = "/signup/company") {
+  if (!value) return fallback;
+  if (companyPaths.has(value)) return value;
+  const match = /^\/company\/invitations\/([^/]+)$/.exec(value);
+  return match && isRecruiterInvitationToken(match[1]) ? value : fallback;
+}
+
 export function getCompanySignupNext(value: string | null | undefined) {
-  const safePath = getSafeRedirectPath(value, companyRequestPath);
-  const url = new URL(safePath, "http://localhost");
-  const segments = url.pathname.split("/").filter(Boolean);
-
-  if (url.pathname === companyRequestPath) return companyRequestPath;
-
-  const isInvitationPath =
-    segments.length === 3 &&
-    segments[0] === "company" &&
-    segments[1] === "invitations" &&
-    isRecruiterInvitationToken(segments[2]);
-
-  return isInvitationPath ? url.pathname : companyRequestPath;
+  const next = getCompanyReturnPath(value, companyRequestPath);
+  return next.startsWith("/company/invitations/") ? next : companyRequestPath;
 }

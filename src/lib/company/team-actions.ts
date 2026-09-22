@@ -104,6 +104,9 @@ export async function acceptRecruiterInvitation(token: string): Promise<{ error?
   });
 
   if (error) {
+    if (error.message === "A company account is required to accept a recruiter invitation") {
+      return { error: "Applicant and training provider accounts cannot accept recruiter invitations. Sign out and use a separate company account with the invited email address." };
+    }
     return { error: "This invitation is invalid, expired, or belongs to a different email address." };
   }
 

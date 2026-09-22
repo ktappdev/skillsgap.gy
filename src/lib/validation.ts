@@ -18,7 +18,27 @@ export function getSafeRedirectPath(value: string | null | undefined, fallback =
     return fallback;
   }
 
+  // Reject browser normalization and nested authentication destinations.
+  const pathname = value.split(/[?#]/, 1)[0];
+  if (/[\s%]/.test(pathname) || [...value].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) || pathname.split("/").some((segment) => segment === "." || segment === "..")) {
+    return fallback;
+  }
+
+  const url = new URL(value, "https://redirect.invalid");
+  if ([...url.searchParams.keys()].some((key) => /^(next|redirect|redirect_to|returnTo|returnUrl|callbackUrl|code|token_hash|state|error_description)$/i.test(key))) {
+    return fallback;
+  }
+
   return value;
+}
+
+/** Password recovery has one intentional nesting level for its final destination. */
+export function getSafeAuthCallbackPath(value: string | null | undefined) {
+  if (!value?.startsWith("/update-password?")) return getSafeRedirectPath(value, "");
+  const url = new URL(value, "https://redirect.invalid");
+  if (url.hash || [...url.searchParams.keys()].length !== 1 || !url.searchParams.has("next")) return "";
+  const next = getSafeRedirectPath(url.searchParams.get("next"), "");
+  return next ? `/update-password?next=${encodeURIComponent(next)}` : "";
 }
 
 export function isJsonValue(value: unknown): value is Json {

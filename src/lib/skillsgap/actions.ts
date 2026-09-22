@@ -1,11 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
-import { requireApplicant, requireApprovedCompanyMember, requirePlatformAdmin, requireUser } from "@/lib/auth/queries";
+import { requireApplicant, requireApprovedCompanyMember, requirePlatformAdmin } from "@/lib/auth/queries";
 import { getDatabaseErrorMessage } from "@/lib/errors";
-import { isCompanyDescription, normalizeCompanyWebsite } from "@/lib/company/access-request";
 import { parseGuyanaDateTime } from "@/lib/guyana-time";
 import type { CareerActionType } from "@/lib/i-want-to-become/guidance";
 import { DEFAULT_ELIGIBILITY_THRESHOLD } from "@/lib/skillsgap/constants";
@@ -398,57 +396,6 @@ export async function removeApplicantQualification(qualificationId: string): Pro
   return {};
 }
 
-export async function requestCompanyAccess(formData: FormData): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const name = String(formData.get("company") ?? "").trim();
-  const website = normalizeCompanyWebsite(String(formData.get("website") ?? ""));
-  const description = String(formData.get("description") ?? "").trim();
-  if (name.length < 2 || name.length > 160 || !website.ok || !isCompanyDescription(description)) redirect("/company/request-access?error=company");
-
-  const { error } = await supabase.from("companies").insert({
-    name,
-    website_url: website.value,
-    description: description || null,
-    requested_by: user.id,
-    status: "pending",
-  });
-  if (error) redirect(`/company/request-access?error=${error.code === "23505" ? "duplicate" : "save"}`);
-  revalidatePath("/admin/companies");
-  redirect("/company/request-access?submitted=1");
-}
-
-export async function resubmitCompanyAccess(formData: FormData): Promise<void> {
-  const { supabase, user } = await requireUser("/company/request-access");
-  const name = String(formData.get("company") ?? "").trim();
-  const website = normalizeCompanyWebsite(String(formData.get("website") ?? ""));
-  const description = String(formData.get("description") ?? "").trim();
-  if (name.length < 2 || name.length > 160 || !website.ok || !isCompanyDescription(description)) redirect("/company/request-access?error=company");
-
-  const { data: membership } = await supabase.from("company_members").select("company_id").eq("user_id", user.id).limit(1).maybeSingle();
-  if (!membership) redirect("/company/request-access?error=state");
-
-  const { data: company } = await supabase.from("companies").select("id,status,requested_by").eq("id", membership.company_id).maybeSingle();
-  if (!company || company.status !== "rejected" || company.requested_by !== user.id) redirect("/company/request-access?error=state");
-
-  const { error } = await supabase
-    .from("companies")
-    .update({
-      name,
-      website_url: website.value,
-      description: description || null,
-      requested_by: user.id,
-      reviewed_by: null,
-      reviewed_at: null,
-      status: "pending",
-    })
-    .eq("id", company.id)
-    .eq("status", "rejected")
-    .eq("requested_by", user.id);
-  if (error) redirect(`/company/request-access?error=${error.code === "23505" ? "duplicate" : "save"}`);
-
-  revalidatePath("/admin/companies");
-  redirect("/company/request-access?submitted=1");
-}
 
 export async function reviewCompany(companyId: string, status: "approved" | "rejected"): Promise<{ error?: string }> {
   const { supabase, user } = await requirePlatformAdmin();

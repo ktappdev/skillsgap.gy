@@ -23,7 +23,7 @@ export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps
           {isRecoveryError
             ? "Request a fresh reset link and use the newest email."
             : reason === "workspace"
-              ? "Refresh and try again. Your account and provider listing have not been changed."
+              ? "Refresh and try again. Your account and workspace have not been changed."
               : "The confirmation link may have expired. Start again for a fresh one."}
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">

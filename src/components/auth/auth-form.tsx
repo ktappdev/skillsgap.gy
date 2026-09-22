@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
+import { CompanySignupGuide } from "@/components/auth/company-signup-guide";
 import { DemoLoginButtons } from "@/components/auth/demo-login-buttons";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { ProviderSignupGuide } from "@/components/auth/provider-signup-guide";
@@ -31,7 +32,7 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
   const switchLabel = isSignUp ? "Already have an account? Sign in" : "Need an account? Create one";
   const switchHref = next ? `${switchPath}?next=${encodeURIComponent(next)}` : switchPath;
   const showDemoLogin = !isSignUp && env.demoLoginEnabled;
-  const showOAuth = !isSignUp || !isProvider;
+  const showOAuth = !isSignUp || (!isProvider && !isCompany);
   const showApplicantSignupPitch = isSignUp && audience === "applicant";
   const showProviderSignupGuide = isSignUp && isProvider;
   const accountType = isCompany ? "company" : isProvider ? "provider" : "applicant";
@@ -41,6 +42,7 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
       {showApplicantSignupPitch ? <SignupPitch /> : null}
       <div className={showApplicantSignupPitch ? "order-1 space-y-6 lg:order-2" : "space-y-6"}>
         {showProviderSignupGuide ? <ProviderSignupGuide /> : null}
+        {isSignUp && isCompany ? <CompanySignupGuide /> : null}
         <div>
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
           {isCompany
@@ -151,7 +153,7 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
           pendingLabel={isSignUp ? "Creating account…" : "Signing in…"}
           className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-accent px-5 font-semibold text-white transition hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
         >
-          {isSignUp ? (isProvider ? "Create training provider account" : "Create account") : "Sign in"}
+          {isSignUp ? (isProvider ? "Create training provider account" : isCompany ? "Create company account" : "Create account") : "Sign in"}
         </SubmitButton>
         {!isSignUp ? (
           <p className="text-right text-sm">

@@ -90,7 +90,8 @@ const faqGroups: readonly FaqGroup[] = [
       },
       {
         question: "Can companies use SkillsGap.gy?",
-        answer: "Yes. Companies can publish roles, review applicants who have consented to share, manage their recruiting team, and invite eligible candidates to interviews.",
+        answer: "Yes. A company owner creates a personal employer account and requests a company workspace. After administrator approval, the owner can publish roles, review applicants who have consented to share, and invite recruiters through private links. Recruiters join using a company account and an owner invitation.",
+        link: { href: "/signup/company", label: "Create a company account" },
       },
       {
         question: "What should I do if I am not sure which route fits me?",

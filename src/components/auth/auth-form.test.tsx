@@ -34,3 +34,27 @@ describe("AuthForm provider flow", () => {
     expect(screen.getByRole("link", { name: "Need an account? Create one" }).getAttribute("href")).toBe("/signup/provider?next=%2Fprovider%2Fprograms");
   });
 });
+
+describe("AuthForm company flow", () => {
+  it("explains owner approval and uses a company-purpose password signup", () => {
+    render(<AuthForm mode="signup" next="/company/request-access" audience="company" />);
+    expect(screen.getByText(/request your company workspace, then invite recruiters after approval/)).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Create company account" })).not.toBeNull();
+    expect(screen.getByDisplayValue("company")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Google" })).toBeNull();
+  });
+
+  it("preserves an invitation through login, signup, and password recovery", () => {
+    const next = `/company/invitations/${"a".repeat(64)}`;
+    render(<AuthForm mode="login" next={next} />);
+    expect(screen.getByRole("button", { name: "Google" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Forgot password?" }).getAttribute("href")).toBe(`/forgot-password?next=${encodeURIComponent(next)}`);
+    expect(screen.getByRole("link", { name: "Need an account? Create one" }).getAttribute("href")).toBe(`/signup/company?next=${encodeURIComponent(next)}`);
+  });
+
+  it("retains applicant OAuth registration", () => {
+    render(<AuthForm mode="signup" next="/dashboard" />);
+    expect(screen.getByRole("button", { name: "Google" })).not.toBeNull();
+    expect(screen.getByDisplayValue("applicant")).not.toBeNull();
+  });
+});

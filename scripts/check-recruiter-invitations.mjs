@@ -54,6 +54,10 @@ const recruiterEmail = required("DEMO_RECRUITER_EMAIL").toLowerCase();
 const applicantEmail = required("DEMO_APPLICANT_EMAIL").toLowerCase();
 const hashes = [tokenHash(), tokenHash()];
 const expiresAt = new Date(Date.now() + 10 * 60 * 1_000).toISOString();
+const { data: applicantMemberships, error: applicantMembershipError } = await admin
+  .from("company_members").select("company_id").eq("user_id", applicant.user.id);
+assert(!applicantMembershipError && applicantMemberships?.length === 0, "The applicant test account must have no company membership.");
+let unexpectedApplicantMembership = false;
 
 try {
   const { error: inviteError } = await owner.supabase.from("company_recruiter_invitations").upsert({
@@ -106,7 +110,7 @@ try {
   });
   assert(recruiterInviteError, "A recruiter created an owner-only invitation.");
 
-  const { data: revokedInvite, error: revokedInviteError } = await owner.supabase.from("company_recruiter_invitations").upsert({
+  const { data: applicantInvite, error: applicantInviteError } = await owner.supabase.from("company_recruiter_invitations").upsert({
     company_id: membership.company_id,
     email: applicantEmail,
     token_hash: hashes[1],
@@ -114,17 +118,36 @@ try {
     expires_at: expiresAt,
     accepted_at: null,
     accepted_by: null,
-    revoked_at: new Date().toISOString(),
+    revoked_at: null,
   }, { onConflict: "company_id,email" }).select("id").single();
-  if (revokedInviteError || !revokedInvite) throw new Error("Could not prepare the revoked invitation check.");
+  if (applicantInviteError || !applicantInvite) throw new Error("Could not prepare the applicant invitation check.");
+
+  const { error: accountTypeError } = await applicant.supabase.rpc("accept_company_recruiter_invitation", {
+    target_token_hash: hashes[1],
+  });
+  unexpectedApplicantMembership = !accountTypeError;
+  assert(
+    accountTypeError?.message === "A company account is required to accept a recruiter invitation",
+    "An applicant-purpose account was not rejected by the company account boundary.",
+  );
+
+  const { error: revokeError } = await owner.supabase.from("company_recruiter_invitations")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("id", applicantInvite.id);
+  if (revokeError) throw new Error("Could not revoke the applicant invitation.");
 
   const { error: revokedError } = await applicant.supabase.rpc("accept_company_recruiter_invitation", {
     target_token_hash: hashes[1],
   });
   assert(revokedError, "A revoked invitation was accepted.");
 
-  console.log("Recruiter invitation checks passed: owner-only creation, email scope, company visibility, acceptance, reuse, and revocation.");
+  console.log("Recruiter invitation checks passed: owner-only creation, email scope, company visibility, existing membership acceptance, applicant account boundary, reuse, and revocation.");
 } finally {
+  if (unexpectedApplicantMembership) {
+    const { error: cleanupError } = await admin.from("company_members").delete()
+      .eq("user_id", applicant.user.id).eq("company_id", membership.company_id);
+    if (cleanupError) throw new Error("Could not remove the unexpected test applicant membership.");
+  }
   const { error } = await admin.from("company_recruiter_invitations").delete().in("token_hash", hashes);
   if (error) throw new Error("Could not clean up recruiter invitation checks.");
 }

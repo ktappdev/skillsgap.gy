@@ -20,9 +20,9 @@ Renders `AuthForm` in applicant/default signup mode. It collects email, password
 
 ## `/signup/company`
 
-Source: `src/app/(auth)/signup/company/page.tsx:15`
+Source: `src/app/(auth)/signup/company/page.tsx:18`
 
-Uses the same auth form with `audience="company"` and a safe company signup continuation. The signup itself creates an auth account; company access still requires the separate company verification request flow.
+Uses the same auth form with `audience="company"` and a safe company signup continuation, after resolving the caller’s account state (`src/lib/auth/company-state.ts`). A signed-out visitor sees the form; an approved member returns to `/company`; a pending, rejected, or company-type account without a membership goes to `/company/request-access`; and an applicant or provider account sees the separate-account boundary (`src/components/auth/company-account-boundary.tsx`) with sign-out-and-create and return-to-workspace actions. A valid recruiter-invitation continuation takes precedence over the workspace redirects. Auth or database lookup failures render a retryable unavailable state instead of treating the visitor as a new company. Company signup is email/password-only (OAuth is hidden), so `account_type=company` is always recorded. The signup itself creates an auth account; company access still requires the separate company verification request flow.
 
 ## `/signup/provider`
 

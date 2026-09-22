@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AcceptRecruiterInvitation } from "@/components/company/accept-recruiter-invitation";
+import { signOutForCompany } from "@/lib/auth/company-actions";
 import { requireUser } from "@/lib/auth/queries";
 import { hashRecruiterInvitationToken, isRecruiterInvitationToken } from "@/lib/company/recruiter-invitations";
 import { formatGuyanaDate } from "@/lib/guyana-time";
@@ -18,10 +19,14 @@ export default async function RecruiterInvitationPage({ params }: RecruiterInvit
         .from("company_recruiter_invitations")
         .select("company_id,email,expires_at")
         .eq("token_hash", hashRecruiterInvitationToken(token))
+        .eq("email", user.email?.toLowerCase() ?? "")
+        .is("accepted_at", null)
+        .is("revoked_at", null)
+        .gt("expires_at", new Date().toISOString())
         .maybeSingle()).data
     : null;
   const company = invitationRow
-    ? (await supabase.from("companies").select("name").eq("id", invitationRow.company_id).maybeSingle()).data
+    ? (await supabase.from("companies").select("name").eq("id", invitationRow.company_id).eq("status", "approved").maybeSingle()).data
     : null;
   const invitation = invitationRow && company ? { ...invitationRow, companyName: company.name } : null;
 
@@ -44,6 +49,12 @@ export default async function RecruiterInvitationPage({ params }: RecruiterInvit
               <p className="mt-3 text-sm leading-6 text-muted">This link is invalid, expired, revoked, or was sent to a different email address. Sign in with the invited address or ask the company owner for a new link.</p>
             </>
           )}
+          <form action={signOutForCompany} className="mt-6">
+            <input type="hidden" name="next" value={next} />
+            <button type="submit" className="min-h-11 text-sm font-semibold text-accent underline-offset-4 hover:underline">
+              Sign out and retry with the invited company account
+            </button>
+          </form>
         </section>
       </div>
     </main>
