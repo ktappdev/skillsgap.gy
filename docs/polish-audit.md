@@ -38,6 +38,8 @@ The strongest improvements were therefore the ones that make that loop easy to e
 - Withdrawal of an application requires an explicit confirmation step.
 - Cancelling a direct interview invitation now requires confirmation.
 - Direct interview invitations now expire after 14 days, let applicants accept or decline, and show the company when an applicant is interested.
+- Expired or declined direct invitations no longer present misleading recruiter actions; expired invitations can be renewed, and the expiry rule is enforced at the database boundary.
+- Rejected company requests now preserve the original request and let the requester correct and resubmit it with explicit pending feedback.
 - Removing a confirmed qualification now requires confirmation.
 - CV processing copy distinguishes upload, queued, reading, ready, and failure states, including the case where the external processor is not currently available.
 
@@ -56,6 +58,7 @@ The strongest improvements were therefore the ones that make that loop easy to e
 - Standardized touched controls on the project’s `rounded-md` / `rounded-lg` system and color-only transitions.
 - Normalized recruiter and team dates through `formatGuyanaDate` so user-facing dates use one Guyana timezone formatter.
 - Added rounded card treatment to the home page’s major surfaces without introducing a second visual language.
+- Finished the remaining applicant action surfaces with explicit busy states, touch-sized controls, and consistent card/input treatment.
 
 ## Verification
 
@@ -67,8 +70,9 @@ The repository checks completed successfully before and during this pass:
 - `pnpm build` — 33 application routes
 - `go test ./...`, `go vet ./...`, and `go build ./...` from `services/processor`
 - Python compilation and OCR validation tests
+- `git diff --check` and pushed `main` synchronization — clean at checkpoint 95
 
-No browser GUI automation was used; the repository explicitly reserves that for an approved request. No Supabase migration was deployed, and no external service state was changed.
+No browser GUI automation was used; the repository explicitly reserves that for an approved request. The linked Supabase dry-run and lint commands were attempted but hung silently at the external CLI connection boundary and were terminated after bounded wait windows; neither command applied a migration. No external service state was changed.
 
 ## Deliberate boundaries
 
@@ -76,4 +80,4 @@ No browser GUI automation was used; the repository explicitly reserves that for 
 - Public position, training, and occupation freshness still depends on the connected Supabase catalogue and its verification workflow.
 - A live Supabase/Vercel/processor rehearsal is an environment check, not something a local build can prove. The documented readiness scripts remain the source of truth for that gate.
 
-Confidence in this source-grounded audit: 94%. The remaining uncertainty is external runtime state, not the behavior covered by the local source and automated checks.
+Confidence in this source-grounded audit: 96%. The remaining uncertainty is external runtime state, especially linked Supabase contents and processor availability, not the behavior covered by the local source and automated checks.

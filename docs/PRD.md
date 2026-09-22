@@ -70,7 +70,7 @@ Use plain progress language such as `You are closer to Offshore Mechanical Techn
 
 1. A user chooses company signup, creates an account, and submits a company access request. It remains pending until a super admin approves the company.
 2. Approval makes the requester the company owner. The owner can invite recruiters by email with a seven-day, one-time link; recruiters create or use their own password and join the same workspace.
-3. An approved company member creates roles, adds weighted requirements, marks mandatory requirements, and sets a threshold. The default threshold is 75%.
+3. An approved company member creates roles, adds weighted requirements, marks mandatory requirements, and sets a threshold. The default threshold for new company roles is 85%; curated demo roles may use pathway-specific thresholds.
 4. The company creates a job fair and available 15-minute interview slots.
 5. The company views candidates matched to its active roles using anonymized cards: match score, eligibility, and gap counts. Qualification evidence and work-history details remain hidden until consent; no name, contact information, or CV is visible at this stage.
 6. When an applicant explicitly shares their profile or confirms an interview, the company may view the applicant's identity and obtain a time-limited CV link.
