@@ -45,6 +45,7 @@ The strongest improvements were therefore the ones that make that loop easy to e
 
 - Training-plan, interview, slot-booking, application, profile-sharing, consented-CV, work-history, role-management, team-access, qualification-review, and pathway-save actions now recover from thrown requests with user-safe messages.
 - Long-running actions expose disabled/busy states to prevent accidental duplicate submissions.
+- Admin catalogue forms lock their related controls while saving, and recruiter invitation copying reports a manual fallback when the clipboard API is unavailable.
 - Publishing a role is disabled until it has at least one requirement, and creating a role validates the title before making a request.
 - Share popovers now expose a dialog relationship, return focus on Escape, and move keyboard focus into the first available share action.
 - Global focus styles remain visible even on form controls that use `outline-none` for their resting border treatment.

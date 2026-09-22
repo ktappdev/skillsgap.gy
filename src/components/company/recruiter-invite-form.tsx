@@ -10,18 +10,25 @@ const initialState: RecruiterInviteState = {};
 export function RecruiterInviteForm() {
   const [state, formAction] = useActionState(createRecruiterInvitation, initialState);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   async function copyInvitation() {
     if (!state.inviteUrl) return;
-    await navigator.clipboard.writeText(state.inviteUrl);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(state.inviteUrl);
+      setCopied(true);
+      setCopyError(null);
+    } catch {
+      setCopied(false);
+      setCopyError("Copy is unavailable here. Select the link and copy it manually.");
+    }
   }
 
   return (
     <section className="rounded-lg border border-border bg-surface p-5 sm:p-6" aria-labelledby="invite-recruiter-heading">
       <h2 id="invite-recruiter-heading" className="text-xl font-semibold">Invite a recruiter</h2>
       <p className="mt-2 text-sm leading-6 text-muted">Create a private seven-day link. The recruiter signs in with their own account.</p>
-      <form action={formAction} className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+      <form action={formAction} onSubmit={() => { setCopied(false); setCopyError(null); }} className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
         <label className="flex-1 text-sm font-semibold text-foreground" htmlFor="recruiter-email">
           Recruiter email
           <input
@@ -57,6 +64,7 @@ export function RecruiterInviteForm() {
               {copied ? "Copied" : "Copy link"}
             </button>
           </div>
+          {copyError ? <p className="mt-2 text-sm text-danger" role="alert">{copyError}</p> : null}
         </div>
       ) : null}
     </section>
