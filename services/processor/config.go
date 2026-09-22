@@ -23,6 +23,9 @@ type config struct {
 }
 
 func loadConfig() (config, error) {
+	if err := loadLocalEnv(); err != nil {
+		return config{}, err
+	}
 	value := config{
 		port:               envOrDefault("PORT", "8080"),
 		webhookSecret:      strings.TrimSpace(os.Getenv("WEBHOOK_SECRET")),
