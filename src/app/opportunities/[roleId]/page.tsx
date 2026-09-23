@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
 import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 import { ShareButton } from "@/components/shareable/share-button";
+import { TrainingProvidersLink } from "@/components/shareable/training-providers-link";
 import { buildPositionShareText } from "@/lib/share/messages";
 import { getPublicPosition, type PublicPositionRequirement } from "@/lib/share/public-content";
 import { env } from "@/lib/env";
@@ -158,6 +159,9 @@ function RequirementRow({ requirement }: { requirement: PublicPositionRequiremen
         <p className="mt-1 text-sm capitalize text-muted">
           {requirement.kind.replaceAll("_", " ")}{requirement.minimum_years ? ` · ${requirement.minimum_years}+ years` : ""}
         </p>
+        <div className="mt-3">
+          <TrainingProvidersLink qualification={requirement.qualificationName} />
+        </div>
       </div>
       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${requirement.mandatory ? "bg-amber-100 text-amber-900" : "bg-surface-muted text-accent"}`}>
         {requirement.mandatory ? "Required" : "Preferred"}

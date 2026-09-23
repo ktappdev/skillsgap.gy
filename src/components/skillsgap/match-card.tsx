@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ShareButton } from "@/components/shareable/share-button";
+import { TrainingProvidersLink } from "@/components/shareable/training-providers-link";
 import { buildPositionShareText } from "@/lib/share/messages";
 import type { Match } from "@/lib/skillsgap-demo";
 
@@ -48,9 +49,20 @@ export function MatchCard({ match }: { match: Match }) {
       </div>
 
       {match.gaps.length > 0 ? (
-        <p className="mt-3 text-sm font-medium text-foreground">
-          {match.gaps.length} {match.gaps.length === 1 ? "requirement" : "requirements"} to verify
-        </p>
+        <section className="mt-3 border-t border-border pt-3" aria-label="Training for requirements to verify">
+          <p className="text-sm font-medium text-foreground">
+            {match.gaps.length} {match.gaps.length === 1 ? "requirement" : "requirements"} to verify
+          </p>
+          <ul className="mt-2 space-y-2" role="list">
+            {match.gaps.slice(0, 2).map((gap) => (
+              <li key={gap.id ?? `${gap.name}-${gap.type}`} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm text-muted">{gap.name}</span>
+                <TrainingProvidersLink qualification={gap.name} />
+              </li>
+            ))}
+          </ul>
+          {match.gaps.length > 2 ? <p className="mt-2 text-xs text-muted">Open the pathway for training options for the other {match.gaps.length - 2} requirements.</p> : null}
+        </section>
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-3">

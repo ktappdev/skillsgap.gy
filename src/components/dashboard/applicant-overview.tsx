@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { TrainingProvidersLink } from "@/components/shareable/training-providers-link";
 import type { ApplicantProgress } from "@/lib/skillsgap/queries";
 import type { Match } from "@/lib/skillsgap-demo";
 
@@ -212,7 +213,10 @@ function OverviewMatch({ match, featured = false }: { match: Match; featured?: b
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm leading-6 text-muted">{match.eligible ? "Score and mandatory requirements met." : remaining > 0 ? `${remaining} points to the interview threshold.` : "Score met; review mandatory requirements."}</p>
-        <Link href={`/matches/${match.id}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">View route <span aria-hidden="true" className="ml-2">→</span></Link>
+        <div className="flex flex-wrap items-center gap-3">
+          {match.gaps[0] ? <TrainingProvidersLink qualification={match.gaps[0].name} /> : null}
+          <Link href={`/matches/${match.id}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">View route <span aria-hidden="true" className="ml-2">→</span></Link>
+        </div>
       </div>
     </article>
   );
@@ -232,8 +236,11 @@ function NextStepCard({ gap, topMatch }: { gap: Match["gaps"][number] | null; to
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Recommended next step</p>
       <h2 id="next-step-heading" className="mt-2 text-xl font-semibold tracking-tight text-foreground">{gap ? gap.name : topMatch ? "Review your confirmed profile" : "Start with your experience"}</h2>
       <p className="mt-2 text-sm leading-6 text-muted">{description}</p>
-      {gap?.trainingProgramId ? (
-        <Link href={`/training/${gap.trainingProgramId}`} className="mt-4 inline-flex min-h-11 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">View recommended training <span aria-hidden="true" className="ml-2">→</span></Link>
+      {gap ? (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <TrainingProvidersLink qualification={gap.name} />
+          {gap.trainingProgramId ? <Link href={`/training/${gap.trainingProgramId}`} className="inline-flex min-h-11 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">View recommended course <span aria-hidden="true" className="ml-2">→</span></Link> : null}
+        </div>
       ) : (
         <Link href="/dashboard" className="mt-4 inline-flex min-h-11 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">Open my pathway <span aria-hidden="true" className="ml-2">→</span></Link>
       )}

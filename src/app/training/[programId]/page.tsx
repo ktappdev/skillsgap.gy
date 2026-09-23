@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
 import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 import { ShareButton } from "@/components/shareable/share-button";
+import { TrainingProvidersLink } from "@/components/shareable/training-providers-link";
 import { buildCourseShareText } from "@/lib/share/messages";
 import { getPublicCourse } from "@/lib/share/public-content";
 import { resolveUserHome } from "@/lib/auth/queries";
@@ -111,9 +112,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
               {course.outcomes.length > 0 ? (
                 <ul className="mt-3 grid gap-3 sm:grid-cols-2" role="list">
                   {course.outcomes.map((outcome) => (
-                    <li key={outcome} className="flex gap-3 border border-border bg-surface-muted p-4 text-sm font-semibold text-foreground">
-                      <span aria-hidden="true" className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-xs text-white">✓</span>
-                      {outcome}
+                    <li key={outcome} className="flex flex-wrap items-center justify-between gap-3 border border-border bg-surface-muted p-4 text-sm font-semibold text-foreground">
+                      <span className="flex items-center gap-3"><span aria-hidden="true" className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-xs text-white">✓</span>{outcome}</span>
+                      <TrainingProvidersLink qualification={outcome} />
                     </li>
                   ))}
                 </ul>

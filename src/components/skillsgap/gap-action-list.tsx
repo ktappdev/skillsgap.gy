@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ShareButton } from "@/components/shareable/share-button";
+import { TrainingProvidersLink } from "@/components/shareable/training-providers-link";
 import { buildCourseShareText } from "@/lib/share/messages";
 import type { Match } from "@/lib/skillsgap-demo";
 
@@ -40,8 +41,11 @@ function GapAction({ gap, isDemo, isFirst = false }: { gap: Gap; isDemo: boolean
           </div>
         </div>
       ) : (
-        <p className="mt-3 text-sm leading-6 text-muted">No local route listed yet. Ask the provider or employer what evidence they accept.</p>
+        <p className="mt-3 text-sm leading-6 text-muted">No verified program is mapped to this requirement yet. Browse other training options or ask the employer what evidence they accept.</p>
       )}
+      <div className="mt-3">
+        <TrainingProvidersLink qualification={gap.name} />
+      </div>
     </article>
   );
 }

@@ -3,9 +3,15 @@ import Link from "next/link";
 import { ShareButton } from "@/components/shareable/share-button";
 import { buildCourseShareText } from "@/lib/share/messages";
 import type { PublicCourse } from "@/lib/share/public-content";
+import { normalizeQualificationName } from "@/lib/training";
 
-export function CourseCard({ course }: { course: PublicCourse }) {
+export function CourseCard({ course, qualificationName = null }: { course: PublicCourse; qualificationName?: string | null }) {
   const courseUrl = `/training/${course.id}`;
+  const matchingOutcomes = qualificationName
+    ? course.outcomes.filter((outcome) => normalizeQualificationName(outcome) === normalizeQualificationName(qualificationName))
+    : [];
+  const otherOutcomes = course.outcomes.filter((outcome) => !matchingOutcomes.includes(outcome));
+  const shownOutcomes = [...matchingOutcomes, ...otherOutcomes].slice(0, 3);
 
   return (
     <article className="flex h-full flex-col rounded-lg border border-border bg-surface p-5">
@@ -17,9 +23,9 @@ export function CourseCard({ course }: { course: PublicCourse }) {
       </p>
       {course.outcomes.length > 0 ? (
         <ul className="mt-3 flex flex-wrap gap-2" aria-label="Skills this course can support">
-          {course.outcomes.slice(0, 3).map((outcome) => (
+          {shownOutcomes.map((outcome) => (
             <li key={outcome} className="rounded-full bg-surface-muted px-2.5 py-1 text-xs font-medium text-foreground">
-              {outcome}
+              {outcome}{normalizeQualificationName(outcome) === normalizeQualificationName(qualificationName ?? "") ? " · matches your requirement" : ""}
             </li>
           ))}
         </ul>

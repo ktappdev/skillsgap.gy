@@ -4,7 +4,9 @@ import Link from "next/link";
 import { CourseDirectory } from "@/components/shareable/course-directory";
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
 import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
-import { getPublicCourses } from "@/lib/share/public-content";
+import { TrainingProviderInquiry } from "@/components/shareable/training-provider-inquiry";
+import { getPublicCourses, getPublicTrainingProviders } from "@/lib/share/public-content";
+import { normalizeQualificationName } from "@/lib/training";
 
 export const metadata: Metadata = {
   title: "Find training",
@@ -13,8 +15,18 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function TrainingPage() {
-  const courses = await getPublicCourses();
+type TrainingPageProps = {
+  searchParams: Promise<{ qualification?: string | string[] }>;
+};
+
+export default async function TrainingPage({ searchParams }: TrainingPageProps) {
+  const { qualification: rawQualification } = await searchParams;
+  const qualification = typeof rawQualification === "string" ? rawQualification.trim().slice(0, 160) : "";
+  const allCourses = await getPublicCourses();
+  const courses = qualification
+    ? allCourses.filter((course) => course.outcomes.some((outcome) => normalizeQualificationName(outcome) === normalizeQualificationName(qualification)))
+    : allCourses;
+  const providers = qualification && courses.length === 0 ? await getPublicTrainingProviders() : [];
 
   return (
     <main id="main-content" className="min-h-screen bg-background">
@@ -37,7 +49,8 @@ export default async function TrainingPage() {
           </div>
         </section>
 
-        <CourseDirectory courses={courses} />
+        <CourseDirectory courses={courses} qualificationName={qualification || null} />
+        {qualification && courses.length === 0 ? <TrainingProviderInquiry qualification={qualification} providers={providers} /> : null}
 
         <p className="mx-auto mt-6 max-w-3xl text-sm leading-6 text-muted">
           Dates, fees, and entry requirements can change. Confirm details with

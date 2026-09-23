@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { TrainingProvidersLink } from "@/components/shareable/training-providers-link";
 import { getSavedPathwayView, type SavedPathwayItem } from "@/lib/i-want-to-become/saved-pathway";
 import type { Json, Tables } from "@/lib/supabase/database.types";
 
@@ -25,7 +26,7 @@ function ItemBadge({ item }: { item: SavedPathwayItem }) {
 
 function SavedPathwayItemRow({ item, position }: { item: SavedPathwayItem; position: number }) {
   const supportingText = item.supportingText ? `${item.supportingText}${item.minimumYears ? ` · ${item.minimumYears}+ years experience` : ""}` : item.minimumYears ? `${item.minimumYears}+ years experience` : null;
-  return <li className="flex items-start justify-between gap-3 border-t border-border py-3 first:border-t-0"><div className="flex min-w-0 gap-3"><span className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold ${item.status === "saved" || item.status === "complete" ? "bg-accent text-white" : "bg-surface-muted text-accent"}`} aria-hidden="true">{item.status === "saved" || item.status === "complete" ? "✓" : position}</span><div className="min-w-0"><p className="font-semibold text-foreground">{item.name}</p>{item.detail ? <p className="mt-1 text-sm leading-5 text-muted">{item.detail}</p> : null}{supportingText ? <p className="mt-1 text-xs leading-5 text-muted">{supportingText}</p> : null}</div></div><ItemBadge item={item} /></li>;
+  return <li className="flex flex-wrap items-start justify-between gap-3 border-t border-border py-3 first:border-t-0"><div className="flex min-w-0 gap-3"><span className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold ${item.status === "saved" || item.status === "complete" ? "bg-accent text-white" : "bg-surface-muted text-accent"}`} aria-hidden="true">{item.status === "saved" || item.status === "complete" ? "✓" : position}</span><div className="min-w-0"><p className="font-semibold text-foreground">{item.name}</p>{item.detail ? <p className="mt-1 text-sm leading-5 text-muted">{item.detail}</p> : null}{supportingText ? <p className="mt-1 text-xs leading-5 text-muted">{supportingText}</p> : null}{item.kind === "requirement" ? <div className="mt-2"><TrainingProvidersLink qualification={item.name} /></div> : null}</div></div><ItemBadge item={item} /></li>;
 }
 
 export async function SavedCareerRoute({ plan }: { plan: Tables<"applicant_pathway_plans"> | null }) {

@@ -217,6 +217,18 @@ export const getPublicCourses = cache(async (): Promise<PublicCourse[]> => {
   });
 });
 
+export const getPublicTrainingProviders = cache(async (): Promise<PublicTrainingProvider[]> => {
+  const admin = getAdminClient();
+  if (!admin) return [];
+
+  const { data, error } = await admin
+    .from("training_providers")
+    .select("id,name,location,contact_url,contact_phone,description")
+    .eq("is_verified", true)
+    .order("name");
+  return error ? [] : data ?? [];
+});
+
 export const getPublicCourse = cache(async (programId: string): Promise<PublicCourse | null> => {
   const admin = getAdminClient();
   if (!admin || !isUuid(programId)) return null;
