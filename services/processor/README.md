@@ -20,6 +20,8 @@ LLM_MODEL=
 
 `LLM_BASE_URL` is the provider's API base URL, normally ending in `/v1`. The processor posts to `<LLM_BASE_URL>/chat/completions` and checks `<LLM_BASE_URL>/models` in the readiness script. `LLM_MODEL` must exactly match the model identifier served by that endpoint. `LLM_API_KEY` is optional: set it for hosted providers, or leave it empty for a keyless local server.
 
+Every model request sets `reasoning_effort` to `none`, disabling supported reasoning-token modes rather than only suppressing reasoning from the response.
+
 For example, a hosted OpenRouter setup uses a base URL such as `https://openrouter.ai/api/v1`, an API key, and the provider's exact model ID. A local llama.cpp setup can use `http://127.0.0.1:8080/v1`, an empty API key, and the model ID configured in the local server. If both processes run on one machine, give the Go processor a different `PORT` from the model server.
 
 Other optional settings are `PORT` (default `8080`), `PROCESSOR_SCRATCH_DIR` (default `/ephemeral/skillsgap-processor`), `CSEC_SLIP_PROCESSOR_SECRET`, `OCR_URL`, and `OCR_SERVICE_SECRET`. The OCR settings remain supported only for a dormant rollback path; the active worker never calls OCR.
