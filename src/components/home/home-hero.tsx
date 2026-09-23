@@ -7,7 +7,7 @@ export function HomeHero() {
   return (
     <section className="home-hero relative isolate bg-foreground text-white" aria-labelledby="home-title">
       <HeroBackdrop />
-      <div className="absolute inset-0 -z-10 bg-black/40" aria-hidden="true" />
+      <div className="absolute inset-0 -z-10 bg-black/60" aria-hidden="true" />
       <div className="mx-auto flex min-h-svh max-w-7xl flex-col px-6 lg:px-12">
         <div className="border-b border-white/25 py-6">
           <PublicContentHeader appearance="overlay" />
