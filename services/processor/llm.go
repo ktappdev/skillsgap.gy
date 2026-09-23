@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"sort"
 	"strings"
@@ -113,7 +114,9 @@ func (client *llmClient) complete(ctx context.Context, messages []chatMessage, t
 	}
 	setAPIKeyHeader(request, client.apiKey)
 	request.Header.Set("Content-Type", "application/json")
+	started := time.Now()
 	response, err := client.client.Do(request)
+	log.Printf("processing stage=vision_http duration=%s", time.Since(started).Round(time.Millisecond))
 	if err != nil {
 		return extraction{}, fmt.Errorf("LLM request failed: %w", err)
 	}
@@ -258,7 +261,42 @@ func decodeExtraction(value string, taxonomy []taxonomyEntry) (extraction, error
 	if err := validateExtraction(result, taxonomy); err != nil {
 		return extraction{}, err
 	}
+	result.Findings = deduplicateFindings(result.Findings)
 	return result, nil
+}
+
+func deduplicateFindings(findings []extractedQualification) []extractedQualification {
+	indexesByCandidateSet := make(map[string]int, len(findings))
+	deduplicated := make([]extractedQualification, 0, len(findings))
+
+	for _, finding := range findings {
+		candidateSlugs := append([]string(nil), finding.CandidateSlugs...)
+		sort.Strings(candidateSlugs)
+		candidateSet := strings.Join(candidateSlugs, "\x00")
+
+		index, exists := indexesByCandidateSet[candidateSet]
+		if !exists {
+			indexesByCandidateSet[candidateSet] = len(deduplicated)
+			deduplicated = append(deduplicated, finding)
+			continue
+		}
+
+		current := deduplicated[index]
+		if finding.Confidence > current.Confidence {
+			current.OriginalTerm = finding.OriginalTerm
+			current.Evidence = finding.Evidence
+			current.EvidencePage = finding.EvidencePage
+			current.EvidenceMethod = finding.EvidenceMethod
+			current.Confidence = finding.Confidence
+			current.CandidateSlugs = finding.CandidateSlugs
+		}
+		if finding.YearsExperience > current.YearsExperience {
+			current.YearsExperience = finding.YearsExperience
+		}
+		deduplicated[index] = current
+	}
+
+	return deduplicated
 }
 
 func validateExtraction(result extraction, taxonomy []taxonomyEntry) error {

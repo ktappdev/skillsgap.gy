@@ -10,7 +10,7 @@ import {
   addApplicantQualification,
   confirmExtractionFindings,
   correctApplicantQualification,
-  rejectExtractionFinding,
+  rejectExtractionFindings,
   removeApplicantQualification,
   updateApplicantQualificationYears,
 } from "@/lib/skillsgap/actions";
@@ -43,9 +43,12 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
   const [matchGains, setMatchGains] = useState<MatchScoreGain[]>([]);
 
   async function confirmSelectedFindings() {
-    const selections = findings.flatMap((finding) => {
+    const selectedFindings = findings.filter((finding) => Boolean(findingChoices[finding.id]));
+    const selections = selectedFindings.flatMap((finding) => {
       const qualificationId = findingChoices[finding.id];
-      return qualificationId ? [{ findingId: finding.id, qualificationId }] : [];
+      return qualificationId
+        ? getSourceFindingIds(finding).map((findingId) => ({ findingId, qualificationId }))
+        : [];
     });
     if (selections.length === 0) return setMessage("Choose at least one skill to confirm.");
 
@@ -63,13 +66,17 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
       matchRecalculation?.fail(failureMessage);
       return;
     }
-    setFindings((current) => current.filter((finding) => !result.confirmedFindingIds.includes(finding.id)));
+    setFindings((current) => current.flatMap((finding) => {
+      const sourceFindingIds = getSourceFindingIds(finding).filter((findingId) => !result.confirmedFindingIds.includes(findingId));
+      return sourceFindingIds.length > 0 ? [{ ...finding, sourceFindingIds }] : [];
+    }));
     setIsConfirming(false);
-    const confirmedItems = result.confirmedFindingIds.flatMap((findingId) => {
-      const finding = findings.find((item) => item.id === findingId);
-      const qualificationId = findingChoices[findingId];
+    const confirmedItems = selectedFindings.flatMap((finding) => {
+      const wasConfirmed = getSourceFindingIds(finding).some((findingId) => result.confirmedFindingIds.includes(findingId));
+      if (!wasConfirmed) return [];
+      const qualificationId = findingChoices[finding.id];
       const qualification = availableQualifications.find((item) => item.id === qualificationId);
-      if (!finding || !qualification) return [];
+      if (!qualification) return [];
       return [{
         id: crypto.randomUUID(),
         applicant_id: applicantId,
@@ -99,16 +106,18 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
       return;
     }
     setMatchGains(result.gains);
-    setMessage(`${result.confirmedFindingIds.length} skill${result.confirmedFindingIds.length === 1 ? "" : "s"} confirmed.`);
+    setMessage(`${selectedFindings.length} skill${selectedFindings.length === 1 ? "" : "s"} confirmed.`);
     router.refresh();
   }
 
   async function rejectFinding(finding: ApplicantExtractionFindingView) {
     try {
-      const result = await rejectExtractionFinding(finding.id);
-      if (result.error) return setMessage(result.error);
-      setFindings((current) => current.filter((item) => item.id !== finding.id));
-      setMessage("Suggestion dismissed. It will not affect your role matches.");
+      const result = await rejectExtractionFindings(getSourceFindingIds(finding));
+      setFindings((current) => current.flatMap((item) => {
+        const sourceFindingIds = getSourceFindingIds(item).filter((findingId) => !result.rejectedFindingIds.includes(findingId));
+        return sourceFindingIds.length > 0 ? [{ ...item, sourceFindingIds }] : [];
+      }));
+      setMessage(result.error ?? "Suggestion dismissed. It will not affect your role matches.");
       router.refresh();
     } catch {
       setMessage("We couldn’t dismiss that suggestion. Please try again.");
@@ -223,4 +232,8 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
       {message ? <p className="mt-3 text-sm text-muted" role="status">{message}</p> : null}
     </section>
   );
+}
+
+function getSourceFindingIds(finding: ApplicantExtractionFindingView): string[] {
+  return finding.sourceFindingIds ?? [finding.id];
 }

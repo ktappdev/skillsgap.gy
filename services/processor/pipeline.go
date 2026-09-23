@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 type resumePipeline interface {
@@ -33,11 +34,15 @@ func newPipeline(store jobStore, pdf pdfPageCounter, renderer pageRenderer, llm 
 }
 
 func (pipeline *pipeline) process(ctx context.Context, job processingJob) (extraction, error) {
+	started := time.Now()
 	contents, err := pipeline.store.downloadResume(ctx, job)
+	logProcessingStage(job.ID, "download_resume", started)
 	if err != nil {
 		return extraction{}, err
 	}
+	started = time.Now()
 	pageCount, err := pipeline.pdf.pageCount(ctx, contents)
+	logProcessingStage(job.ID, "inspect_pdf", started)
 	if err != nil {
 		return extraction{}, err
 	}
@@ -49,7 +54,9 @@ func (pipeline *pipeline) process(ctx context.Context, job processingJob) (extra
 	for index := range pages {
 		pages[index] = index + 1
 	}
+	started = time.Now()
 	images, err := pipeline.renderer.render(ctx, contents, pages)
+	logProcessingStage(job.ID, "render_pages", started)
 	if err != nil {
 		return extraction{}, err
 	}
@@ -61,9 +68,14 @@ func (pipeline *pipeline) process(ctx context.Context, job processingJob) (extra
 			return extraction{}, errors.New("document renderer returned pages out of order")
 		}
 	}
+	started = time.Now()
 	taxonomy, err := pipeline.store.loadTaxonomy(ctx)
+	logProcessingStage(job.ID, "load_taxonomy", started)
 	if err != nil {
 		return extraction{}, err
 	}
-	return pipeline.llm.extractWithVision(ctx, images, taxonomy)
+	started = time.Now()
+	result, err := pipeline.llm.extractWithVision(ctx, images, taxonomy)
+	logProcessingStage(job.ID, "vision_extract", started)
+	return result, err
 }

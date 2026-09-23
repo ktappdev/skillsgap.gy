@@ -25,6 +25,7 @@ export type MatchRecalculationView = Pick<Tables<"processing_jobs">, "id" | "sta
 export type ApplicantQualificationView = Tables<"applicant_qualifications"> & { qualificationName: string };
 export type ApplicantExtractionFindingView = Tables<"resume_extraction_findings"> & {
   candidates: Array<Tables<"resume_extraction_finding_candidates"> & { qualificationName: string; category: Tables<"qualifications">["category"] }>;
+  sourceFindingIds?: string[];
 };
 
 export async function getApplicantProgress(client: Client, applicantId: string): Promise<ApplicantProgress> {
@@ -175,7 +176,7 @@ export async function getApplicantFindings(client: Client, applicantId: string):
     : { data: [] };
   const qualificationById = new Map((qualifications ?? []).map((qualification) => [qualification.id, qualification]));
 
-  return findings.map((finding) => ({
+  const findingsWithCandidates = findings.map((finding) => ({
     ...finding,
     candidates: candidateRows
       .filter((candidate) => candidate.finding_id === finding.id)
@@ -184,6 +185,37 @@ export async function getApplicantFindings(client: Client, applicantId: string):
         return qualification ? [{ ...candidate, qualificationName: qualification.name, category: qualification.category }] : [];
       }),
   }));
+
+  return deduplicateFindings(findingsWithCandidates);
+}
+
+function deduplicateFindings(findings: Array<Omit<ApplicantExtractionFindingView, "sourceFindingIds">>): ApplicantExtractionFindingView[] {
+  const findingsByCandidateSet = new Map<string, number>();
+  const deduplicated: ApplicantExtractionFindingView[] = [];
+
+  for (const finding of findings) {
+    const candidateIds = [...new Set(finding.candidates.map((candidate) => candidate.qualification_id))].sort();
+    if (candidateIds.length === 0) {
+      deduplicated.push({ ...finding, sourceFindingIds: [finding.id] });
+      continue;
+    }
+
+    const candidateSet = candidateIds.join("|");
+    const existingIndex = findingsByCandidateSet.get(candidateSet);
+    if (existingIndex === undefined) {
+      findingsByCandidateSet.set(candidateSet, deduplicated.length);
+      deduplicated.push({ ...finding, sourceFindingIds: [finding.id] });
+      continue;
+    }
+
+    const existing = deduplicated[existingIndex];
+    const sourceFindingIds = [...(existing.sourceFindingIds ?? [existing.id]), finding.id];
+    deduplicated[existingIndex] = finding.confidence > existing.confidence
+      ? { ...finding, sourceFindingIds }
+      : { ...existing, sourceFindingIds };
+  }
+
+  return deduplicated;
 }
 
 async function getAvailableQualifications(client: Client): Promise<Tables<"qualifications">[]> {

@@ -309,12 +309,27 @@ export async function confirmExtractionFindings(
   };
 }
 
-export async function rejectExtractionFinding(findingId: string): Promise<{ error?: string }> {
+export async function rejectExtractionFindings(findingIds: string[]): Promise<{ rejectedFindingIds: string[]; error?: string }> {
   const { supabase } = await requireApplicant();
-  const { error } = await supabase.rpc("reject_extraction_finding", { target_finding_id: findingId });
-  if (error) return { error: getDatabaseErrorMessage(error, "We could not remove that finding.") };
+  const uniqueFindingIds = [...new Set(findingIds.map((findingId) => findingId.trim()).filter(Boolean))];
+  if (uniqueFindingIds.length === 0) return { rejectedFindingIds: [], error: "Choose a suggestion to dismiss." };
+  if (uniqueFindingIds.length > 50) return { rejectedFindingIds: [], error: "Choose fewer suggestions to dismiss at once." };
+
+  const rejectedFindingIds: string[] = [];
+  for (const findingId of uniqueFindingIds) {
+    const { error } = await supabase.rpc("reject_extraction_finding", { target_finding_id: findingId });
+    if (error) {
+      revalidatePath("/dashboard");
+      return {
+        rejectedFindingIds,
+        error: getDatabaseErrorMessage(error, "We could not remove that finding."),
+      };
+    }
+    rejectedFindingIds.push(findingId);
+  }
+
   revalidatePath("/dashboard");
-  return {};
+  return { rejectedFindingIds };
 }
 
 export async function updateApplicantQualificationYears(qualificationId: string, yearsValue: string): Promise<{ error?: string }> {

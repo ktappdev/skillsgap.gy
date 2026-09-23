@@ -146,7 +146,9 @@ func (service *service) enqueueQueued(ctx context.Context) {
 }
 
 func (service *service) process(ctx context.Context, jobID string) {
+	started := time.Now()
 	job, err := service.store.claim(ctx, jobID)
+	logProcessingStage(jobID, "claim_job", started)
 	if errors.Is(err, errJobNotClaimed) {
 		return
 	}
@@ -154,15 +156,23 @@ func (service *service) process(ctx context.Context, jobID string) {
 		log.Printf("job claim failed: %v", err)
 		return
 	}
+	jobStarted := time.Now()
+	defer func() {
+		logProcessingStage(job.ID, "job_total", jobStarted)
+	}()
 	processingContext, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	if job.Kind == "recalculate_matches" {
+		started = time.Now()
 		err = service.store.recalculate(processingContext, job)
+		logProcessingStage(job.ID, "recalculate_matches", started)
 	} else {
 		var result extraction
 		result, err = service.pipeline.process(processingContext, job)
 		if err == nil {
+			started = time.Now()
 			err = service.store.complete(ctx, job, result)
+			logProcessingStage(job.ID, "persist_extraction", started)
 		}
 	}
 	if err != nil {
@@ -171,6 +181,10 @@ func (service *service) process(ctx context.Context, jobID string) {
 			log.Printf("could not mark job as failed: %v", failErr)
 		}
 	}
+}
+
+func logProcessingStage(jobID string, stage string, started time.Time) {
+	log.Printf("processing stage=%s job_id=%s duration=%s", stage, jobID, time.Since(started).Round(time.Millisecond))
 }
 
 func (service *service) requireWebhookSecret(next http.Handler) http.Handler {
