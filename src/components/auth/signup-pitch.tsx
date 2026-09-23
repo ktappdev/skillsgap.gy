@@ -21,7 +21,7 @@ export function SignupPitch() {
       <div className="relative flex min-h-[30rem] flex-col justify-end p-6 sm:p-8">
         <p className="text-sm font-semibold text-white/85">Your route into energy work</p>
         <h2 id="signup-pitch-title" className="mt-4 max-w-md text-3xl font-normal leading-tight sm:text-4xl">Turn experience into opportunity.</h2>
-        <p className="mt-5 max-w-md text-base leading-7 text-white/85">SkillsGap.gy helps you build the skills needed for Guyana’s oil, gas, and energy sector.</p>
+        <p className="mt-5 max-w-md text-base leading-7 text-white/85">See which Guyana energy roles fit your skills and what training could open up next. You don&apos;t need a job title in mind.</p>
         <ul className="mt-7 space-y-3 text-sm font-semibold" role="list">
           {signupBenefits.map((benefit) => (
             <li key={benefit} className="flex items-center gap-3">

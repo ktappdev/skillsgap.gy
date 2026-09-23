@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ApplicantContactDetails } from "@/components/dashboard/applicant-contact-details";
 import { MatchRecalculationProvider } from "@/components/dashboard/match-recalculation-context";
 import { MatchResultsSection } from "@/components/dashboard/match-results-section";
 import { PathwaySteps, type PathwayStep } from "@/components/dashboard/pathway-steps";
@@ -23,7 +24,12 @@ type DashboardPageProps = {
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const { supabase, user } = await requireApplicant();
-  const [progress, params] = await Promise.all([getApplicantProgress(supabase, user.id), searchParams]);
+  const [progress, params, profileResult] = await Promise.all([
+    getApplicantProgress(supabase, user.id),
+    searchParams,
+    supabase.from("profiles").select("full_name,phone_number").eq("id", user.id).maybeSingle(),
+  ]);
+  const profile = profileResult.data;
   const requestedRole = typeof params.roleId === "string" ? await getPublicPosition(params.roleId) : null;
   const usingDemoMatches = shouldUseDemoMatches({
     isDemoApplicant: isDemoApplicantMetadata(user.user_metadata),
@@ -63,19 +69,19 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         ? "No roles yet"
         : `${roleCount} roles found`;
   const metadataName = user.user_metadata.full_name;
-  const name = typeof metadataName === "string" && metadataName.trim()
-    ? metadataName.trim()
-    : user.email?.split("@")[0] || "there";
+  const profileName = profile?.full_name?.trim() ?? "";
+  const metadataFullName = typeof metadataName === "string" ? metadataName.trim() : "";
+  const name = profileName || metadataFullName || user.email?.split("@")[0] || "there";
   const pathwaySteps: readonly PathwayStep[] = [
     {
       label: "Build your profile",
-      detail: isResumeProcessing ? "Your CV is being read" : showProfileResults ? "Your profile is ready" : "Upload a private CV",
+      detail: isResumeProcessing ? "Your CV is being read" : showProfileResults ? "Your profile is ready" : "Upload a CV or add a skill",
       href: "#cv-upload",
       state: isResumeProcessing ? "current" : showProfileResults ? "complete" : "current",
     },
     {
-      label: "Confirm your skills",
-      detail: needsReview ? `${progress.findings.length || "Add"} to review` : progress.qualifications.length > 0 ? `${progress.qualifications.length} confirmed` : "Review after upload",
+      label: "Add or confirm skills",
+      detail: progress.findings.length > 0 ? `${progress.findings.length} to review` : progress.qualifications.length > 0 ? `${progress.qualifications.length} confirmed` : "Add skills or upload a CV",
       href: "#skills-review",
       state: needsReview ? "current" : progress.qualifications.length > 0 ? "complete" : "next",
     },
@@ -101,16 +107,20 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           <RealtimeSync userId={user.id} isProcessing={isResumeProcessing || isMatchRecalculating} />
         </div>
         <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-foreground sm:text-4xl">Good to see you, {name}.</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Upload your CV, confirm your skills, then explore jobs and training.</p>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{isResumeProcessing ? "We’re reading your CV. Once it’s ready, confirm your skills and we’ll show fitting roles and training for the gaps." : <>Upload your CV or <a href="#skills-review" className="font-semibold text-accent underline-offset-4 hover:underline">add skills yourself</a>. We’ll show the roles that fit and training for the gaps—no job title needed.</>}</p>
       </header>
 
       <div className="mt-6">
         <PathwaySteps steps={pathwaySteps} />
       </div>
 
+      {profile ? <div className="mt-4"><ApplicantContactDetails email={user.email ?? null} fullName={profile.full_name ?? ""} phoneNumber={profile.phone_number ?? ""} initiallyOpen={params.editContact === "1"} /></div> : <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger" role="alert">We couldn’t load your contact details. Refresh this page and try again.</p>}
+
       {requestedRole ? <RoleContextBanner role={requestedRole} /> : null}
 
       {params.pathway === "saved" ? <p className="mt-6 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status">Your career route is saved privately to this dashboard.</p> : null}
+
+      {params.pathway === "saved" && progress.pathwayPlan ? <div className="mt-6"><SavedCareerRoute plan={progress.pathwayPlan} /></div> : null}
 
       <div className="mt-8">
         <div className="space-y-8">
@@ -124,12 +134,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               processingError={progress.processingError}
             />}
           </div>
-          {showProfileResults ? <MatchRecalculationProvider key={matchRevision}>
-            <QualificationReview applicantId={user.id} initialFindings={progress.findings} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} unmappedTerms={progress.unmappedTerms} />
-            {progress.qualifications.length > 0 || usingDemoMatches ? <MatchResultsSection matches={matches} roleLabel={roleLabel} isRecalculating={isMatchRecalculating} recalculationError={matchRecalculationError} /> : <p id="matches-area" className="scroll-mt-6 rounded-md bg-surface-muted p-4 text-sm text-muted">Your job matches will appear here after you confirm a skill above.</p>}
-            {progress.experience.length > 0 ? <details className="border-t border-border pt-4"><summary className="cursor-pointer py-2 text-sm font-semibold text-muted">Work history · {progress.experience.length} entries · Edit if needed</summary><div className="mt-3"><ExperienceReview key={progress.experience.map((item) => `${item.id}-${item.updated_at}`).join(",")} initialExperience={progress.experience} /></div></details> : null}
-          </MatchRecalculationProvider> : null}
-          {!isResumeProcessing && progress.pathwayPlan ? <details className="border-t border-border pt-4"><summary className="cursor-pointer py-2 text-sm font-semibold text-muted">Your saved career route</summary><div className="mt-3"><SavedCareerRoute plan={progress.pathwayPlan} /></div></details> : showProfileResults && !needsReview ? <SavedCareerRoute plan={null} /> : null}
+          <MatchRecalculationProvider key={matchRevision}>
+            {isResumeProcessing ? <section id="skills-review" className="scroll-mt-6 rounded-lg border border-border bg-surface-muted p-5" aria-labelledby="skills-processing-heading" role="status">
+              <h2 id="skills-processing-heading" className="text-lg font-semibold text-foreground">Next, review your skills</h2>
+              <p className="mt-2 text-sm leading-6 text-muted">When the CV scan finishes, we’ll list suggested skills here. Only skills you confirm affect your job matches.</p>
+            </section> : <QualificationReview applicantId={user.id} hasResume={Boolean(progress.latestResume)} resumeScanFailed={scanFailed} initialFindings={progress.findings} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} unmappedTerms={progress.unmappedTerms} />}
+            {!isResumeProcessing ? progress.qualifications.length > 0 || usingDemoMatches ? <MatchResultsSection matches={matches} roleLabel={roleLabel} isRecalculating={isMatchRecalculating} recalculationError={matchRecalculationError} /> : <p id="matches-area" className="scroll-mt-6 rounded-md bg-surface-muted p-4 text-sm text-muted">Your job matches will appear here after you confirm or add a skill above.</p> : null}
+            {!isResumeProcessing && progress.experience.length > 0 ? <details className="border-t border-border pt-4"><summary className="cursor-pointer py-2 text-sm font-semibold text-muted">Work history · {progress.experience.length} entries · Edit if needed</summary><div className="mt-3"><ExperienceReview key={progress.experience.map((item) => `${item.id}-${item.updated_at}`).join(",")} initialExperience={progress.experience} /></div></details> : null}
+          </MatchRecalculationProvider>
+          {!isResumeProcessing && params.pathway !== "saved" ? progress.pathwayPlan ? <details className="border-t border-border pt-4"><summary className="cursor-pointer py-2 text-sm font-semibold text-muted">Your saved career route</summary><div className="mt-3"><SavedCareerRoute plan={progress.pathwayPlan} /></div></details> : showProfileResults && !needsReview ? <SavedCareerRoute plan={null} /> : null : null}
         </div>
       </div>
     </div>

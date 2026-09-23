@@ -88,20 +88,6 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
                 className="min-h-11 w-full rounded-md border border-border bg-surface px-3.5 text-sm font-normal outline-none transition placeholder:text-muted focus:border-accent"
               />
             </label>
-            {!isCompany && !isProvider ? (
-              <label className="block space-y-2 text-sm font-semibold text-foreground" htmlFor="username">
-                Username <span className="font-normal text-muted">(optional)</span>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  autoComplete="username"
-                  spellCheck={false}
-                  placeholder="your-handle"
-                  className="min-h-11 w-full rounded-md border border-border bg-surface px-3.5 text-sm font-normal outline-none transition placeholder:text-muted focus:border-accent"
-                />
-              </label>
-            ) : null}
           </>
         ) : null}
 

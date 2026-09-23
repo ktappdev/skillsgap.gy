@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MatchRecalculationProvider } from "@/components/dashboard/match-recalculation-context";
-import { confirmExtractionFindings } from "@/lib/skillsgap/actions";
+import { addApplicantQualification, confirmExtractionFindings } from "@/lib/skillsgap/actions";
 
 import { QualificationReview } from "./qualification-review";
 
@@ -70,7 +70,7 @@ describe("QualificationReview", () => {
 
     render(
       <MatchRecalculationProvider>
-        <QualificationReview applicantId="applicant-1" initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />
+        <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />
         <section id="matches-area" tabIndex={-1}>Matches</section>
       </MatchRecalculationProvider>,
     );
@@ -86,7 +86,7 @@ describe("QualificationReview", () => {
   });
   it("requires an explicit choice and keeps failed suggestions available to retry", async () => {
     vi.mocked(confirmExtractionFindings).mockRejectedValue(new Error("Network unavailable"));
-    render(<QualificationReview applicantId="applicant-1" initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />);
+    render(<QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />);
 
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Confirm selected" }).disabled).toBe(true);
     fireEvent.click(screen.getByRole("radio", { name: /Industrial Safety/i }));
@@ -94,6 +94,22 @@ describe("QualificationReview", () => {
     expect(await screen.findByText("We could not confirm those skills. Please try again.")).not.toBeNull();
     expect(screen.getByRole("radio", { name: /Industrial Safety/i })).not.toBeNull();
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Confirm selected (1)" }).disabled).toBe(false);
+  });
+
+  it("lets applicants without a CV add a skill and refresh their new matches", async () => {
+    vi.mocked(addApplicantQualification).mockResolvedValue({});
+    render(
+      <MatchRecalculationProvider>
+        <QualificationReview applicantId="applicant-1" hasResume={false} resumeScanFailed={false} initialFindings={[]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />
+      </MatchRecalculationProvider>,
+    );
+
+    expect(screen.getByText("No CV is needed to start. Add skills you already have and we’ll compare them with active roles.")).not.toBeNull();
+    fireEvent.change(screen.getByLabelText("Choose a skill"), { target: { value: qualification.id } });
+    fireEvent.click(screen.getByRole("button", { name: "Add skill" }));
+
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(await screen.findByText("Skill added. Your role matches are being recalculated.")).not.toBeNull();
   });
 
 });

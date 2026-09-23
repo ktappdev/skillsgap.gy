@@ -11,7 +11,10 @@ export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function ApplicantDashboardOverviewPage() {
   const { supabase, user } = await requireApplicant();
-  const progress = await getApplicantProgress(supabase, user.id);
+  const [progress, profileResult] = await Promise.all([
+    getApplicantProgress(supabase, user.id),
+    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+  ]);
   const usingDemoMatches = shouldUseDemoMatches({
     isDemoApplicant: isDemoApplicantMetadata(user.user_metadata),
     matchCount: progress.matches.length,
@@ -23,9 +26,9 @@ export default async function ApplicantDashboardOverviewPage() {
     || progress.latestResume?.status === "uploaded"
     || progress.latestResume?.status === "processing";
   const metadataName = user.user_metadata.full_name;
-  const name = typeof metadataName === "string" && metadataName.trim()
-    ? metadataName.trim()
-    : user.email?.split("@")[0] || "there";
+  const profileName = profileResult.data?.full_name?.trim() ?? "";
+  const metadataFullName = typeof metadataName === "string" ? metadataName.trim() : "";
+  const name = profileName || metadataFullName || user.email?.split("@")[0] || "there";
 
   return (
     <>

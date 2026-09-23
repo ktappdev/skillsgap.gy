@@ -825,12 +825,25 @@ export async function cancelDirectInterview(invitationId: string): Promise<{ err
   return { message: "Interview invitation cancelled." };
 }
 
-export async function shareProfileForRole(roleId: string): Promise<{ error?: string; message?: string }> {
+export async function shareProfileForRole(roleId: string): Promise<{ error?: string; message?: string; requiresContactDetails?: boolean }> {
   const { supabase, user } = await requireApplicant();
   const { data: role } = await supabase.from("job_roles").select("id,company_id,status").eq("id", roleId).eq("status", "active").maybeSingle();
   if (!role) return { error: "That opportunity is no longer active." };
   const { data: match } = await supabase.from("job_matches").select("id").eq("applicant_id", user.id).eq("job_role_id", roleId).eq("status", "current").maybeSingle();
   if (!match) return { error: "Complete your profile match before sharing it." };
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("full_name,phone_number")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (profileError) return { error: getDatabaseErrorMessage(profileError, "We could not check your contact details.") };
+  if (!profile?.full_name?.trim() || !profile.phone_number?.trim()) {
+    return {
+      error: "Add your name and phone number before sharing. You can still apply without sharing your identity.",
+      requiresContactDetails: true,
+    };
+  }
 
   const { data: existing, error: existingError } = await supabase.from("candidate_consents").select("id").eq("applicant_id", user.id).eq("job_role_id", roleId).maybeSingle();
   if (existingError) return { error: getDatabaseErrorMessage(existingError, "We could not check profile sharing.") };

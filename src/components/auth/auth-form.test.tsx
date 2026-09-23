@@ -56,5 +56,6 @@ describe("AuthForm company flow", () => {
     render(<AuthForm mode="signup" next="/dashboard" />);
     expect(screen.getByRole("button", { name: "Google" })).not.toBeNull();
     expect(screen.getByDisplayValue("applicant")).not.toBeNull();
+    expect(screen.queryByLabelText(/Username/i)).toBeNull();
   });
 });

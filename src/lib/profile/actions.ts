@@ -17,18 +17,15 @@ export async function updateProfile(
 ): Promise<ProfileActionState> {
   const { supabase, user } = await requireApplicant();
   const fullName = getTrimmedFormString(formData, "full_name");
-  const username = getTrimmedFormString(formData, "username");
+  const phoneNumber = getTrimmedFormString(formData, "phone_number");
 
   if (fullName.length > 80) {
     return { error: "Your name must be 80 characters or fewer." };
   }
 
-  if (username && (username.length < 3 || username.length > 40)) {
-    return { error: "Your username must be between 3 and 40 characters." };
-  }
-
-  if (username && !/^[a-zA-Z0-9_-]+$/.test(username)) {
-    return { error: "Use only letters, numbers, underscores, or hyphens in your username." };
+  const phoneDigits = phoneNumber.replace(/\D/g, "");
+  if (phoneNumber.length > 32 || (phoneNumber && (phoneDigits.length < 7 || !/^\+?[0-9\s().-]+$/.test(phoneNumber)))) {
+    return { error: "Enter a phone number with at least 7 digits, including its country code if needed." };
   }
 
   const { data: existingProfile, error: profileError } = await supabase
@@ -43,7 +40,7 @@ export async function updateProfile(
 
   const profileValues = {
     full_name: fullName || null,
-    username: username || null,
+    phone_number: phoneNumber || null,
   };
 
   if (!existingProfile) {
@@ -57,5 +54,6 @@ export async function updateProfile(
   }
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/overview");
   return { message: "Profile saved." };
 }

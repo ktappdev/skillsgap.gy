@@ -20,13 +20,15 @@ import type { Tables } from "@/lib/supabase/database.types";
 
 type Props = {
   applicantId: string;
+  hasResume: boolean;
+  resumeScanFailed: boolean;
   initialFindings: ApplicantExtractionFindingView[];
   initialQualifications: ApplicantQualificationView[];
   availableQualifications: Tables<"qualifications">[];
   unmappedTerms: string[];
 };
 
-export function QualificationReview({ applicantId, initialFindings, initialQualifications, availableQualifications, unmappedTerms }: Props) {
+export function QualificationReview({ applicantId, hasResume, resumeScanFailed, initialFindings, initialQualifications, availableQualifications, unmappedTerms }: Props) {
   const router = useRouter();
   const matchRecalculation = useMatchRecalculation();
   const [findings, setFindings] = useState(initialFindings);
@@ -37,6 +39,7 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
   const [selectedQualification, setSelectedQualification] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isAddingQualification, setIsAddingQualification] = useState(false);
   const [matchGains, setMatchGains] = useState<MatchScoreGain[]>([]);
 
   async function confirmSelectedFindings() {
@@ -139,7 +142,9 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
 
   async function add() {
     const item = availableQualifications.find((qualification) => qualification.id === selectedQualification);
-    if (!item) return;
+    if (!item || isAddingQualification) return;
+    setIsAddingQualification(true);
+    setMessage(null);
     try {
       const result = await addApplicantQualification(item.id);
       if (result.error) return setMessage(result.error);
@@ -153,8 +158,11 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
       setYears((current) => ({ ...current, [id]: "" }));
       setSelectedQualification("");
       setMessage("Skill added. Your role matches are being recalculated.");
+      router.refresh();
     } catch {
       setMessage("We couldn’t add that skill. Please try again.");
+    } finally {
+      setIsAddingQualification(false);
     }
   }
 
@@ -175,7 +183,7 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
   return (
     <section id="skills-review" className="scroll-mt-6 rounded-lg border border-border bg-surface p-5" aria-labelledby="qualification-review-heading">
       <h2 id="qualification-review-heading" className="text-xl font-semibold tracking-tight text-foreground">{findings.length > 0 ? "Check the skills we found" : qualifications.length > 0 ? "Your confirmed skills" : "Add your skills"}</h2>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{findings.length > 0 ? "Select the skills that describe you, then confirm. Only confirmed skills count toward job matches." : qualifications.length > 0 ? "These skills are used to find your job matches. You can edit them or add a missing skill below." : "We didn’t find any skills to confirm. Add a skill below to start finding job matches."}</p>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{findings.length > 0 ? "Select the skills that describe you, then confirm. Only confirmed skills count toward job matches." : qualifications.length > 0 ? "These skills are used to find your job matches. You can edit them or add a missing skill below." : resumeScanFailed ? "We couldn’t read your CV. Retry the upload or add skills yourself below." : hasResume ? "We didn’t find any skills to confirm. Add a skill below to start finding job matches." : "No CV is needed to start. Add skills you already have and we’ll compare them with active roles."}</p>
 
       {findings.length > 0 ? <section className="mt-5 space-y-4" aria-labelledby="pending-findings-heading">
         <div><h3 id="pending-findings-heading" className="text-sm font-semibold text-foreground">{findings.length} suggestions to review</h3><p className="mt-1 text-sm leading-6 text-muted">Choose the skill that best describes your experience, or dismiss it if it does not apply.</p></div>
@@ -193,13 +201,13 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
         <ul className="mt-2 space-y-1" role="list">{matchGains.map((gain) => <li key={gain.roleId} className="text-sm font-semibold text-emerald-800">+{gain.points}% to {gain.roleTitle}</li>)}</ul>
       </section> : null}
 
-      {qualifications.length > 0 ? <details className="mt-6"><summary className="cursor-pointer py-2 text-sm font-semibold text-foreground">Confirmed skills ({qualifications.length}) · View or edit</summary><ul className="mt-3 space-y-4" role="list">{qualifications.map((item) => <ConfirmedQualificationCard key={item.id} item={item} years={years[item.id] ?? ""} correction={corrections[item.id] ?? ""} availableQualifications={availableQualifications} onYearsChange={(value) => setYears((current) => ({ ...current, [item.id]: value }))} onCorrectionChange={(value) => setCorrections((current) => ({ ...current, [item.id]: value }))} onSaveYears={() => { void saveYears(item); }} onCorrect={() => { void correct(item); }} onRemove={() => { void remove(item); }} />)}</ul></details> : <p className="mt-3 rounded-lg border border-dashed border-border p-4 text-sm text-muted">No skills confirmed yet. Choose a suggestion above or add a skill below.</p>}
+      {qualifications.length > 0 ? <details className="mt-6"><summary className="cursor-pointer py-2 text-sm font-semibold text-foreground">Confirmed skills ({qualifications.length}) · View or edit</summary><ul className="mt-3 space-y-4" role="list">{qualifications.map((item) => <ConfirmedQualificationCard key={item.id} item={item} years={years[item.id] ?? ""} correction={corrections[item.id] ?? ""} availableQualifications={availableQualifications} onYearsChange={(value) => setYears((current) => ({ ...current, [item.id]: value }))} onCorrectionChange={(value) => setCorrections((current) => ({ ...current, [item.id]: value }))} onSaveYears={() => { void saveYears(item); }} onCorrect={() => { void correct(item); }} onRemove={() => { void remove(item); }} />)}</ul></details> : <p className="mt-3 rounded-lg border border-dashed border-border p-4 text-sm text-muted">{findings.length > 0 ? "No skills confirmed yet. Choose a suggestion above or add a skill below." : "No skills confirmed yet. Add a skill to start comparing your experience with active roles."}</p>}
 
       {unmappedTerms.length > 0 ? <div className="mt-3 rounded-lg border border-border bg-surface-muted p-4"><h3 className="text-sm font-semibold text-foreground">Kept private for your review</h3><p className="mt-1 text-sm leading-6 text-muted">These CV terms don&apos;t affect matches. Add a matching skill below if one applies.</p><ul className="mt-2 flex flex-wrap gap-2" role="list">{unmappedTerms.map((term) => <li key={term} className="border border-amber-200 bg-white px-2.5 py-1 text-xs text-foreground">{term}</li>)}</ul></div> : null}
 
       <details open={findings.length === 0 && qualifications.length === 0} className="mt-6 border-t border-border pt-5">
-        <summary className="cursor-pointer py-2 text-sm font-semibold text-foreground">Add a missing skill</summary>
-        <p className="mt-1 text-sm leading-6 text-muted">Add a skill we did not find in your CV.</p>
+        <summary className="cursor-pointer py-2 text-sm font-semibold text-foreground">{hasResume && !resumeScanFailed ? "Add a missing skill" : "Add your skills"}</summary>
+        <p className="mt-1 text-sm leading-6 text-muted">{hasResume && !resumeScanFailed ? "Add a skill we did not find in your CV." : "Choose a skill that describes work you have done, then add it to your profile."}</p>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="min-w-0 flex-1 text-xs font-semibold text-muted" htmlFor="add-qualification">
             Choose a skill
@@ -208,7 +216,7 @@ export function QualificationReview({ applicantId, initialFindings, initialQuali
               {availableQualifications.filter((item) => !knownIds.has(item.id)).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           </label>
-          <button type="button" disabled={!selectedQualification} onClick={() => { void add(); }} className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted disabled:opacity-50 sm:w-auto">Add skill</button>
+          <button type="button" disabled={!selectedQualification || isAddingQualification} onClick={() => { void add(); }} className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted disabled:cursor-wait disabled:opacity-50 sm:w-auto">{isAddingQualification ? "Adding…" : "Add skill"}</button>
         </div>
       </details>
       {qualifications.length > 0 ? <a href="#matches-area" className="mt-5 inline-flex min-h-11 items-center font-semibold text-accent">View job matches ↓</a> : null}
