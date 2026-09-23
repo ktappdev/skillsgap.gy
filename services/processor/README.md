@@ -42,7 +42,7 @@ The document route is deterministic: `pdfinfo` validates the file and page count
 
 The webhook handler accepts either the configured compact body `{ "job_id": "…" }` or the standard Supabase Database Webhook envelope and reads only `record.id`. It never trusts or logs the rest of the event payload.
 
-Production should point the repository migration `20260905221437_wire_processor_webhook.sql` at the deployed processor's `/webhooks/resume` URL. The trigger sends only the job identifier; the header secret is stored in Supabase Vault and must match `WEBHOOK_SECRET` in the processor environment.
+Set `skillsgap_processor_webhook_url` and `skillsgap_processor_webhook_secret` in each Supabase environment's Vault. The URL must be the processor's HTTPS `/webhooks/resume` endpoint. The trigger reads both values from Vault and sends only the job identifier; the header secret must match `WEBHOOK_SECRET` in that processor environment. The migration deliberately does not contain a deployment hostname or secret.
 
 ## Local verification
 
