@@ -18,6 +18,8 @@ function matchesPosition(position: PublicPositionSummary, query: string) {
     position.location,
     position.employmentType ?? "",
     position.company.name,
+    position.company.industry ?? "",
+    position.company.location ?? "",
   ].join(" ").toLocaleLowerCase();
   return searchableText.includes(query);
 }

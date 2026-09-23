@@ -10,7 +10,7 @@ export default async function RequestAccessPage({ searchParams }: { searchParams
   if (membershipResult.error) throw new Error("Company request lookup failed. Please try again.");
   const membership = membershipResult.data;
   const companyResult = membership
-    ? await supabase.from("companies").select("name,status,website_url,description,requested_by").eq("id", membership.company_id).maybeSingle()
+    ? await supabase.from("companies").select("name,status,website_url,industry,location,contact_phone,description,requested_by").eq("id", membership.company_id).maybeSingle()
     : null;
   if (companyResult?.error || (membership && !companyResult?.data)) throw new Error("Company request lookup failed. Please try again.");
   const company = companyResult?.data;
@@ -42,7 +42,7 @@ export default async function RequestAccessPage({ searchParams }: { searchParams
             <CompanyRequestStatus name={company.name} status={company.status} />
             {company.status === "rejected" && company.requested_by === user.id ? <CompanyRequestForm
               mode="resubmit"
-              initialValues={{ name: company.name, website: company.website_url ?? "", description: company.description ?? "" }}
+              initialValues={{ name: company.name, website: company.website_url ?? "", industry: company.industry ?? "", location: company.location ?? "", contactPhone: company.contact_phone ?? "", description: company.description ?? "" }}
               pendingLabel="Resubmitting…"
               submitLabel="Resubmit for review"
             /> : null}

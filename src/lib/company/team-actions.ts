@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import {
   createRecruiterInvitationToken,
@@ -95,7 +94,7 @@ export async function removeRecruiter(userId: string): Promise<{ error?: string 
   return {};
 }
 
-export async function acceptRecruiterInvitation(token: string): Promise<{ error?: string }> {
+export async function acceptRecruiterInvitation(token: string): Promise<{ error?: string; redirectTo?: string }> {
   const { supabase } = await requireUser(`/company/invitations/${token}`);
   if (!isRecruiterInvitationToken(token)) return { error: "That recruiter invitation is not valid." };
 
@@ -111,5 +110,5 @@ export async function acceptRecruiterInvitation(token: string): Promise<{ error?
   }
 
   revalidatePath("/company", "layout");
-  redirect("/company?joined=1");
+  return { redirectTo: "/company?joined=1" };
 }

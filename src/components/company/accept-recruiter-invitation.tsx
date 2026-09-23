@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { acceptRecruiterInvitation } from "@/lib/company/team-actions";
 
 export function AcceptRecruiterInvitation({ token }: { token: string }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -14,6 +16,7 @@ export function AcceptRecruiterInvitation({ token }: { token: string }) {
       try {
         const result = await acceptRecruiterInvitation(token);
         if (result?.error) setError(result.error);
+        else if (result?.redirectTo) router.push(result.redirectTo);
       } catch {
         setError("We could not join this company workspace. Check your connection and try again.");
       }

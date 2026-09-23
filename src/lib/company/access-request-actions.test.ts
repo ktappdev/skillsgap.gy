@@ -17,11 +17,14 @@ function query(data: unknown = null, error: { code: string } | null = null) {
   };
   return chain;
 }
-const values = { name: "Example Ltd", website: "https://example.com", description: "Private company description" };
+const values = { name: "Example Ltd", website: "https://example.com", industry: "Energy services", location: "Georgetown", contactPhone: "+592 600 0000", description: "Private company description" };
 function form(name = values.name) {
   const data = new FormData();
   data.set("company", name);
   data.set("website", values.website);
+  data.set("industry", values.industry);
+  data.set("location", values.location);
+  data.set("contact_phone", values.contactPhone);
   data.set("description", values.description);
   return data;
 }
