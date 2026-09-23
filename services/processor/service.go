@@ -7,7 +7,9 @@ import (
 	"errors"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"net/netip"
 	"strings"
 	"sync"
 	"time"
@@ -201,9 +203,62 @@ func (service *service) requireWebhookSecret(next http.Handler) http.Handler {
 func requestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		started := time.Now()
-		next.ServeHTTP(writer, request)
-		log.Printf("%s %s %s", request.Method, request.URL.Path, time.Since(started).Round(time.Millisecond))
+		response := &responseStatusWriter{ResponseWriter: writer}
+		next.ServeHTTP(response, request)
+		status := response.status
+		if status == 0 {
+			status = http.StatusOK
+		}
+		log.Printf(
+			"%s %s status=%d peer_ip=%s cf_client_ip=%s duration=%s",
+			request.Method,
+			request.URL.Path,
+			status,
+			remoteIP(request.RemoteAddr),
+			requestIP(request.Header.Get("CF-Connecting-IP")),
+			time.Since(started).Round(time.Millisecond),
+		)
 	})
+}
+
+type responseStatusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (writer *responseStatusWriter) WriteHeader(status int) {
+	if writer.status != 0 {
+		return
+	}
+	writer.status = status
+	writer.ResponseWriter.WriteHeader(status)
+}
+
+func (writer *responseStatusWriter) Write(body []byte) (int, error) {
+	if writer.status == 0 {
+		writer.WriteHeader(http.StatusOK)
+	}
+	return writer.ResponseWriter.Write(body)
+}
+
+func (writer *responseStatusWriter) Unwrap() http.ResponseWriter {
+	return writer.ResponseWriter
+}
+
+func remoteIP(remoteAddress string) string {
+	host, _, err := net.SplitHostPort(remoteAddress)
+	if err != nil {
+		return requestIP(remoteAddress)
+	}
+	return requestIP(host)
+}
+
+func requestIP(value string) string {
+	address, err := netip.ParseAddr(strings.TrimSpace(value))
+	if err != nil {
+		return "-"
+	}
+	return address.String()
 }
 
 func writeJSON(writer http.ResponseWriter, status int, value any) {
