@@ -35,8 +35,19 @@ const demoCredentials = [
 ];
 const illustrativeProgramIds = Array.from({ length: 20 }, (_, index) => `30000000-0000-0000-0000-${String(index + 1).padStart(12, "0")}`);
 const ictProgramIds = Array.from({ length: 5 }, (_, index) => `30000000-0000-0000-0000-${String(index + 21).padStart(12, "0")}`);
-const demoProgramIds = [...illustrativeProgramIds, ...ictProgramIds];
+const energyProgramIds = Array.from({ length: 20 }, (_, index) => `30000000-0000-0000-0000-${String(index + 26).padStart(12, "0")}`);
+const demoProgramIds = [...illustrativeProgramIds, ...ictProgramIds, ...energyProgramIds];
 const ictRoleIds = Array.from({ length: 5 }, (_, index) => `40000000-0000-0000-0000-${String(index + 19).padStart(12, "0")}`);
+const energyRoleIds = Array.from({ length: 5 }, (_, index) => `40000000-0000-0000-0000-${String(index + 24).padStart(12, "0")}`);
+const energyProviderIds = [
+  "20000000-0000-0000-0000-000000000001",
+  "20000000-0000-0000-0000-000000000004",
+  "20000000-0000-0000-0000-000000000006",
+  "20000000-0000-0000-0000-000000000007",
+  "20000000-0000-0000-0000-000000000008",
+  "20000000-0000-0000-0000-000000000009",
+  "20000000-0000-0000-0000-000000000010",
+];
 const ictQualificationSlugs = [
   "software-development",
   "web-application-development",
@@ -50,6 +61,19 @@ const ictQualificationSlugs = [
   "version-control",
   "ict-network-support",
   "instrumentation-basics",
+];
+const energyQualificationSlugs = [
+  "oil-and-gas-industry-fundamentals",
+  "subsea-robotics-basics",
+  "advanced-diploma-oil-and-gas",
+  "production-operations",
+  "offshore-production-operations",
+  "environmental-stewardship",
+  "oil-and-gas-procurement",
+  "project-planning-and-scheduling",
+  "cvq-level-3-occupational-safety-and-health",
+  "asc-petroleum-engineering",
+  "msc-oil-and-gas-renewable-energy",
 ];
 
 for (const [emailName, passwordName] of demoCredentials) {
@@ -72,26 +96,44 @@ const [
   { data: programs, error: programsError },
   { data: providers, error: providersError },
   { data: ictQualifications, error: ictQualificationsError },
+  { data: energyQualifications, error: energyQualificationsError },
+  { data: energyProviders, error: energyProvidersError },
+  { data: employmentActions, error: employmentActionsError },
+  { data: registrationActions, error: registrationActionsError },
 ] = await Promise.all([
   admin.from("job_matches").select("id,job_role_id,score,interview_eligible").eq("applicant_id", applicant.id).eq("status", "current"),
   admin.from("interview_invitations").select("id").eq("applicant_id", applicant.id).eq("status", "pending"),
   admin.from("job_roles").select("id,title").eq("status", "active").eq("is_demo", true),
-  admin.from("training_programs").select("id,provider_id,name,description,duration_text").in("id", demoProgramIds).eq("is_active", true),
+  admin.from("training_programs").select("id,provider_id,name,description,duration_text,enrollment_url,intake_text,fee_amount,next_intake_date").in("id", demoProgramIds).eq("is_active", true),
   admin.from("training_providers").select("id").eq("is_verified", true),
   admin.from("qualifications").select("id,slug").in("slug", ictQualificationSlugs).eq("is_active", true),
+  admin.from("qualifications").select("id,slug").in("slug", energyQualificationSlugs).eq("is_active", true),
+  admin.from("training_providers").select("id").in("id", energyProviderIds).eq("is_verified", true),
+  admin.from("occupation_pathway_actions").select("id,occupation_id").eq("action_type", "find_work").eq("url", "https://lcregister.petroleum.gov.gy/opportunities/notices-for-individual-employment/").eq("is_active", true).eq("is_verified", true),
+  admin.from("occupation_pathway_actions").select("id,occupation_id").eq("action_type", "register").eq("url", "https://localcontent.gov.gy/").eq("is_active", true).eq("is_verified", true),
 ]);
-if (matchesError || invitationsError || demoRolesError || programsError || providersError || ictQualificationsError) {
+if (matchesError || invitationsError || demoRolesError || programsError || providersError || ictQualificationsError || energyQualificationsError || energyProvidersError || employmentActionsError || registrationActionsError) {
   throw new Error("Could not read fallback demo data.");
 }
 
 assert((demoRoles ?? []).length >= 18, "The expanded catalogue needs at least 18 active curated roles.");
 assert(ictRoleIds.every((roleId) => (demoRoles ?? []).some((role) => role.id === roleId)), "One or more ICT roles are missing from the active catalogue.");
+assert(energyRoleIds.every((roleId) => (demoRoles ?? []).some((role) => role.id === roleId)), "One or more Guyana energy role profiles are missing from the active catalogue.");
 assert((ictQualifications ?? []).length === ictQualificationSlugs.length, "The ICT qualification taxonomy is incomplete.");
-assert((programs ?? []).length === demoProgramIds.length, "The expanded catalogue needs all 25 active training pathways.");
+assert((energyQualifications ?? []).length === energyQualificationSlugs.length, "The Guyana energy qualification taxonomy is incomplete.");
+assert((energyProviders ?? []).length === energyProviderIds.length, "One or more source-verified Guyana training providers are missing.");
+assert((programs ?? []).length === demoProgramIds.length, "The expanded catalogue needs all 45 active training pathways.");
 const incompleteDemoPrograms = (programs ?? []).filter((program) => illustrativeProgramIds.includes(program.id) && (!program.name || !program.duration_text || !program.description?.includes("Illustrative cost:")));
 assert(incompleteDemoPrograms.length === 0, `${incompleteDemoPrograms.length} training pathways are missing illustrative demo details.`);
 const incompleteIctPrograms = (programs ?? []).filter((program) => ictProgramIds.includes(program.id) && (!program.name || !program.duration_text || !program.description));
 assert(incompleteIctPrograms.length === 0, `${incompleteIctPrograms.length} ICT training pathways are incomplete.`);
+const incompleteEnergyPrograms = (programs ?? []).filter((program) => energyProgramIds.includes(program.id) && (
+  !program.name || !program.duration_text || !program.description || !program.enrollment_url ||
+  !program.intake_text || program.fee_amount !== null || program.next_intake_date !== null
+));
+assert(incompleteEnergyPrograms.length === 0, `${incompleteEnergyPrograms.length} Guyana energy training pathways are incomplete or contain unpublished intake/fee claims.`);
+assert((employmentActions ?? []).length >= 18, "The individual employment notice route is missing from one or more occupations.");
+assert((registrationActions ?? []).length >= 18, "The new Local Content Portal registration route is missing from one or more occupations.");
 const matchedRoleIds = new Set((matches ?? []).map((match) => match.job_role_id));
 const unmatchedDemoRoles = (demoRoles ?? []).filter((role) => !matchedRoleIds.has(role.id));
 assert(unmatchedDemoRoles.length === 0, `Fallback applicant is missing ${unmatchedDemoRoles.length} curated role matches.`);
