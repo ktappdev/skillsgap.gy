@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireApplicant, requireApprovedCompanyMember, requirePlatformAdmin } from "@/lib/auth/queries";
 import { getDatabaseErrorMessage } from "@/lib/errors";
 import { parseGuyanaDateTime } from "@/lib/guyana-time";
+import { getTrimmedFormString } from "@/lib/validation";
 import type { CareerActionType } from "@/lib/i-want-to-become/guidance";
 import { DEFAULT_ELIGIBILITY_THRESHOLD } from "@/lib/skillsgap/constants";
 import { validateJobRequirementInput, validateJobRoleDetails, type JobRoleDetailsInput } from "@/lib/skillsgap/job-role";
@@ -638,12 +639,28 @@ export async function mapTrainingOutcome(programId: string, qualificationId: str
   return {};
 }
 
-export async function setTrainingProviderVerified(providerId: string, isVerified: boolean): Promise<{ error?: string }> {
+export async function reviewTrainingProvider(formData: FormData): Promise<{ error?: string; message?: string }> {
   const { supabase } = await requirePlatformAdmin();
-  const { error } = await supabase.from("training_providers").update({ is_verified: isVerified }).eq("id", providerId);
+  const providerId = getTrimmedFormString(formData, "providerId");
+  const decision = getTrimmedFormString(formData, "decision");
+  const reviewerNotes = getTrimmedFormString(formData, "reviewNotes");
+  if (!providerId || (decision !== "approve" && decision !== "needs_changes")) {
+    return { error: "Choose a provider and review decision." };
+  }
+  if (reviewerNotes.length > 2000) return { error: "Review notes must be 2000 characters or fewer." };
+
+  const { error } = await supabase.rpc("review_training_provider", {
+    target_provider_id: providerId,
+    approve: decision === "approve",
+    reviewer_notes: reviewerNotes || null,
+  });
   if (error) return { error: getDatabaseErrorMessage(error, "We could not update provider verification.") };
+
+  revalidatePath("/provider");
   revalidatePath("/admin/training");
-  return {};
+  revalidatePath("/training");
+  revalidatePath(`/training/providers/${providerId}`);
+  return { message: decision === "approve" ? "Provider approved." : "Verification changes requested; public visibility has been removed." };
 }
 
 function isHttpsUrl(value: string) {

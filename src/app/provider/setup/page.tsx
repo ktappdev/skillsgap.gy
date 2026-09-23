@@ -3,19 +3,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ProviderAccountBoundary, ProviderSetupUnavailable } from "@/components/auth/provider-account-boundary";
+import { ProviderProfileFields, type ProviderProfileFormValues } from "@/components/skillsgap/provider-profile-fields";
 import { requireUser, resolveUserHome } from "@/lib/auth/queries";
 import { createProviderAccount } from "@/lib/skillsgap/provider-actions";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 type ProviderSetupSearchParams = Record<string, string | string[] | undefined>;
-
-type ProviderSetupValues = {
-  name: string;
-  location: string;
-  contactPhone: string;
-  contactUrl: string;
-  description: string;
-};
 
 function getSearchParam(params: ProviderSetupSearchParams, key: string) {
   const value = params[key];
@@ -38,11 +31,15 @@ export default async function ProviderSetupPage({ searchParams }: { searchParams
 
   const params = await searchParams;
   const errorMessage = getSearchParam(params, "error") || null;
-  const initialValues: ProviderSetupValues = {
+  const initialValues: ProviderProfileFormValues = {
     name: getSearchParam(params, "name"),
+    provider_type: getSearchParam(params, "provider_type"),
     location: getSearchParam(params, "location"),
-    contactPhone: getSearchParam(params, "contact_phone"),
-    contactUrl: getSearchParam(params, "contact_url"),
+    physical_address: getSearchParam(params, "physical_address"),
+    service_area: getSearchParam(params, "service_area"),
+    contact_email: getSearchParam(params, "contact_email"),
+    contact_phone: getSearchParam(params, "contact_phone"),
+    contact_url: getSearchParam(params, "contact_url"),
     description: getSearchParam(params, "description"),
   };
 
@@ -62,7 +59,7 @@ export default async function ProviderSetupPage({ searchParams }: { searchParams
         <section className="mt-6 rounded-lg border border-border bg-surface p-6 sm:p-8" aria-labelledby="provider-setup-heading">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Step 2 of 2 · Organisation details</p>
           <h1 id="provider-setup-heading" className="mt-3 text-3xl font-semibold tracking-tight">Set up your training provider profile</h1>
-          <p className="mt-3 text-sm leading-6 text-muted">Add your organisation so applicants can find your programs and the qualifications they support. You can manage programs while verification is pending; an administrator verifies providers before they appear in public recommendations.</p>
+          <p className="mt-3 text-sm leading-6 text-muted">Add your public organisation details so learners can find the right provider. You can add programs while verification is pending; an administrator reviews your organisation before listings appear in public recommendations.</p>
           <ProviderSetupForm errorMessage={errorMessage} initialValues={initialValues} />
         </section>
       </div>
@@ -70,29 +67,12 @@ export default async function ProviderSetupPage({ searchParams }: { searchParams
   );
 }
 
-function ProviderSetupForm({ errorMessage, initialValues }: { errorMessage: string | null; initialValues: ProviderSetupValues }) {
+function ProviderSetupForm({ errorMessage, initialValues }: { errorMessage: string | null; initialValues: ProviderProfileFormValues }) {
   return (
     <form action={createProviderAccount} className="mt-6 space-y-4">
-      <Field label="Provider name" name="name" required maxLength={160} defaultValue={initialValues.name} />
-      <Field label="Location" name="location" required maxLength={160} defaultValue={initialValues.location} />
-      <Field label="Contact phone (optional)" name="contact_phone" type="tel" maxLength={160} defaultValue={initialValues.contactPhone} />
-      <Field label="Contact URL (optional)" name="contact_url" type="url" maxLength={2048} defaultValue={initialValues.contactUrl} />
-      <label className="block text-sm font-semibold text-foreground" htmlFor="provider-description">
-        Description (optional)
-        <textarea id="provider-description" name="description" defaultValue={initialValues.description} maxLength={2000} rows={4} className="mt-2 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm font-normal outline-none focus:border-accent" />
-      </label>
+      <ProviderProfileFields values={initialValues} />
       {errorMessage ? <p className="text-sm text-danger" role="alert">{errorMessage}</p> : null}
-      <SubmitButton className="min-h-11 w-full rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">Create provider profile</SubmitButton>
+      <SubmitButton pendingLabel="Creating…" className="min-h-11 w-full rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">Create provider profile</SubmitButton>
     </form>
-  );
-}
-
-function Field({ label, name, type = "text", required = false, maxLength, defaultValue }: { label: string; name: string; type?: "text" | "url" | "tel"; required?: boolean; maxLength?: number; defaultValue?: string }) {
-  const id = `provider-${name}`;
-  return (
-    <label className="block text-sm font-semibold text-foreground" htmlFor={id}>
-      {label}
-      <input id={id} required={required} defaultValue={defaultValue} maxLength={maxLength} name={name} type={type} className="mt-2 min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm font-normal outline-none focus:border-accent" />
-    </label>
   );
 }

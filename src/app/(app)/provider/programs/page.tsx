@@ -14,7 +14,7 @@ export default async function ProviderProgramsPage() {
 
   const programIds = (programs ?? []).map((program) => program.id);
 
-  const [outcomesResult, { data: qualifications }, { data: aliases }] = await Promise.all([
+  const [outcomesResult, { data: activeQualifications }, { data: providerSuggestions }, { data: aliases }] = await Promise.all([
     programIds.length > 0
       ? supabase
           .from("training_program_outcomes")
@@ -22,6 +22,7 @@ export default async function ProviderProgramsPage() {
           .in("training_program_id", programIds)
       : Promise.resolve({ data: [] as Tables<"training_program_outcomes">[] | null }),
     supabase.from("qualifications").select("*").eq("is_active", true).order("name"),
+    supabase.from("qualifications").select("*").eq("submitted_by_provider_id", provider.id).order("name"),
     supabase.from("qualification_aliases").select("*"),
   ]);
 
@@ -39,7 +40,10 @@ export default async function ProviderProgramsPage() {
         providerVerified={provider.is_verified}
         programs={programs ?? []}
         outcomes={outcomesResult.data ?? []}
-        qualifications={qualifications ?? []}
+        qualifications={[
+          ...(activeQualifications ?? []),
+          ...(providerSuggestions ?? []).filter((suggestion) => suggestion.submission_status !== "approved"),
+        ].filter((qualification, index, all) => all.findIndex((item) => item.id === qualification.id) === index)}
         aliases={aliases ?? []}
       />
     </div>

@@ -1,4 +1,5 @@
 import type { PublicTrainingProvider } from "@/lib/share/public-content";
+import Link from "next/link";
 
 export function TrainingProviderInquiry({ qualification, providers }: { qualification: string; providers: PublicTrainingProvider[] }) {
   if (providers.length === 0) return null;
@@ -23,6 +24,8 @@ export function TrainingProviderInquiry({ qualification, providers }: { qualific
                 </a>
               ) : null}
               {provider.contact_phone ? <a href={`tel:${provider.contact_phone}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">{provider.contact_phone}</a> : null}
+              {provider.contact_email ? <a href={`mailto:${provider.contact_email}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">Email provider</a> : null}
+              <Link href={`/training/providers/${provider.id}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">View provider profile <span aria-hidden="true" className="ml-1">→</span></Link>
             </div>
           </li>
         ))}

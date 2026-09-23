@@ -34,7 +34,12 @@ export type PublicPosition = PublicPositionSummary & {
 
 export type PublicTrainingProvider = Pick<
   Tables<"training_providers">,
-  "id" | "name" | "location" | "contact_url" | "contact_phone" | "description"
+  "id" | "name" | "provider_type" | "location" | "physical_address" | "service_area" | "contact_email" | "contact_url" | "contact_phone" | "description"
+>;
+
+type PublicTrainingProgram = Pick<
+  Tables<"training_programs">,
+  "id" | "name" | "description" | "duration_text" | "enrollment_url" | "award_title" | "qualification_level" | "delivery_mode" | "delivery_location" | "entry_requirements" | "schedule_text" | "intake_text" | "next_intake_date" | "application_deadline" | "fee_amount" | "fee_currency" | "fee_notes" | "provider_id"
 >;
 
 export type PublicCourse = {
@@ -43,6 +48,18 @@ export type PublicCourse = {
   description: string | null;
   durationText: string | null;
   enrollmentUrl: string | null;
+  awardTitle: string | null;
+  qualificationLevel: string | null;
+  deliveryMode: Tables<"training_programs">["delivery_mode"];
+  deliveryLocation: string | null;
+  entryRequirements: string | null;
+  scheduleText: string | null;
+  intakeText: string | null;
+  nextIntakeDate: string | null;
+  applicationDeadline: string | null;
+  feeAmount: number | null;
+  feeCurrency: string;
+  feeNotes: string | null;
   provider: PublicTrainingProvider;
   outcomes: string[];
 };
@@ -153,7 +170,7 @@ export const getPublicPosition = cache(async (roleId: string): Promise<PublicPos
 });
 
 function toPublicCourse(
-  program: Pick<Tables<"training_programs">, "id" | "name" | "description" | "duration_text" | "enrollment_url" | "provider_id">,
+  program: PublicTrainingProgram,
   provider: PublicTrainingProvider,
   outcomes: string[],
 ): PublicCourse {
@@ -163,6 +180,18 @@ function toPublicCourse(
     description: program.description,
     durationText: program.duration_text,
     enrollmentUrl: program.enrollment_url,
+    awardTitle: program.award_title,
+    qualificationLevel: program.qualification_level,
+    deliveryMode: program.delivery_mode,
+    deliveryLocation: program.delivery_location,
+    entryRequirements: program.entry_requirements,
+    scheduleText: program.schedule_text,
+    intakeText: program.intake_text,
+    nextIntakeDate: program.next_intake_date,
+    applicationDeadline: program.application_deadline,
+    feeAmount: program.fee_amount,
+    feeCurrency: program.fee_currency,
+    feeNotes: program.fee_notes,
     provider,
     outcomes,
   };
@@ -197,12 +226,12 @@ export const getPublicCourses = cache(async (): Promise<PublicCourse[]> => {
   const [{ data: programs }, { data: providers }] = await Promise.all([
     admin
       .from("training_programs")
-      .select("id,name,description,duration_text,enrollment_url,provider_id")
+      .select("id,name,description,duration_text,enrollment_url,award_title,qualification_level,delivery_mode,delivery_location,entry_requirements,schedule_text,intake_text,next_intake_date,application_deadline,fee_amount,fee_currency,fee_notes,provider_id")
       .eq("is_active", true)
       .order("name"),
     admin
       .from("training_providers")
-      .select("id,name,location,contact_url,contact_phone,description")
+      .select("id,name,provider_type,location,physical_address,service_area,contact_email,contact_url,contact_phone,description")
       .eq("is_verified", true)
       .order("name"),
   ]);
@@ -213,7 +242,8 @@ export const getPublicCourses = cache(async (): Promise<PublicCourse[]> => {
   const outcomesByProgram = await getCourseOutcomes(admin, visiblePrograms.map((program) => program.id));
   return visiblePrograms.flatMap((program) => {
     const provider = providerById.get(program.provider_id);
-    return provider ? [toPublicCourse(program, provider, outcomesByProgram.get(program.id) ?? [])] : [];
+    const outcomes = outcomesByProgram.get(program.id) ?? [];
+    return provider && outcomes.length > 0 ? [toPublicCourse(program, provider, outcomes)] : [];
   });
 });
 
@@ -223,7 +253,7 @@ export const getPublicTrainingProviders = cache(async (): Promise<PublicTraining
 
   const { data, error } = await admin
     .from("training_providers")
-    .select("id,name,location,contact_url,contact_phone,description")
+    .select("id,name,provider_type,location,physical_address,service_area,contact_email,contact_url,contact_phone,description")
     .eq("is_verified", true)
     .order("name");
   return error ? [] : data ?? [];
@@ -235,7 +265,7 @@ export const getPublicCourse = cache(async (programId: string): Promise<PublicCo
 
   const { data: program, error } = await admin
     .from("training_programs")
-    .select("id,name,description,duration_text,enrollment_url,provider_id")
+    .select("id,name,description,duration_text,enrollment_url,award_title,qualification_level,delivery_mode,delivery_location,entry_requirements,schedule_text,intake_text,next_intake_date,application_deadline,fee_amount,fee_currency,fee_notes,provider_id")
     .eq("id", programId)
     .eq("is_active", true)
     .maybeSingle();
@@ -243,12 +273,19 @@ export const getPublicCourse = cache(async (programId: string): Promise<PublicCo
 
   const { data: provider } = await admin
     .from("training_providers")
-    .select("id,name,location,contact_url,contact_phone,description")
+    .select("id,name,provider_type,location,physical_address,service_area,contact_email,contact_url,contact_phone,description")
     .eq("id", program.provider_id)
     .eq("is_verified", true)
     .maybeSingle();
   if (!provider) return null;
 
   const outcomesByProgram = await getCourseOutcomes(admin, [program.id]);
-  return toPublicCourse(program, provider, outcomesByProgram.get(program.id) ?? []);
+  const outcomes = outcomesByProgram.get(program.id) ?? [];
+  return outcomes.length > 0 ? toPublicCourse(program, provider, outcomes) : null;
+});
+
+export const getPublicTrainingProvider = cache(async (providerId: string): Promise<PublicTrainingProvider | null> => {
+  if (!isUuid(providerId)) return null;
+  const providers = await getPublicTrainingProviders();
+  return providers.find((provider) => provider.id === providerId) ?? null;
 });

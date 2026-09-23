@@ -40,6 +40,8 @@ const qualification = {
   category: "compliance" as const,
   description: null,
   is_active: true,
+  submitted_by_provider_id: null,
+  submission_status: null,
   created_at: now,
   updated_at: now,
 };
