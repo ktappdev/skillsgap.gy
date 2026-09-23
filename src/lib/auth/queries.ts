@@ -114,7 +114,7 @@ export async function requireTrainingProvider(next = "/provider") {
   const context = await requireUser(next);
   const { data: provider, error } = await context.supabase
     .from("training_providers")
-    .select("id, name, location, contact_url, contact_phone, description, is_verified")
+    .select("id, name, provider_type, location, physical_address, service_area, contact_email, contact_url, contact_phone, description, is_verified")
     .eq("owner_user_id", context.user.id)
     .maybeSingle();
   if (error) redirect(`/auth/error?reason=workspace&next=${encodeURIComponent(next)}`);

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ShareButton } from "@/components/shareable/share-button";
 import { buildCourseShareText } from "@/lib/share/messages";
 import type { PublicCourse } from "@/lib/share/public-content";
-import { normalizeQualificationName } from "@/lib/training";
+import { formatTrainingFee, getDeliveryModeLabel, normalizeQualificationName } from "@/lib/training";
 
 export function CourseCard({ course, qualificationName = null }: { course: PublicCourse; qualificationName?: string | null }) {
   const courseUrl = `/training/${course.id}`;
@@ -15,9 +15,11 @@ export function CourseCard({ course, qualificationName = null }: { course: Publi
 
   return (
     <article className="flex h-full flex-col rounded-lg border border-border bg-surface p-5">
-      <p className="text-sm font-semibold text-muted">{course.provider.name}</p>
+      <Link href={`/training/providers/${course.provider.id}`} className="text-sm font-semibold text-accent underline-offset-4 hover:underline">{course.provider.name}</Link>
       <h2 className="mt-3 text-xl font-semibold tracking-tight text-foreground">{course.name}</h2>
       <p className="mt-1 text-sm text-muted">{course.provider.location}{course.durationText ? ` · ${course.durationText}` : ""}</p>
+      {course.awardTitle || course.qualificationLevel || course.deliveryMode ? <p className="mt-2 text-sm font-semibold text-foreground">{[course.awardTitle, course.qualificationLevel, getDeliveryModeLabel(course.deliveryMode)].filter(Boolean).join(" · ")}</p> : null}
+      {course.feeAmount !== null ? <p className="mt-2 text-sm text-muted">Fee: {formatTrainingFee(course.feeAmount, course.feeCurrency)}</p> : null}
       <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted">
         {course.description ?? "Explore this local training route and confirm the current intake directly with the provider."}
       </p>

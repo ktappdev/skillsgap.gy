@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 
-import { createTrainingProgram, createTrainingProvider, mapTrainingOutcome, setTrainingProviderVerified } from "@/lib/skillsgap/actions";
+import { ProviderVerificationReview } from "@/components/skillsgap/provider-verification-review";
+import { createTrainingProgram, createTrainingProvider, mapTrainingOutcome } from "@/lib/skillsgap/actions";
 import type { Tables } from "@/lib/supabase/database.types";
 
 type TrainingManagerProps = {
@@ -10,13 +11,16 @@ type TrainingManagerProps = {
   initialPrograms: Tables<"training_programs">[];
   initialOutcomes: Tables<"training_program_outcomes">[];
   qualifications: Tables<"qualifications">[];
+  verificationDetails: Tables<"training_provider_verification_details">[];
 };
 
 const panelClass = "rounded-lg border border-border bg-surface p-5 sm:p-6";
 const inputClass = "min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted focus:border-accent";
 
-export function TrainingManager({ initialProviders, initialPrograms, initialOutcomes, qualifications }: TrainingManagerProps) {
-  const [providers, setProviders] = useState(initialProviders);
+export function TrainingManager({ initialProviders, initialPrograms, initialOutcomes, qualifications, verificationDetails }: TrainingManagerProps) {
+  const [addedProviders, setAddedProviders] = useState<Tables<"training_providers">[]>([]);
+  const providersById = new Map([...addedProviders, ...initialProviders].map((provider) => [provider.id, provider]));
+  const providers = [...providersById.values()];
   const [programs, setPrograms] = useState(initialPrograms);
   const [outcomes, setOutcomes] = useState(initialOutcomes);
   const [providerName, setProviderName] = useState("");
@@ -30,7 +34,6 @@ export function TrainingManager({ initialProviders, initialPrograms, initialOutc
   const [outcomeQualificationId, setOutcomeQualificationId] = useState(qualifications[0]?.id ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [savingAction, setSavingAction] = useState<string | null>(null);
-
   async function addProvider() {
     if (savingAction) return;
     setSavingAction("provider");
@@ -39,7 +42,7 @@ export function TrainingManager({ initialProviders, initialPrograms, initialOutc
       const result = await createTrainingProvider(providerName, providerLocation, providerDescription);
       if (result.error) { setMessage(result.error); return; }
       const provider = result.provider;
-      if (provider) { setProviders((current) => [...current, provider]); setProgramProviderId(provider.id); }
+      if (provider) { setAddedProviders((current) => [...current, provider]); setProgramProviderId(provider.id); }
       setProviderName(""); setProviderDescription(""); setMessage("Provider added. Verify it before recommending its programs.");
     } catch {
       setMessage("We couldn’t add that provider. Please try again.");
@@ -83,24 +86,12 @@ export function TrainingManager({ initialProviders, initialPrograms, initialOutc
     }
   }
 
-  async function toggle(provider: Tables<"training_providers">) {
-    if (savingAction) return;
-    setSavingAction(`provider:${provider.id}`);
-    setMessage(null);
-    try {
-      const result = await setTrainingProviderVerified(provider.id, !provider.is_verified);
-      if (result.error) { setMessage(result.error); return; }
-      setProviders((current) => current.map((item) => item.id === provider.id ? { ...item, is_verified: !item.is_verified } : item));
-      setMessage(provider.is_verified ? "Provider marked as not verified." : "Provider verified and eligible for recommendations.");
-    } catch {
-      setMessage("We couldn’t update that provider. Please try again.");
-    } finally {
-      setSavingAction(null);
-    }
-  }
-
   return (
     <section className="mt-6 space-y-6" aria-label="Training management">
+      <ProviderVerificationReview
+        providers={providers}
+        verificationDetails={verificationDetails}
+      />
       <div className={panelClass}>
         <h2 className="text-xl font-semibold">Add a local provider</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -152,7 +143,6 @@ export function TrainingManager({ initialProviders, initialPrograms, initialOutc
                     <p className="mt-1 text-sm text-muted">{provider?.name ?? "Provider to be confirmed"} · {provider?.location ?? "Guyana"}{program.duration_text ? ` · ${program.duration_text}` : ""}</p>
                     <p className="mt-2 text-sm text-muted">Outcomes: {programOutcomes.map((outcome) => qualifications.find((qualification) => qualification.id === outcome.qualification_id)?.name).filter((name): name is string => Boolean(name)).join(", ") || "Not mapped yet"}</p>
                   </div>
-                  {provider ? <button type="button" disabled={savingAction !== null} onClick={() => { void toggle(provider); }} aria-pressed={provider.is_verified} className={`min-h-11 shrink-0 rounded-md px-4 text-sm font-semibold disabled:cursor-wait disabled:opacity-60 ${provider.is_verified ? "bg-accent text-white hover:bg-accent-strong" : "border border-accent text-accent hover:bg-surface-muted"}`}>{savingAction === `provider:${provider.id}` ? "Updating…" : provider.is_verified ? "Verified" : "Mark verified"}</button> : null}
                 </div>
               </li>
             );

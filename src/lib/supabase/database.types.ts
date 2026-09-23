@@ -36,6 +36,10 @@ export type FairStatus = "draft" | "open" | "closed";
 export type InvitationStatus = "pending" | "accepted" | "declined" | "expired" | "invited";
 export type BookingStatus = "confirmed" | "cancelled";
 export type PathwayKind = "guided" | "occupation";
+export type TrainingProviderType = "government_public" | "university_college" | "technical_vocational" | "private_training" | "community_nonprofit" | "industry_employer" | "other";
+export type TrainingProgramDeliveryMode = "in_person" | "online" | "hybrid";
+export type QualificationSubmissionStatus = "pending" | "approved" | "rejected";
+export type ProviderVerificationReviewStatus = "pending" | "approved" | "needs_changes";
 
 type Profile = {
   account_type: AccountType;
@@ -53,7 +57,7 @@ type Company = Timestamps & { description: string | null; id: string; name: stri
 type CompanyMember = { company_id: string; created_at: string; invited_email: string | null; role: CompanyMemberRole; user_id: string };
 type CompanyRecruiterInvitation = Timestamps & { accepted_at: string | null; accepted_by: string | null; company_id: string; email: string; expires_at: string; id: string; invited_by: string; revoked_at: string | null; token_hash: string };
 type PlatformAdmin = { created_at: string; user_id: string };
-type Qualification = Timestamps & { category: RequirementKind; description: string | null; id: string; is_active: boolean; name: string; slug: string };
+type Qualification = Timestamps & { category: RequirementKind; description: string | null; id: string; is_active: boolean; name: string; slug: string; submitted_by_provider_id: string | null; submission_status: QualificationSubmissionStatus | null };
 type QualificationAlias = { alias: string; created_at: string; id: string; normalized_alias: string; qualification_id: string };
 type Occupation = Timestamps & { id: string; industry_transfer_summary: string; is_active: boolean; isco08_code: string; isco08_level: "unit" | "minor" | "sub_major" | "major"; role_family: string; slug: string; source_locator: string | null; source_summary: string; source_url: string; title: string; value_chain_stages: string[] };
 type OccupationAlias = { alias: string; created_at: string; id: string; normalized_alias: string; occupation_id: string; source_locator: string | null; source_url: string };
@@ -64,8 +68,9 @@ type OccupationPathwayAction = Timestamps & { action_type: "learn" | "practice" 
 type ApplicantPathwayPlan = Timestamps & { applicant_id: string; pathway_kind: PathwayKind; pathway_key: string; pathway_title: string; interests_note: string; selected_interests: string[]; csec_results: Json; planned_requirement_names: string[]; completed_action_ids: string[] };
 type JobRole = Timestamps & { company_id: string; created_by: string | null; description: string; eligibility_threshold: number; employment_type: string | null; id: string; is_demo: boolean; location: string; occupation_id: string | null; published_at: string | null; status: JobStatus; title: string };
 type JobRequirement = Timestamps & { id: string; job_role_id: string; kind: RequirementKind; mandatory: boolean; minimum_years: number | null; qualification_id: string; weight: number };
-type TrainingProvider = Timestamps & { contact_phone: string | null; contact_url: string | null; description: string | null; id: string; is_verified: boolean; location: string; name: string; owner_user_id: string | null };
-type TrainingProgram = Timestamps & { description: string | null; duration_text: string | null; enrollment_url: string | null; id: string; is_active: boolean; name: string; provider_id: string };
+type TrainingProvider = Timestamps & { contact_email: string | null; contact_phone: string | null; contact_url: string | null; description: string | null; id: string; is_verified: boolean; location: string; name: string; owner_user_id: string | null; physical_address: string | null; provider_type: TrainingProviderType; service_area: string | null };
+type TrainingProviderVerificationDetails = { accrediting_body: string | null; accreditation_reference: string | null; created_at: string; evidence_url: string | null; legal_name: string; notes: string | null; provider_id: string; registration_number: string | null; review_notes: string | null; review_status: ProviderVerificationReviewStatus; reviewed_at: string | null; reviewed_by: string | null; submitted_at: string; updated_at: string };
+type TrainingProgram = Timestamps & { application_deadline: string | null; award_title: string | null; delivery_location: string | null; delivery_mode: TrainingProgramDeliveryMode | null; description: string | null; duration_text: string | null; enrollment_url: string | null; entry_requirements: string | null; fee_amount: number | null; fee_currency: string; fee_notes: string | null; id: string; intake_text: string | null; is_active: boolean; name: string; next_intake_date: string | null; provider_id: string; qualification_level: string | null; schedule_text: string | null };
 type TrainingProgramOutcome = { created_at: string; qualification_id: string; training_program_id: string };
 type Resume = { applicant_id: string; byte_size: number; deleted_at: string | null; id: string; mime_type: string; original_filename: string; processed_at: string | null; status: ResumeStatus; storage_path: string; uploaded_at: string };
 type ProcessingJob = Timestamps & { applicant_id: string; attempts: number; completed_at: string | null; error_message: string | null; id: string; kind: ProcessingKind; result_summary: Json; resume_id: string | null; started_at: string | null; status: ProcessingStatus };
@@ -104,6 +109,7 @@ export type Database = {
       job_roles: Table<JobRole, InsertOf<JobRole> & Pick<JobRole, "company_id" | "title">, Partial<JobRole>>;
       job_requirements: Table<JobRequirement, InsertOf<JobRequirement> & Pick<JobRequirement, "job_role_id" | "qualification_id" | "kind">, Partial<JobRequirement>>;
       training_providers: Table<TrainingProvider, InsertOf<TrainingProvider> & Pick<TrainingProvider, "name" | "location">, Partial<TrainingProvider>>;
+      training_provider_verification_details: Table<TrainingProviderVerificationDetails, InsertOf<TrainingProviderVerificationDetails> & Pick<TrainingProviderVerificationDetails, "provider_id" | "legal_name">, Partial<TrainingProviderVerificationDetails>>;
       training_programs: Table<TrainingProgram, InsertOf<TrainingProgram> & Pick<TrainingProgram, "provider_id" | "name">, Partial<TrainingProgram>>;
       training_program_outcomes: Table<TrainingProgramOutcome, InsertOf<TrainingProgramOutcome> & Pick<TrainingProgramOutcome, "training_program_id" | "qualification_id">, Partial<TrainingProgramOutcome>>;
       resumes: Table<Resume, InsertOf<Resume> & Pick<Resume, "applicant_id" | "storage_path" | "original_filename" | "byte_size">, Partial<Resume>>;
@@ -131,6 +137,7 @@ export type Database = {
       get_consented_candidate_resume_path: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: string };
       get_consented_candidate_profile: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: Array<{ full_name: string | null; phone_number: string | null }> };
       get_active_extraction_taxonomy: { Args: Record<string, never>; Returns: Array<{ id: string; slug: string; name: string; category: RequirementKind; description: string | null; aliases: string[] }> };
+      review_training_provider: { Args: { target_provider_id: string; approve: boolean; reviewer_notes?: string | null }; Returns: undefined };
       confirm_extraction_finding: { Args: { target_finding_id: string; target_qualification_id: string }; Returns: undefined };
       reject_extraction_finding: { Args: { target_finding_id: string }; Returns: undefined };
       accept_company_recruiter_invitation: { Args: { target_token_hash: string }; Returns: string };

@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { ShareButton } from "@/components/shareable/share-button";
 import { buildCourseShareText } from "@/lib/share/messages";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { ProviderProgramFields } from "@/components/skillsgap/provider-program-fields";
 import {
   createProviderProgram,
   createProviderQualification,
@@ -100,71 +101,21 @@ export function ProviderProgramManager({
           Add a training program
         </h2>
         <p className="mt-2 text-sm leading-6 text-muted">
-          Applicants see the program name, duration, and enrollment link when browsing pathways.
+          Add the course, who it is for, what learners earn, delivery, intake, and fee details. New programs start as drafts and become recommendation-ready after an approved outcome is mapped.
         </p>
         <form action={createFormAction} className="mt-5 space-y-4">
-          <label
-            className="block space-y-2 text-sm font-semibold text-foreground"
-            htmlFor="create-name"
-          >
-            Program name
-            <input
-              id="create-name"
-              name="name"
-              type="text"
-              required
-              placeholder="e.g. Plumbing Level 1"
-              className={inputClass}
-            />
-          </label>
-          <label
-            className="block space-y-2 text-sm font-semibold text-foreground"
-            htmlFor="create-description"
-          >
-            Description <span className="font-normal text-muted">(optional)</span>
-            <textarea
-              id="create-description"
-              name="description"
-              rows={3}
-              className={`${inputClass} py-2`}
-            />
-          </label>
-          <label
-            className="block space-y-2 text-sm font-semibold text-foreground"
-            htmlFor="create-duration"
-          >
-            Duration <span className="font-normal text-muted">(optional)</span>
-            <input
-              id="create-duration"
-              name="duration_text"
-              type="text"
-              placeholder="e.g. 6 weeks"
-              className={inputClass}
-            />
-          </label>
-          <label
-            className="block space-y-2 text-sm font-semibold text-foreground"
-            htmlFor="create-url"
-          >
-            Enrollment URL <span className="font-normal text-muted">(optional, HTTPS)</span>
-            <input
-              id="create-url"
-              name="enrollment_url"
-              type="url"
-              placeholder="https://…"
-              className={inputClass}
-            />
-          </label>
+          <ProviderProgramFields />
           {createState.error ? (
             <p className="text-sm text-danger" role="alert">
               {createState.error}
             </p>
           ) : null}
+          {createState.message ? <p className="text-sm text-accent" role="status">{createState.message}</p> : null}
           <SubmitButton
-            pendingLabel="Adding…"
+            pendingLabel="Saving…"
             className="min-h-11 rounded-md bg-accent px-5 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
           >
-            Add program
+            Save program draft
           </SubmitButton>
         </form>
       </section>
@@ -216,42 +167,47 @@ function ProgramCard({
     .filter((qualification): qualification is Qualification => Boolean(qualification));
 
   const mappedQualificationIds = new Set(outcomes.map((outcome) => outcome.qualification_id));
+  const hasApprovedOutcome = mappedQualifications.some((qualification) => qualification.is_active);
+  const isPubliclyAvailable = program.is_active && providerVerified && hasApprovedOutcome;
+  const programStatus = isPubliclyAvailable
+    ? "Live in the training directory"
+    : program.is_active && hasApprovedOutcome
+      ? "Ready when your provider is verified"
+      : program.is_active
+        ? "Needs an approved qualification"
+        : "Draft";
 
   return (
     <li className="rounded-lg border border-border bg-surface p-5 sm:p-6 list-none">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-foreground">{program.name}</p>
-            <span
-              className={
-                program.is_active
-                  ? "inline-flex min-h-11 items-center rounded-md bg-accent px-2.5 text-xs font-semibold text-white"
-                  : "inline-flex min-h-11 items-center rounded-md border border-border px-2.5 text-xs font-semibold text-muted"
-              }
-            >
-              {program.is_active ? "Active" : "Inactive"}
+            <h3 className="font-semibold text-foreground">{program.name}</h3>
+            <span className={`inline-flex min-h-9 items-center rounded-md px-2.5 text-xs font-semibold ${isPubliclyAvailable ? "bg-accent text-white" : "border border-border text-muted"}`}>
+              {programStatus}
             </span>
           </div>
-          <p className="mt-1 text-sm text-muted">
-            {program.duration_text ? `Duration: ${program.duration_text}` : "No duration set"}
-            {program.enrollment_url ? ` · ${program.enrollment_url}` : ""}
+          <p className="mt-2 text-sm leading-6 text-muted">
+            {program.duration_text ?? "Duration not listed"}{program.award_title ? ` · ${program.award_title}` : ""}
           </p>
+          {!hasApprovedOutcome ? <p className="mt-2 text-sm text-muted">Map an active qualification or wait for an administrator to approve a suggested outcome before publishing.</p> : null}
+          {program.is_active && !providerVerified ? <p className="mt-2 text-sm text-muted">This program stays hidden until your provider verification is approved.</p> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {program.is_active && providerVerified ? <ShareButton url={`/training/${program.id}`} title={program.name} text={buildCourseShareText({ name: program.name, provider: providerName })} label="Share course" variant="light" /> : null}
+          {isPubliclyAvailable ? <ShareButton url={`/training/${program.id}`} title={program.name} text={buildCourseShareText({ name: program.name, provider: providerName })} label="Share course" variant="light" /> : null}
           <form action={toggleFormAction}>
             <input type="hidden" name="programId" value={program.id} />
             <input type="hidden" name="isActive" value={program.is_active ? "false" : "true"} />
             <SubmitButton
               pendingLabel="Updating…"
+              disabled={!program.is_active && !hasApprovedOutcome}
               className={
                 program.is_active
                   ? "min-h-11 rounded-md border border-border px-4 text-sm font-semibold text-foreground hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60"
-                  : "min-h-11 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
+                  : "min-h-11 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
               }
             >
-              {program.is_active ? "Deactivate" : "Activate"}
+              {program.is_active ? "Move to drafts" : hasApprovedOutcome ? "Publish program" : "Map outcome first"}
             </SubmitButton>
           </form>
         </div>
@@ -261,72 +217,20 @@ function ProgramCard({
           {toggleState.error}
         </p>
       ) : null}
+      {toggleState.message ? <p className="mt-2 text-sm text-accent" role="status">{toggleState.message}</p> : null}
 
       <form action={updateFormAction} className="mt-4 space-y-3">
         <input type="hidden" name="programId" value={program.id} />
-        <label
-          className="block space-y-2 text-sm font-semibold text-foreground"
-          htmlFor={`edit-name-${program.id}`}
-        >
-          Program name
-          <input
-            id={`edit-name-${program.id}`}
-            name="name"
-            type="text"
-            required
-            defaultValue={program.name}
-            className={inputClass}
-          />
-        </label>
-        <label
-          className="block space-y-2 text-sm font-semibold text-foreground"
-          htmlFor={`edit-description-${program.id}`}
-        >
-          Description <span className="font-normal text-muted">(optional)</span>
-          <textarea
-            id={`edit-description-${program.id}`}
-            name="description"
-            rows={3}
-            defaultValue={program.description ?? ""}
-            className={`${inputClass} py-2`}
-          />
-        </label>
-        <label
-          className="block space-y-2 text-sm font-semibold text-foreground"
-          htmlFor={`edit-duration-${program.id}`}
-        >
-          Duration <span className="font-normal text-muted">(optional)</span>
-          <input
-            id={`edit-duration-${program.id}`}
-            name="duration_text"
-            type="text"
-            defaultValue={program.duration_text ?? ""}
-            placeholder="e.g. 6 weeks"
-            className={inputClass}
-          />
-        </label>
-        <label
-          className="block space-y-2 text-sm font-semibold text-foreground"
-          htmlFor={`edit-url-${program.id}`}
-        >
-          Enrollment URL <span className="font-normal text-muted">(optional, HTTPS)</span>
-          <input
-            id={`edit-url-${program.id}`}
-            name="enrollment_url"
-            type="url"
-            defaultValue={program.enrollment_url ?? ""}
-            placeholder="https://…"
-            className={inputClass}
-          />
-        </label>
+        <ProviderProgramFields program={program} />
         {updateState.error ? (
           <p className="text-sm text-danger" role="alert">
             {updateState.error}
           </p>
         ) : null}
+        {updateState.message ? <p className="text-sm text-accent" role="status">{updateState.message}</p> : null}
         <SubmitButton
           pendingLabel="Saving…"
-            className="min-h-11 rounded-md bg-accent px-5 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
+          className="min-h-11 rounded-md bg-accent px-5 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
         >
           Save changes
         </SubmitButton>
@@ -343,11 +247,14 @@ function ProgramCard({
         ) : (
           <ul className="mt-3 space-y-2">
             {mappedQualifications.map((qualification) => (
-              <li
+            <li
                 key={qualification.id}
                 className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface-muted px-3 py-2"
               >
-                <span className="text-sm text-foreground">{qualification.name}</span>
+                <span className="flex flex-wrap items-center gap-2 text-sm text-foreground">
+                  {qualification.name}
+                  {qualification.submission_status ? <span className="rounded-full border border-border px-2 py-1 text-xs text-muted">{qualification.submission_status === "approved" ? "Provider suggested · approved" : qualification.submission_status === "rejected" ? "Suggestion declined" : "Pending admin review"}</span> : null}
+                </span>
                 <form action={removeFormAction}>
                   <input type="hidden" name="programId" value={program.id} />
                   <input type="hidden" name="qualificationId" value={qualification.id} />
@@ -367,9 +274,11 @@ function ProgramCard({
             {removeState.error}
           </p>
         ) : null}
+        {removeState.message ? <p className="mt-2 text-sm text-accent" role="status">{removeState.message}</p> : null}
 
         <OutcomeSearch
           program={program}
+          providerVerified={providerVerified}
           qualifications={qualifications}
           aliases={aliases}
           mappedQualificationIds={mappedQualificationIds}
@@ -381,11 +290,13 @@ function ProgramCard({
 
 function OutcomeSearch({
   program,
+  providerVerified,
   qualifications,
   aliases,
   mappedQualificationIds,
 }: {
   program: Program;
+  providerVerified: boolean;
   qualifications: Qualification[];
   aliases: Alias[];
   mappedQualificationIds: Set<string>;
@@ -402,6 +313,7 @@ function OutcomeSearch({
 
   const results = isSearching
     ? qualifications
+        .filter((qualification) => qualification.is_active)
         .filter((qualification) => !mappedQualificationIds.has(qualification.id))
         .filter((qualification) => {
           if (qualification.name.toLowerCase().includes(trimmedQuery)) return true;
@@ -414,7 +326,7 @@ function OutcomeSearch({
         .slice(0, 8)
     : [];
 
-  const showCreateForm = isSearching && results.length === 0;
+  const showCreateForm = isSearching && results.length === 0 && providerVerified;
 
   return (
     <div className="mt-3">
@@ -452,6 +364,12 @@ function OutcomeSearch({
         </ul>
       ) : null}
 
+      {isSearching && results.length === 0 && !providerVerified ? (
+        <p className="mt-3 rounded-md border border-border bg-surface-muted p-3 text-sm leading-6 text-muted">
+          No approved qualification matches that search. Once your provider is verified, you can suggest a new qualification for administrator review.
+        </p>
+      ) : null}
+
       {showCreateForm ? (
         <form
           key={trimmedQuery}
@@ -462,6 +380,7 @@ function OutcomeSearch({
           <h3 className="text-sm font-semibold text-foreground">
             New qualification
           </h3>
+          <p className="text-sm leading-6 text-muted">New terms are reviewed before they enter applicant matching. If a previous suggestion was declined, use its same name here to revise and resubmit it.</p>
           <label
             className="block space-y-2 text-sm font-semibold text-foreground"
             htmlFor={`create-qual-name-${program.id}`}
@@ -513,6 +432,7 @@ function OutcomeSearch({
               {createState.error}
             </p>
           ) : null}
+          {createState.message ? <p className="text-sm text-accent" role="status">{createState.message}</p> : null}
           <SubmitButton
             pendingLabel="Creating…"
             className="min-h-11 rounded-md bg-accent px-5 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
@@ -533,6 +453,7 @@ function OutcomeSearch({
           {mapState.error}
         </p>
       ) : null}
+      {mapState.message ? <p className="mt-2 text-sm text-accent" role="status">{mapState.message}</p> : null}
     </div>
   );
 }
