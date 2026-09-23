@@ -4,8 +4,11 @@ import { getStaticOccupationPathway } from "@/lib/i-want-to-become/occupations";
 import {
   clearSavedPathwayBrowserState,
   explorerDraftStorageKey,
+  getPathwayHandoffTokenFromReturnPath,
   pendingPathwayPlanStorageKey,
   readPendingPathwayPlan,
+  isPathwayHandoffToken,
+  pathwaySaveReturnPath,
   storePendingPathwayPlan,
 } from "@/lib/i-want-to-become/pathway-handoff";
 import { createPathwayPlanDraft, parsePathwayPlanDraft, pathwayPlanLifetimeMs } from "@/lib/i-want-to-become/pathway-plan";
@@ -50,6 +53,17 @@ function guidedDraft() {
 }
 
 describe("pathway plan handoff", () => {
+  it("puts only an opaque handoff token in the auth return path", () => {
+    const token = "a".repeat(43);
+    const returnPath = pathwaySaveReturnPath(token);
+    expect(returnPath).toBe(`/i-want-to-become?save=pathway&handoff=${token}`);
+    expect(returnPath).not.toContain("Mathematics");
+    expect(isPathwayHandoffToken(token)).toBe(true);
+    expect(isPathwayHandoffToken(`${token}x`)).toBe(false);
+    expect(getPathwayHandoffTokenFromReturnPath(returnPath)).toBe(token);
+    expect(getPathwayHandoffTokenFromReturnPath(`/i-want-to-become?save=pathway&handoff=${token}&handoff=${token}`)).toBeNull();
+    expect(getPathwayHandoffTokenFromReturnPath(`/i-want-to-become?save=other&handoff=${token}`)).toBeNull();
+  });
   it("round-trips a valid private planning draft", () => {
     const draft = guidedDraft();
     const storage = createMemoryStorage();

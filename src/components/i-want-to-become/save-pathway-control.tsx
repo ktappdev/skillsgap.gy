@@ -4,11 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { saveApplicantPathwayPlan } from "@/lib/i-want-to-become/pathway-actions";
-import {
-  clearSavedPathwayBrowserState,
-  pathwaySaveReturnPath,
-  storePendingPathwayPlan,
-} from "@/lib/i-want-to-become/pathway-handoff";
+import { createPathwayPlanHandoff } from "@/lib/i-want-to-become/pathway-handoff-actions";
+import { clearSavedPathwayBrowserState, pathwaySaveReturnPath } from "@/lib/i-want-to-become/pathway-handoff";
 import { createPathwayPlanDraft, type PathwayPlanInput, type PathwaySaveViewer } from "@/lib/i-want-to-become/pathway-plan";
 
 type SavePathwayControlProps = {
@@ -29,11 +26,18 @@ export function SavePathwayControl({ plan, viewer }: SavePathwayControlProps) {
       return;
     }
     if (viewer === "anonymous") {
-      if (!storePendingPathwayPlan(window.localStorage, draft)) {
-        setError("This browser could not hold the route for signup. Check browser storage settings and try again.");
-        return;
-      }
-      router.push(`/signup?next=${encodeURIComponent(pathwaySaveReturnPath)}`);
+      startTransition(async () => {
+        try {
+          const result = await createPathwayPlanHandoff(draft);
+          if (result.error || !result.token) {
+            setError(result.error ?? "We could not prepare your secure save link. Please try again.");
+            return;
+          }
+          router.push(`/signup?next=${encodeURIComponent(pathwaySaveReturnPath(result.token))}`);
+        } catch {
+          setError("We could not prepare your secure save link. Please try again.");
+        }
+      });
       return;
     }
 
@@ -44,7 +48,11 @@ export function SavePathwayControl({ plan, viewer }: SavePathwayControlProps) {
           setError(result.error);
           return;
         }
-        clearSavedPathwayBrowserState(window.localStorage, window.sessionStorage, draft);
+        try {
+          clearSavedPathwayBrowserState(window.localStorage, window.sessionStorage, draft);
+        } catch {
+          // The durable server save must not depend on browser storage availability.
+        }
         router.push("/dashboard?pathway=saved");
         router.refresh();
       } catch {

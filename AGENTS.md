@@ -63,6 +63,7 @@ node --env-file=.env.local scripts/check-demo-readiness.mjs
 - Ground changes in the repository and verify assumptions before implementing them.
 - Keep `.env.local` populated locally but ignored by Git. Never expose service-role credentials to the browser.
 - Supabase schema changes live in `supabase/migrations`; seed records live in `supabase/seed.sql`. Use the dry-run commands above before any explicit deployment.
+- `pnpm reset:db --target local|production [--mode trash|reseed] [--dry-run]` re-creates a database from `supabase/migrations` plus `supabase/seed.sql`. `--mode trash` destroys data, and `--target production --mode trash` additionally requires `--confirm=<project-ref>` because it truncates every `auth.*` table and deletes all hosted users, including the demo logins; anything that exists only in the live database, and not in a migration or `seed.sql`, is lost.
 
 ## Opportunity and match wiring
 

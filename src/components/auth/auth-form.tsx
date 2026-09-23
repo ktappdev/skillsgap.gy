@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useLayoutEffect } from "react";
 
 import { CompanySignupGuide } from "@/components/auth/company-signup-guide";
 import { DemoLoginButtons } from "@/components/auth/demo-login-buttons";
@@ -10,6 +10,7 @@ import { ProviderSignupGuide } from "@/components/auth/provider-signup-guide";
 import { SignupPitch } from "@/components/auth/signup-pitch";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { signIn, signUp, type AuthActionState } from "@/lib/auth/actions";
+import { getPathwayHandoffTokenFromReturnPath } from "@/lib/i-want-to-become/pathway-handoff";
 import { env } from "@/lib/env";
 
 type AuthMode = "login" | "signup";
@@ -36,6 +37,14 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
   const showApplicantSignupPitch = isSignUp && audience === "applicant";
   const showProviderSignupGuide = isSignUp && isProvider;
   const accountType = isCompany ? "company" : isProvider ? "provider" : "applicant";
+  const hasPathwayHandoff = getPathwayHandoffTokenFromReturnPath(next) !== null;
+
+  useLayoutEffect(() => {
+    if (!hasPathwayHandoff) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("next");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [hasPathwayHandoff]);
 
   return (
     <div className={showApplicantSignupPitch ? "grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,28rem)] lg:items-stretch" : "mx-auto max-w-md"}>
@@ -134,7 +143,7 @@ export function AuthForm({ audience = "applicant", mode, next }: AuthFormProps) 
 
         {isSignUp ? (
           <p className="text-xs leading-5 text-muted">
-            No confirmation email needed. You sign in right away.
+            If email confirmation is required, open the link to return here and continue.
           </p>
         ) : null}
 

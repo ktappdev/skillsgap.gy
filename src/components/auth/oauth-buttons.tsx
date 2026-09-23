@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { getAuthErrorMessage } from "@/lib/errors";
+import { clearPathwayOAuthCookie, preparePathwayOAuth } from "@/lib/i-want-to-become/pathway-handoff-actions";
 import { createClient } from "@/lib/supabase/client";
 
 const providers = [
@@ -21,9 +22,15 @@ export function OAuthButtons({ next }: { next: string }) {
     setError(null);
 
     try {
+      const prepared = await preparePathwayOAuth(next);
+      if (prepared.error) {
+        setError(prepared.error);
+        return;
+      }
+
       const supabase = createClient();
       const callbackUrl = new URL("/auth/callback", window.location.origin);
-      if (next) callbackUrl.searchParams.set("next", next);
+      if (prepared.next) callbackUrl.searchParams.set("next", prepared.next);
       const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -32,12 +39,14 @@ export function OAuthButtons({ next }: { next: string }) {
       });
 
       if (oauthError || !data.url) {
+        await clearPathwayOAuthCookie();
         setError(getAuthErrorMessage(oauthError));
         return;
       }
 
       window.location.assign(data.url);
     } catch {
+      await clearPathwayOAuthCookie();
       setError("We could not start that sign-in. Check your connection and try again.");
     } finally {
       setPendingProvider(null);

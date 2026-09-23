@@ -14,6 +14,7 @@
     "check:demo-readiness": "node --env-file=.env.local scripts/check-demo-readiness.mjs",
     "check:account-boundaries": "node --env-file=.env.local scripts/check-account-boundaries.mjs",
     "check:recruiter-invites": "node --env-file=.env.local scripts/check-recruiter-invitations.mjs",
+    "reset:db": "node --env-file=.env.local scripts/reset-db.mjs",
     "supabase:types": "supabase gen types typescript --linked --schema public > src/lib/supabase/database.types.ts"
   },
   "engines": {

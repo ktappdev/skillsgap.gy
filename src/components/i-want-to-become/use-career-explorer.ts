@@ -43,7 +43,18 @@ function parseDraft(value: string | null): ExplorerDraft | null {
     const draft = parsed as Record<string, unknown>;
     if (typeof draft.careerId !== "string" || typeof draft.interests !== "string" || !Array.isArray(draft.selectedInterests) || !draft.selectedInterests.every((item) => typeof item === "string") || !Array.isArray(draft.results)) return null;
     const results = draft.results.filter((result): result is CsecResult => typeof result === "object" && result !== null && typeof (result as { subject?: unknown }).subject === "string" && typeof (result as { grade?: unknown }).grade === "string");
-    return { careerId: draft.careerId, interests: draft.interests, selectedInterests: draft.selectedInterests, results };
+    const step = draft.step === 2 || draft.step === 3 ? draft.step : 1;
+    return { careerId: draft.careerId, interests: draft.interests, selectedInterests: draft.selectedInterests, results, step, showPlan: draft.showPlan === true };
+  } catch {
+    return null;
+  }
+}
+async function loadOccupationPathway(slug: string, signal: AbortSignal) {
+  try {
+    const response = await fetch(`/api/i-want-to-become/occupations/${slug}`, { signal });
+    if (!response.ok) return null;
+    const payload: unknown = await response.json();
+    return parsePathwayResponse(payload);
   } catch {
     return null;
   }
@@ -51,6 +62,7 @@ function parseDraft(value: string | null): ExplorerDraft | null {
 
 export function useCareerExplorer(initialOccupations: PublicOccupation[] = occupationCatalog, initialCareerId?: string, autoOpenPathway = false) {
   const initialOccupationPlan = initialCareerId ? getStaticOccupationPathway(initialCareerId) : null;
+  const initialShowPlan = Boolean(autoOpenPathway && initialCareerId && (findCareerPathway(initialCareerId) || initialOccupationPlan));
   const [careerId, setCareerId] = useState(initialCareerId ?? "");
   const [interests, setInterests] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
@@ -60,8 +72,8 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
   const [photoState, setPhotoState] = useState<PhotoState>("idle");
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [resultsReviewed, setResultsReviewed] = useState(false);
-  const [step, setStep] = useState<ExplorerStep>(1);
-  const [showPlan, setShowPlan] = useState(() => Boolean(autoOpenPathway && initialCareerId && (findCareerPathway(initialCareerId) || initialOccupationPlan)));
+  const [step, setStep] = useState<ExplorerStep>(initialShowPlan ? 3 : 1);
+  const [showPlan, setShowPlan] = useState(initialShowPlan);
   const [occupations, setOccupations] = useState(initialOccupations);
   const [occupationPlan, setOccupationPlan] = useState<PublicOccupationPathway | null>(initialOccupationPlan);
   const [planSource, setPlanSource] = useState<PlanSource>("fallback");
@@ -69,10 +81,12 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
   const [planError, setPlanError] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const restoredPlanRefreshPending = useRef(false);
   const planRequest = useRef<AbortController | null>(null);
   const slipRequest = useRef<AbortController | null>(null);
   const guidedPathway = useMemo(() => findCareerPathway(careerId), [careerId]);
   const selectedOccupation = useMemo(() => occupations.find((occupation) => occupation.slug === careerId) ?? null, [occupations, careerId]);
+  const selectedOccupationSlug = selectedOccupation?.slug;
   const completedResults = useMemo(() => results.filter(isValidCsecResult), [results]);
   const hasDraftProgress = Boolean(careerId || interests.trim() || selectedInterests.length > 0 || completedResults.length > 0);
   const selectedTitle = guidedPathway?.title ?? selectedOccupation?.title ?? null;
@@ -82,10 +96,21 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     const draft = initialCareerId ? null : parseDraft(window.sessionStorage.getItem(draftStorageKey));
     queueMicrotask(() => {
       if (draft) {
+        const restoredGuidedPathway = findCareerPathway(draft.careerId);
+        const restoredOccupationPlan = getStaticOccupationPathway(draft.careerId);
+        const restoredShowPlan = draft.showPlan && Boolean(restoredGuidedPathway || restoredOccupationPlan);
         setCareerId(draft.careerId);
         setInterests(draft.interests);
         setSelectedInterests(draft.selectedInterests);
         setResults(draft.results.length > 0 ? draft.results : initialResults());
+        setStep(restoredShowPlan ? 3 : draft.step);
+        setShowPlan(restoredShowPlan);
+        setOccupationPlan(restoredShowPlan ? restoredOccupationPlan : null);
+        setPlanSource("fallback");
+        setPlanError(false);
+        setPlanLoading(false);
+        setResultsReviewed(false);
+        restoredPlanRefreshPending.current = Boolean(restoredShowPlan && restoredOccupationPlan);
         setDraftRestored(Boolean(draft.careerId || draft.interests.trim() || draft.selectedInterests.length > 0 || draft.results.some(isValidCsecResult)));
       }
       setDraftReady(true);
@@ -95,12 +120,12 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
   useEffect(() => {
     if (!draftReady) return;
     if (hasDraftProgress) {
-      const draft: ExplorerDraft = { careerId, interests, selectedInterests, results };
+      const draft: ExplorerDraft = { careerId, interests, selectedInterests, results, step, showPlan };
       window.sessionStorage.setItem(draftStorageKey, JSON.stringify(draft));
     } else {
       window.sessionStorage.removeItem(draftStorageKey);
     }
-  }, [careerId, interests, selectedInterests, results, draftReady, hasDraftProgress]);
+  }, [careerId, interests, selectedInterests, results, step, showPlan, draftReady, hasDraftProgress]);
 
   useEffect(() => () => {
     if (photoPreview) URL.revokeObjectURL(photoPreview);
@@ -143,6 +168,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     setPlanError(false);
     setPlanLoading(false);
     setResultsReviewed(false);
+    restoredPlanRefreshPending.current = false;
   }
 
   async function readSlip(file: File) {
@@ -154,12 +180,12 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     setPhotoPreview(null);
     if (!acceptedResultSlipTypes.has(file.type)) {
       setPhotoState("manual");
-      setPhotoError("That file type is not supported. Use a JPEG, PNG, or WebP image, then enter the fields manually if needed.");
+      setPhotoError("That file type is not supported. Use a JPEG, PNG, or WebP image, or enter the fields manually.");
       return;
     }
     if (file.size > maxResultSlipSize) {
       setPhotoState("manual");
-      setPhotoError("That image is larger than 8 MB. Your photo was not saved—use a smaller image or enter the fields manually.");
+      setPhotoError("That image is larger than 8 MB. Use a smaller image or enter the fields manually.");
       return;
     }
     setPhotoPreview(URL.createObjectURL(file));
@@ -170,7 +196,15 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
       const formData = new FormData();
       formData.set("slip", file);
       const response = await fetch("/api/i-want-to-become/slip", { method: "POST", body: formData, signal: controller.signal });
-      if (!response.ok) throw new Error("Result slip could not be read");
+      if (!response.ok) {
+        const errorResponse: unknown = await response.json().catch(() => null);
+        const message = typeof errorResponse === "object" && errorResponse !== null && "message" in errorResponse && typeof errorResponse.message === "string"
+          ? errorResponse.message
+          : "Automatic slip reading is unavailable.";
+        setPhotoState("manual");
+        setPhotoError(`${message} Enter subjects and grades manually to continue.`);
+        return;
+      }
       const parsedResults = parseSlipResponse(await response.json() as unknown);
       if (parsedResults.length > 0) {
         setResults(parsedResults);
@@ -182,7 +216,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     } catch {
       if (controller.signal.aborted) return;
       setPhotoState("manual");
-      setPhotoError("We could not read that image right now. Your photo was not saved—enter the subjects and grades below to continue.");
+      setPhotoError("We could not reach the automatic reader. Enter the subjects and grades manually to continue.");
     } finally {
       if (slipRequest.current === controller) slipRequest.current = null;
     }
@@ -208,22 +242,40 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     planRequest.current?.abort();
     const controller = new AbortController();
     planRequest.current = controller;
-    try {
-      const response = await fetch(`/api/i-want-to-become/occupations/${selectedOccupation.slug}`, { signal: controller.signal });
-      const result = response.ok ? parsePathwayResponse(await response.json() as unknown) : null;
-      if (result) {
-        setOccupationPlan(result.pathway);
-        setPlanSource(result.source);
-      }
-    } catch {
-      // The reviewed static pathway remains on screen when the API is unavailable.
-    } finally {
-      if (planRequest.current === controller) {
-        setPlanLoading(false);
-        planRequest.current = null;
-      }
+    const result = await loadOccupationPathway(selectedOccupation.slug, controller.signal);
+    if (result && !controller.signal.aborted) {
+      setOccupationPlan(result.pathway);
+      setPlanSource(result.source);
+    }
+    if (planRequest.current === controller) {
+      setPlanLoading(false);
+      planRequest.current = null;
     }
   }, [guidedPathway, selectedOccupation]);
+  useEffect(() => {
+    if (!restoredPlanRefreshPending.current || !selectedOccupationSlug) return;
+    const controller = new AbortController();
+    planRequest.current = controller;
+    void loadOccupationPathway(selectedOccupationSlug, controller.signal)
+      .then((result) => {
+        if (result && !controller.signal.aborted) {
+          setOccupationPlan(result.pathway);
+          setPlanSource(result.source);
+        }
+      })
+      .finally(() => {
+        if (planRequest.current === controller) {
+          restoredPlanRefreshPending.current = false;
+          planRequest.current = null;
+        }
+      });
+    return () => {
+      if (planRequest.current === controller) {
+        controller.abort();
+        planRequest.current = null;
+      }
+    };
+  }, [selectedOccupationSlug]);
 
   function editStartingPoint() {
     planRequest.current?.abort();
@@ -231,6 +283,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     setPlanLoading(false);
     setPlanError(false);
     setStep(3);
+    restoredPlanRefreshPending.current = false;
   }
 
   function resetDraft() {
@@ -251,6 +304,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     setShowPlan(false);
     setStep(1);
     setDraftRestored(false);
+    restoredPlanRefreshPending.current = false;
   }
 
   function canVisitStep(targetStep: ExplorerStep) {
