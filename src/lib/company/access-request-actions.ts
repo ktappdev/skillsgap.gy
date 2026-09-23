@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 
 import { requireUser } from "@/lib/auth/queries";
-import { isCompanyDescription, normalizeCompanyWebsite } from "@/lib/company/access-request";
+import { validateCompanyProfile } from "@/lib/company/company-profile";
 import { getFormString } from "@/lib/validation";
 import type { CompanyRequestState } from "@/lib/company/access-request-state";
 
@@ -12,6 +12,9 @@ export async function submitCompanyAccess(mode: "request" | "resubmit", _previou
   const values = {
     name: getFormString(formData, "company"),
     website: getFormString(formData, "website"),
+    industry: getFormString(formData, "industry"),
+    location: getFormString(formData, "location"),
+    contactPhone: getFormString(formData, "contact_phone"),
     description: getFormString(formData, "description"),
   };
   const fail = (error: string, invalidField?: CompanyRequestState["invalidField"]): CompanyRequestState => ({ values, error, invalidField });
@@ -37,14 +40,23 @@ export async function submitCompanyAccess(mode: "request" | "resubmit", _previou
     if (mode === "resubmit" && (!company?.data || company.data.requested_by !== user.id)) {
       return fail("This company request is no longer available. Refresh and try again.");
     }
-    const name = values.name.trim();
-    const website = normalizeCompanyWebsite(values.website);
-    const description = values.description.trim();
-    if (name.length < 2 || name.length > 160) return fail("Enter a company name between 2 and 160 characters.", "name");
-    if (!website.ok) return fail("Enter a valid website starting with http:// or https://.", "website");
-    if (!isCompanyDescription(description)) return fail("Keep your company description within 2,000 characters.", "description");
+    const check = validateCompanyProfile(values);
+    if (check.error || !check.values) {
+      const invalidField = check.error?.includes("website")
+        ? "website"
+        : check.error?.includes("industry")
+          ? "industry"
+          : check.error?.includes("operating location")
+            ? "location"
+            : check.error?.includes("contact phone")
+              ? "contactPhone"
+              : check.error?.includes("description")
+                ? "description"
+                : "name";
+      return fail(check.error ?? "Check the company details and try again.", invalidField);
+    }
 
-    const details = { name, website_url: website.value, description: description || null, requested_by: user.id, status: "pending" as const };
+    const details = { ...check.values, requested_by: user.id, status: "pending" as const };
     const result = mode === "resubmit" && company?.data
       ? await supabase.from("companies").update({ ...details, reviewed_by: null, reviewed_at: null }).eq("id", company.data.id).eq("status", "rejected").eq("requested_by", user.id)
       : await supabase.from("companies").insert(details);

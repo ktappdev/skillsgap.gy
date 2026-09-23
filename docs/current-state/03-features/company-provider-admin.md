@@ -2,9 +2,9 @@
 
 ## Company workspace
 
-Company access starts with a pending request. Admin approval changes the company to approved and unlocks the company workspace. The owner can invite recruiters using expiring hashed-token invitations. Owners control recruiter removal/revocation; recruiters can use the workspace but cannot manage team access.
+Company access starts with a pending request containing the company’s public profile details: name, website, sector, operating location, public phone, and description. Admin approval changes the company to approved and unlocks the company workspace. The owner can update that public profile after approval and can invite recruiters using expiring hashed-token invitations. Owners control recruiter removal/revocation; recruiters can use the workspace but cannot manage team access or alter the company profile.
 
-Company role management is inline: create a draft, add weighted requirements, then activate/archive. The database trigger/guard rejects unsafe active roles. Job-fair management is likewise inline, with Guyana-time parsing and 15-minute slot creation.
+Company role management is inline: create or edit a role with public details, optionally map it to the career catalogue, add weighted canonical requirements, then activate/archive. Requirement changes re-run the existing matching pipeline for active roles, while occupation mappings give downstream career guidance a stable link. The database trigger/guard rejects unsafe active roles. Job-fair management is likewise inline, with Guyana-time parsing and 15-minute slot creation.
 
 ## Provider workspace
 

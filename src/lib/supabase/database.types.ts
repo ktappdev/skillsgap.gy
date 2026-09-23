@@ -49,7 +49,7 @@ type Profile = {
   updated_at: string;
   username: string | null;
 };
-type Company = Timestamps & { description: string | null; id: string; name: string; requested_by: string | null; reviewed_at: string | null; reviewed_by: string | null; status: CompanyStatus; website_url: string | null };
+type Company = Timestamps & { contact_phone: string | null; description: string | null; id: string; industry: string | null; location: string | null; name: string; requested_by: string | null; reviewed_at: string | null; reviewed_by: string | null; status: CompanyStatus; website_url: string | null };
 type CompanyMember = { company_id: string; created_at: string; invited_email: string | null; role: CompanyMemberRole; user_id: string };
 type CompanyRecruiterInvitation = Timestamps & { accepted_at: string | null; accepted_by: string | null; company_id: string; email: string; expires_at: string; id: string; invited_by: string; revoked_at: string | null; token_hash: string };
 type PlatformAdmin = { created_at: string; user_id: string };

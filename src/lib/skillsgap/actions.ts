@@ -7,6 +7,7 @@ import { getDatabaseErrorMessage } from "@/lib/errors";
 import { parseGuyanaDateTime } from "@/lib/guyana-time";
 import type { CareerActionType } from "@/lib/i-want-to-become/guidance";
 import { DEFAULT_ELIGIBILITY_THRESHOLD } from "@/lib/skillsgap/constants";
+import { validateJobRequirementInput, validateJobRoleDetails, type JobRoleDetailsInput } from "@/lib/skillsgap/job-role";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/database.types";
 
@@ -405,14 +406,51 @@ export async function reviewCompany(companyId: string, status: "approved" | "rej
   return {};
 }
 
-export async function createJobRole(title: string, threshold?: number | null): Promise<{ error?: string; role?: Tables<"job_roles"> }> {
+export async function createJobRole(input: JobRoleDetailsInput): Promise<{ error?: string; role?: Tables<"job_roles"> }> {
   const { supabase, user, companyId } = await requireApprovedCompanyMember();
-  const cleanTitle = title.trim();
-  const eligibilityThreshold = threshold ?? DEFAULT_ELIGIBILITY_THRESHOLD;
-  if (cleanTitle.length < 2 || cleanTitle.length > 160 || !Number.isInteger(eligibilityThreshold) || eligibilityThreshold < 1 || eligibilityThreshold > 100) return { error: "Enter a role name and a threshold from 1 to 100." };
-  const { data, error } = await supabase.from("job_roles").insert({ company_id: companyId, title: cleanTitle, created_by: user.id, eligibility_threshold: eligibilityThreshold, description: "", location: "Guyana", status: "draft" }).select("*").single();
+  const check = validateJobRoleDetails(input);
+  if (check.error || !check.values) return { error: check.error ?? "Check the role details and try again." };
+  if (check.values.occupationId) {
+    const { data: occupation, error: occupationError } = await supabase.from("occupations").select("id").eq("id", check.values.occupationId).eq("is_active", true).maybeSingle();
+    if (occupationError || !occupation) return { error: "Choose an active occupation mapping." };
+  }
+  const { data, error } = await supabase.from("job_roles").insert({
+    company_id: companyId,
+    title: check.values.title,
+    created_by: user.id,
+    eligibility_threshold: check.values.eligibilityThreshold ?? DEFAULT_ELIGIBILITY_THRESHOLD,
+    description: check.values.description,
+    location: check.values.location,
+    employment_type: check.values.employmentType || null,
+    occupation_id: check.values.occupationId,
+    status: "draft",
+  }).select("*").single();
   if (error) return { error: getDatabaseErrorMessage(error, "We could not create that role.") };
   revalidatePath("/company/jobs");
+  return { role: data };
+}
+
+export async function updateJobRole(roleId: string, input: JobRoleDetailsInput): Promise<{ error?: string; role?: Tables<"job_roles"> }> {
+  const { supabase, companyId } = await requireApprovedCompanyMember();
+  const check = validateJobRoleDetails(input);
+  if (check.error || !check.values) return { error: check.error ?? "Check the role details and try again." };
+  const { data: role, error: roleError } = await supabase.from("job_roles").select("id").eq("id", roleId).eq("company_id", companyId).maybeSingle();
+  if (roleError || !role) return { error: "That role is not part of your company workspace." };
+  if (check.values.occupationId) {
+    const { data: occupation, error: occupationError } = await supabase.from("occupations").select("id").eq("id", check.values.occupationId).eq("is_active", true).maybeSingle();
+    if (occupationError || !occupation) return { error: "Choose an active occupation mapping." };
+  }
+  const { data, error } = await supabase.from("job_roles").update({
+    title: check.values.title,
+    description: check.values.description,
+    location: check.values.location,
+    employment_type: check.values.employmentType || null,
+    eligibility_threshold: check.values.eligibilityThreshold ?? DEFAULT_ELIGIBILITY_THRESHOLD,
+    occupation_id: check.values.occupationId,
+  }).eq("id", roleId).eq("company_id", companyId).select("*").single();
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not update that role.") };
+  revalidatePath("/company/jobs");
+  revalidatePath(`/opportunities/${roleId}`);
   return { role: data };
 }
 
@@ -440,15 +478,50 @@ export async function addJobRequirement(
   mandatory: boolean,
   minimumYears: number | null,
 ): Promise<{ error?: string; requirement?: Tables<"job_requirements"> }> {
-  const { supabase } = await requireApprovedCompanyMember();
+  const { supabase, companyId } = await requireApprovedCompanyMember();
   const allowedKinds: Tables<"job_requirements">["kind"][] = ["technical_skill", "certification", "compliance", "experience", "education"];
-  if (!allowedKinds.includes(kind) || typeof mandatory !== "boolean" || !Number.isInteger(weight) || weight < 1 || weight > 5 || (minimumYears !== null && (!Number.isFinite(minimumYears) || minimumYears < 0 || minimumYears > 60))) {
-    return { error: "Use a weight from 1 to 5 and experience from 0 to 60 years." };
-  }
+  if (!allowedKinds.includes(kind)) return { error: "Choose a valid requirement type." };
+  const inputError = validateJobRequirementInput(weight, mandatory, minimumYears);
+  if (inputError) return { error: inputError };
+  const { data: role, error: roleError } = await supabase.from("job_roles").select("id").eq("id", roleId).eq("company_id", companyId).maybeSingle();
+  if (roleError || !role) return { error: "That role is not part of your company workspace." };
+  const { data: qualification, error: qualificationError } = await supabase.from("qualifications").select("id").eq("id", qualificationId).eq("is_active", true).maybeSingle();
+  if (qualificationError || !qualification) return { error: "Choose an active qualification from the list." };
   const { data, error } = await supabase.from("job_requirements").insert({ job_role_id: roleId, qualification_id: qualificationId, kind, weight, mandatory, minimum_years: minimumYears }).select("*").single();
   if (error) return { error: getDatabaseErrorMessage(error, "We could not add that requirement.") };
   revalidatePath("/company/jobs");
   return { requirement: data };
+}
+
+export async function updateJobRequirement(
+  requirementId: string,
+  roleId: string,
+  kind: Tables<"job_requirements">["kind"],
+  weight: number,
+  mandatory: boolean,
+  minimumYears: number | null,
+): Promise<{ error?: string; requirement?: Tables<"job_requirements"> }> {
+  const { supabase, companyId } = await requireApprovedCompanyMember();
+  const allowedKinds: Tables<"job_requirements">["kind"][] = ["technical_skill", "certification", "compliance", "experience", "education"];
+  if (!allowedKinds.includes(kind)) return { error: "Choose a valid requirement type." };
+  const inputError = validateJobRequirementInput(weight, mandatory, minimumYears);
+  if (inputError) return { error: inputError };
+  const { data: role, error: roleError } = await supabase.from("job_roles").select("id").eq("id", roleId).eq("company_id", companyId).maybeSingle();
+  if (roleError || !role) return { error: "That role is not part of your company workspace." };
+  const { data, error } = await supabase.from("job_requirements").update({ kind, weight, mandatory, minimum_years: minimumYears }).eq("id", requirementId).eq("job_role_id", roleId).select("*").single();
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not update that requirement.") };
+  revalidatePath("/company/jobs");
+  return { requirement: data };
+}
+
+export async function removeJobRequirement(requirementId: string, roleId: string): Promise<{ error?: string }> {
+  const { supabase, companyId } = await requireApprovedCompanyMember();
+  const { data: role, error: roleError } = await supabase.from("job_roles").select("id").eq("id", roleId).eq("company_id", companyId).maybeSingle();
+  if (roleError || !role) return { error: "That role is not part of your company workspace." };
+  const { error } = await supabase.from("job_requirements").delete().eq("id", requirementId).eq("job_role_id", roleId);
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not remove that requirement.") };
+  revalidatePath("/company/jobs");
+  return {};
 }
 
 export async function createJobFair(name: string, location: string, startsAt: string, endsAt: string): Promise<{ error?: string; fair?: Tables<"job_fairs"> }> {

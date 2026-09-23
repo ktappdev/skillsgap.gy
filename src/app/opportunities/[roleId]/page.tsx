@@ -130,15 +130,17 @@ export default async function PositionPage({ params }: PositionPageProps) {
                 Compare my experience <span aria-hidden="true" className="ml-2">→</span>
               </Link>
             </section>
-            {position.company.website_url?.startsWith("https://") ? (
-              <section className="rounded-lg border border-border bg-surface p-5">
-                <h2 className="text-lg font-semibold text-foreground">{position.company.name}</h2>
-                {position.company.description ? <p className="mt-2 text-sm leading-6 text-muted">{position.company.description}</p> : null}
-                <a href={position.company.website_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">
-                  Visit employer site <span aria-hidden="true" className="ml-1">↗</span>
-                </a>
-              </section>
-            ) : null}
+            <section className="rounded-lg border border-border bg-surface p-5">
+              <h2 className="text-lg font-semibold text-foreground">{position.company.name}</h2>
+              {position.company.industry || position.company.location ? <p className="mt-1 text-sm text-muted">{[position.company.industry, position.company.location].filter(Boolean).join(" · ")}</p> : null}
+              {position.company.description ? <p className="mt-2 text-sm leading-6 text-muted">{position.company.description}</p> : null}
+              {position.company.website_url?.startsWith("http://") || position.company.website_url?.startsWith("https://") ? <a href={position.company.website_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">
+                Visit employer site <span aria-hidden="true" className="ml-1">↗</span>
+              </a> : null}
+              {position.company.contact_phone ? <a href={`tel:${encodeURIComponent(position.company.contact_phone)}`} className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">
+                Contact employer <span aria-hidden="true" className="ml-1">☎</span>
+              </a> : null}
+            </section>
           </aside>
         </div>
 

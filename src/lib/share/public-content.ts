@@ -8,7 +8,7 @@ import type { Database, Tables } from "@/lib/supabase/database.types";
 
 type AdminClient = SupabaseClient<Database>;
 
-export type PublicCompany = Pick<Tables<"companies">, "id" | "name" | "description" | "website_url">;
+export type PublicCompany = Pick<Tables<"companies">, "id" | "name" | "description" | "website_url" | "industry" | "location" | "contact_phone">;
 
 export type PublicPositionRequirement = Pick<
   Tables<"job_requirements">,
@@ -89,7 +89,7 @@ export const getPublicPositions = cache(async (): Promise<PublicPositionSummary[
   const companyIds = [...new Set(roles.map((role) => role.company_id))];
   const { data: companies } = await admin
     .from("companies")
-    .select("id,name,description,website_url")
+    .select("id,name,description,website_url,industry,location,contact_phone")
     .in("id", companyIds)
     .eq("status", "approved");
   const companyById = new Map((companies ?? []).map((company) => [company.id, company]));
@@ -115,7 +115,7 @@ export const getPublicPosition = cache(async (roleId: string): Promise<PublicPos
   const [{ data: company }, { data: requirements }] = await Promise.all([
     admin
       .from("companies")
-      .select("id,name,description,website_url")
+      .select("id,name,description,website_url,industry,location,contact_phone")
       .eq("id", role.company_id)
       .eq("status", "approved")
       .maybeSingle(),

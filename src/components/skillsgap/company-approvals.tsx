@@ -40,8 +40,10 @@ export function CompanyApprovals({ requests }: { requests: Tables<"companies">[]
             <li key={request.id} className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="font-semibold text-foreground">{request.name}</p>
+                {request.industry || request.location ? <p className="mt-1 text-sm text-muted">{[request.industry, request.location].filter(Boolean).join(" · ")}</p> : null}
                 <p className="mt-1 text-sm text-muted">{request.description ?? "No description provided."}</p>
                 {request.website_url ? <p className="mt-1 text-xs text-muted">{request.website_url}</p> : null}
+                {request.contact_phone ? <p className="mt-1 text-xs text-muted">Contact: {request.contact_phone}</p> : null}
               </div>
               <div className="flex shrink-0 gap-2">
                 <button type="button" disabled={isPending} onClick={() => update(request.id, "rejected")} aria-busy={isPending} className="min-h-11 rounded-md border border-border px-4 text-sm font-semibold text-muted hover:border-danger hover:text-danger disabled:cursor-wait disabled:opacity-60">Decline</button>

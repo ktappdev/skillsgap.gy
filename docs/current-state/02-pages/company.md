@@ -6,13 +6,13 @@ All company workspace pages require an approved company member through `requireA
 
 Source: `src/app/(app)/company/page.tsx:4`
 
-Shows active-role count, current-match count, open-slot count, a link to candidates, and a privacy explanation that identity/CV data appears only after applicant consent.
+Shows active-role count, current-match count, open-slot count, a link to candidates, and a privacy explanation that identity/CV data appears only after applicant consent. The owner can edit the company’s public profile from this page; recruiters receive a clear explanation that profile ownership stays with the owner.
 
 ## `/company/jobs`
 
 Source: `src/app/(app)/company/jobs/page.tsx:6`
 
-Loads the company’s roles, active qualification taxonomy, and requirements. `RoleEditor` creates a draft role with title and eligibility threshold, toggles a role between draft and active/archived states, and adds requirements with qualification, kind, weight, minimum years, and mandatory flag. The database guard controls whether an active role is publishable/matchable.
+Loads the company’s roles, active qualification taxonomy, and active career occupations. `RoleEditor` creates and edits roles with title, description, location, employment type, interview threshold, and optional occupation mapping. It toggles roles between draft, active, and archived states and manages requirements with qualification, kind, weight, minimum years, and mandatory flag. The database guard controls whether an active role is publishable/matchable; canonical requirements continue to drive matching and training recommendations.
 
 There is no role-detail URL: creation and requirements are managed inline in the page.
 
