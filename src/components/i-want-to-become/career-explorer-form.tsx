@@ -44,6 +44,7 @@ export function CareerExplorerForm({ step, careerId, occupations, interests, sel
   const headingRef = useRef<HTMLHeadingElement>(null);
   const previousStepRef = useRef(step);
   const canContinue = step !== 1 || careerId.length > 0;
+  const hasResultEntries = results.some((result) => result.subject.trim().length > 0 || result.grade.trim().length > 0);
 
   useLayoutEffect(() => {
     if (previousStepRef.current === step) return;
@@ -55,7 +56,7 @@ export function CareerExplorerForm({ step, careerId, occupations, interests, sel
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (step === 3) {
-      if (resultsReviewed && !planLoading) onShowResults();
+      if ((!hasResultEntries || resultsReviewed) && !planLoading) onShowResults();
       return;
     }
     if (canContinue) onStepChange(step === 1 ? 2 : 3);
@@ -65,7 +66,7 @@ export function CareerExplorerForm({ step, careerId, occupations, interests, sel
     ? { eyebrow: "Step 1 of 3", title: "Choose a direction.", description: "Start with work you can picture yourself learning. You can change it before building your route." }
     : step === 2
       ? { eyebrow: "Step 2 of 3", title: "What sounds like you?", description: "Pick a few interests, or write a note. This is reflection, not a test." }
-      : { eyebrow: "Step 3 of 3", title: "Share your starting point.", description: "Results suggest preparation subjects. None yet? You still get a useful route." };
+      : { eyebrow: "Step 3 of 3", title: "Share your starting point.", description: "Add results to guide preparation, or build a route without them." };
 
   return (
     <form ref={formRef} id="career-explorer-form" onSubmit={handleSubmit} className="scroll-mt-4 rounded-lg border border-border bg-surface p-5 sm:scroll-mt-6 sm:p-8" aria-labelledby="explorer-step-title">
@@ -79,7 +80,7 @@ export function CareerExplorerForm({ step, careerId, occupations, interests, sel
         {step === 3 ? <CareerResultsEditor results={results} photoName={photoName} photoPreview={photoPreview} photoState={photoState} photoError={photoError} resultsReviewed={resultsReviewed} onFileSelected={onFileSelected} onUpdateResult={onUpdateResult} onRemoveResult={onRemoveResult} onAddResult={onAddResult} onResultsReviewedChange={onResultsReviewedChange} /> : null}
       </div>
 
-      <div className="mt-6 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"><button type="button" onClick={() => onStepChange(step === 1 ? 1 : step === 2 ? 1 : 2)} disabled={step === 1} className="inline-flex min-h-11 w-fit items-center justify-center px-1 text-sm font-semibold text-muted underline-offset-4 transition hover:text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-0">← Back</button><div className="flex flex-col items-stretch gap-3 sm:items-end">{step === 3 && !resultsReviewed ? <p id="review-required" className="text-sm text-amber-800" role="alert">Review the fields above before building your route.</p> : null}{step < 3 ? <button type="submit" disabled={!canContinue} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">Continue <span aria-hidden="true" className="ml-2">→</span></button> : <button type="submit" disabled={!resultsReviewed || planLoading} aria-describedby={!resultsReviewed ? "review-required" : undefined} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">{planLoading ? "Building your route…" : "Build my pathway"} <span aria-hidden="true" className="ml-2">→</span></button>}</div></div>
+      <div className="mt-6 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"><button type="button" onClick={() => onStepChange(step === 1 ? 1 : step === 2 ? 1 : 2)} disabled={step === 1} className="inline-flex min-h-11 w-fit items-center justify-center px-1 text-sm font-semibold text-muted underline-offset-4 transition hover:text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-0">← Back</button><div className="flex flex-col items-stretch gap-3 sm:items-end">{step === 2 ? <button type="button" onClick={() => onStepChange(3)} className="min-h-11 px-1 text-sm font-semibold text-muted underline-offset-4 hover:text-accent hover:underline">Skip strengths</button> : null}{step === 3 && hasResultEntries && !resultsReviewed ? <p id="review-required" className="text-sm text-amber-800" role="alert">Review the results above before building your route.</p> : null}{step < 3 ? <button type="submit" disabled={!canContinue} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">Continue <span aria-hidden="true" className="ml-2">→</span></button> : <button type="submit" disabled={(hasResultEntries && !resultsReviewed) || planLoading} aria-describedby={hasResultEntries && !resultsReviewed ? "review-required" : undefined} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">{planLoading ? "Building your route…" : hasResultEntries ? "Build my pathway" : "Build without results"} <span aria-hidden="true" className="ml-2">→</span></button>}</div></div>
     </form>
   );
 }

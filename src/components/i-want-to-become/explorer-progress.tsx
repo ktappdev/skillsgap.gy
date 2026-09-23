@@ -56,7 +56,7 @@ export function ExplorerSummary({ activeStep, selectedTitle, selectedDetail, sel
         <div className="mt-3 divide-y divide-border border-y border-border"><SummaryRow label="Direction" value={selectedTitle ? "Selected" : "Not chosen"} step={1} activeStep={activeStep} canVisitStep={canVisitStep} onStepSelect={onStepSelect} /><SummaryRow label="Strengths" value={selectedInterests.length > 0 ? `${selectedInterests.length} selected` : "Optional"} step={2} activeStep={activeStep} canVisitStep={canVisitStep} onStepSelect={onStepSelect} /><SummaryRow label="CSEC/CXC" value={resultCount > 0 ? `${resultCount} result${resultCount === 1 ? "" : "s"}` : "Not added yet"} step={3} activeStep={activeStep} canVisitStep={canVisitStep} onStepSelect={onStepSelect} /></div>
       </section>
       <section className="rounded-lg border border-border bg-surface-muted p-5"><ul className="space-y-2 text-sm leading-5 text-foreground"><li className="flex gap-2"><span aria-hidden="true" className="text-accent">✓</span> A route for your role in Guyana</li><li className="flex gap-2"><span aria-hidden="true" className="text-accent">✓</span> Three next moves</li><li className="flex gap-2"><span aria-hidden="true" className="text-accent">✓</span> Official links to verify</li></ul></section>
-      <p className="px-1 text-xs leading-5 text-muted">Stays in this browser until you create an account. Slip photos aren&apos;t saved.</p>
+      <p className="px-1 text-xs leading-5 text-muted">This draft stays in this tab until you close it or start over. Slip images are sent for extraction and are not included in the draft.</p>
     </aside>
   );
 }

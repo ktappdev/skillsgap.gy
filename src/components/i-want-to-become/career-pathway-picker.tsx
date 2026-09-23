@@ -20,6 +20,7 @@ type PickerOption = {
   detail: string;
   kind: "guided" | "occupation";
   tags: string[];
+  exampleTitles: string[];
 };
 
 const scopeLabels: Array<[PickerScope, string]> = [
@@ -33,6 +34,7 @@ function guidedOption(pathway: CareerPathway): PickerOption {
     id: pathway.id,
     title: pathway.title,
     description: pathway.description,
+    exampleTitles: [],
     detail: pathway.location,
     kind: "guided",
     tags: ["CSEC/CXC start", "Guided route"],
@@ -44,8 +46,9 @@ function occupationOption(occupation: PublicOccupation): PickerOption {
     id: occupation.slug,
     title: occupation.title,
     description: occupation.industryTransferSummary,
-    detail: `${occupation.roleFamily} · ISCO-08 ${occupation.isco08Code}`,
+    detail: occupation.roleFamily,
     kind: "occupation",
+    exampleTitles: occupation.exampleTitles,
     tags: [occupation.valueChainStages[0] ?? "local content", occupation.roleFamily],
   };
 }
@@ -70,6 +73,7 @@ function PathwayOptionCard({ option, selected, onSelect }: { option: PickerOptio
 
       <span className="mt-1 text-xs font-medium text-muted">{option.detail}</span>
       <span className="mt-3 line-clamp-2 text-sm leading-5 text-muted">{option.description}</span>
+      {option.exampleTitles.length > 0 ? <span className="mt-2 line-clamp-2 text-xs leading-5 text-muted">Example roles: {option.exampleTitles.slice(0, 2).join(", ")}</span> : null}
       <span className="mt-auto flex flex-wrap gap-1.5 pt-4">
         {option.tags.map((tag) => <span key={tag} className="border border-border bg-surface px-2 py-1 text-[11px] font-semibold capitalize text-muted">{tag}</span>)}
       </span>
@@ -86,7 +90,7 @@ export function CareerPathwayPicker({ occupations, selectedId, onSelect }: Caree
   const filteredOptions = useMemo(() => options.filter((option) => {
     if (scope !== "all" && option.kind !== scope) return false;
     if (!normalizedQuery) return true;
-    return [option.title, option.description, option.detail, ...option.tags].some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
+    return [option.title, option.description, option.detail, ...option.tags, ...option.exampleTitles].some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
   }), [normalizedQuery, options, scope]);
   const displayedOptions = showAll || normalizedQuery || scope !== "all" ? filteredOptions : filteredOptions.slice(0, 6);
   const selectedOption = options.find((option) => option.id === selectedId) ?? null;

@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  referrer: "no-referrer",
+};
 
 export default function AuthLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

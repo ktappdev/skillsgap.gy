@@ -12,6 +12,8 @@ import { parseAccountType } from "@/lib/auth/account-type";
 import { getCompanySignupNext } from "@/lib/auth/company-signup";
 import { getProviderSignupNext } from "@/lib/auth/provider-signup";
 import { resolveUserHome } from "@/lib/auth/queries";
+import { getPathwayHandoffTokenFromReturnPath } from "@/lib/i-want-to-become/pathway-handoff";
+import { bindPathwayHandoffToEmail } from "@/lib/i-want-to-become/pathway-handoff-server";
 
 export type AuthActionState = {
   error?: string;
@@ -49,8 +51,23 @@ export async function signIn(
     return { error: getAuthErrorMessage(error) };
   }
 
+  const requestedNext = getTrimmedFormString(formData, "next");
+  const safeNext = getSafeRedirectPath(requestedNext, "");
+  const handoffToken = getPathwayHandoffTokenFromReturnPath(safeNext);
+  if (handoffToken) {
+    const binding = await bindPathwayHandoffToEmail(supabase, handoffToken, data.user.email ?? email);
+    if (!binding.bound) {
+      await supabase.auth.signOut();
+      return {
+        error: binding.retryable
+          ? "We could not verify this save link yet. Try signing in again in a moment."
+          : "We could not verify this save link for that account. Check that you used the signup email, or build the route again.",
+      };
+    }
+  }
+
   const accountHome = await resolveUserHome(supabase, data.user.id);
-  const next = getSafeRedirectPath(getTrimmedFormString(formData, "next"), accountHome);
+  const next = safeNext || accountHome;
   revalidatePath("/", "layout");
   redirect(next);
 }
@@ -91,6 +108,17 @@ export async function signUp(
   const callbackUrl = new URL("/auth/callback", env.siteUrl);
   callbackUrl.searchParams.set("next", next);
   const supabase = await createClient();
+  const handoffToken = accountType === "applicant" ? getPathwayHandoffTokenFromReturnPath(next) : null;
+  if (handoffToken) {
+    const binding = await bindPathwayHandoffToEmail(supabase, handoffToken, email);
+    if (!binding.bound) {
+      return {
+        error: binding.retryable
+          ? "We could not verify this route save link yet. Try creating your account again in a moment."
+          : "This route save link is invalid, expired, or linked to another signup email. Build the route again to save it.",
+      };
+    }
+  }
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -116,7 +144,12 @@ export async function signUp(
     redirect(next);
   }
 
-  return { message: "Account created. Sign in with your email and password to continue." };
+  const pathwayHandoff = next.startsWith("/i-want-to-become?save=pathway&handoff=");
+  return {
+    message: pathwayHandoff
+      ? "Account created. Open the confirmation link from your email to finish saving this route."
+      : "Account created. Open the confirmation link from your email to continue.",
+  };
 }
 
 export async function signOut() {

@@ -18,14 +18,57 @@ type GuidedPathwayPlanProps = {
 
 type CareerRequirement = CareerPathway["requirements"][number];
 
-const providerLinks = [
-  ["Government Technical Institute", "https://www.education.gov.gy/en/index.php/moe-contacts/36-tertiary-institutions/253-government-technical-institute"],
-  ["Board of Industrial Training", "https://srms.bit.gov.gy/"],
-  ["3t Global Guyana", "https://www.3tglobal.com/about/our-locations/guyana/"],
-] as const;
+type TrainingProvider = {
+  name: string;
+  url: string;
+  aliases: readonly string[];
+};
+
+const trainingProviders = [
+  { name: "Government Technical Institute", url: "https://www.gtigeorgetown.com/", aliases: ["Government Technical Institute"] },
+  { name: "Board of Industrial Training", url: "https://srms.bit.gov.gy/", aliases: ["Board of Industrial Training"] },
+  { name: "3t EnerMech Guyana", url: "https://www.3tglobal.com/about/our-locations/guyana/", aliases: ["3T EnerMech", "3t EnerMech Guyana"] },
+] as const satisfies readonly TrainingProvider[];
+
+function getTrainingSuggestion(training: string | null) {
+  if (!training) return null;
+  const separator = training.lastIndexOf(" · ");
+  const courseName = separator === -1 ? training : training.slice(0, separator);
+  const providerLabel = separator === -1 ? null : training.slice(separator + 3);
+  const normalizedProviderLabel = providerLabel?.toLocaleLowerCase();
+  const provider = normalizedProviderLabel
+    ? trainingProviders.find((candidate) => candidate.aliases.some((alias) => alias.toLocaleLowerCase() === normalizedProviderLabel)) ?? null
+    : null;
+  return { courseName, providerLabel, provider };
+}
 
 function RequirementCard({ requirement, position, planned, onToggle }: { requirement: CareerRequirement; position: number; planned: boolean; onToggle: () => void }) {
-  return <li className={`rounded-lg border p-4 transition-colors ${planned ? "border-accent/50 bg-teal-50/30" : "border-border"}`}><div className="flex gap-3"><span className={`grid size-7 shrink-0 place-items-center rounded-full text-sm font-bold ${planned ? "bg-accent text-white" : "bg-surface-muted text-accent"}`} aria-hidden="true">{planned ? "✓" : position}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h4 className="font-semibold text-foreground">{requirement.name}</h4>{requirement.mandatory ? <span className="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold text-accent">Required for this role</span> : null}</div><p className="mt-1 text-sm leading-6 text-muted">{requirement.detail}</p>{requirement.minimumYears ? <p className="mt-2 text-sm font-medium text-foreground">Plan for at least {requirement.minimumYears} year{requirement.minimumYears === 1 ? "" : "s"} of relevant experience.</p> : null}{requirement.training ? <p className="mt-2 text-sm font-medium text-accent">Training to explore: {requirement.training}</p> : <p className="mt-2 text-sm text-muted">Ask a recognised provider about the current route before enrolling.</p>}<TrainingProvidersLink qualification={requirement.name} /><button type="button" aria-pressed={planned} onClick={onToggle} className={`mt-4 inline-flex min-h-10 items-center rounded-md border px-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${planned ? "border-accent bg-white text-accent" : "border-border bg-surface text-foreground hover:border-accent hover:text-accent"}`}>{planned ? "On my list" : "Add to my list"}</button></div></div></li>;
+  const training = getTrainingSuggestion(requirement.training);
+  return (
+    <li className={`rounded-lg border p-4 transition-colors ${planned ? "border-accent/50 bg-teal-50/30" : "border-border"}`}>
+      <div className="flex gap-3">
+        <span className={`grid size-7 shrink-0 place-items-center rounded-full text-sm font-bold ${planned ? "bg-accent text-white" : "bg-surface-muted text-accent"}`} aria-hidden="true">{planned ? "✓" : position}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="font-semibold text-foreground">{requirement.name}</h4>
+            {requirement.mandatory ? <span className="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold text-accent">Required for this role</span> : null}
+          </div>
+          <p className="mt-1 text-sm leading-6 text-muted">{requirement.detail}</p>
+          {requirement.minimumYears ? <p className="mt-2 text-sm font-medium text-foreground">Plan for at least {requirement.minimumYears} year{requirement.minimumYears === 1 ? "" : "s"} of relevant experience.</p> : null}
+          {training ? (
+            <p className="mt-2 text-sm font-medium text-accent">
+              <span className="font-semibold">Training to ask about:</span> {training.courseName}
+              {training.provider ? <> · <a href={training.provider.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">{training.provider.name}</a></> : training.providerLabel ? <> · {training.providerLabel} (contact link not listed)</> : null}
+            </p>
+          ) : <p className="mt-2 text-sm text-muted">Ask a recognised provider about the current route before enrolling.</p>}
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <TrainingProvidersLink qualification={requirement.name} />
+            <button type="button" aria-pressed={planned} onClick={onToggle} className={`inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${planned ? "border-accent bg-white text-accent" : "border-border bg-surface text-foreground hover:border-accent hover:text-accent"}`}>{planned ? "On my list" : "Add to my list"}</button>
+          </div>
+        </div>
+      </div>
+    </li>
+  );
 }
 
 export function GuidedPathwayPlan({ pathway, interests, selectedInterests, results, viewer, onEdit }: GuidedPathwayPlanProps) {
@@ -34,6 +77,11 @@ export function GuidedPathwayPlan({ pathway, interests, selectedInterests, resul
   const [plannedRequirementNames, setPlannedRequirementNames] = useState<Set<string>>(() => new Set());
   const [storageReady, setStorageReady] = useState(false);
   const plannedCount = pathway.requirements.filter((requirement) => plannedRequirementNames.has(requirement.name)).length;
+  const routeProviderNames = new Set(pathway.requirements.flatMap((requirement) => {
+    const training = getTrainingSuggestion(requirement.training);
+    return training?.provider ? [training.provider.name] : [];
+  }));
+  const generalProviderLinks = trainingProviders.filter((provider) => !routeProviderNames.has(provider.name));
 
   useEffect(() => {
     const stored = window.sessionStorage.getItem(storageKey);
@@ -75,7 +123,7 @@ export function GuidedPathwayPlan({ pathway, interests, selectedInterests, resul
 
     <section className="mt-8" aria-labelledby="steps-title"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[0.15em] text-muted">Practical next steps</p><h3 id="steps-title" className="mt-2 text-xl font-semibold tracking-tight">Build the requirements one at a time</h3></div><p className="text-sm font-semibold text-accent">{plannedCount}/{pathway.requirements.length} on your list</p></div><div className="mt-5" role="progressbar" aria-label={`${plannedCount} of ${pathway.requirements.length} pathway requirements on your list`} aria-valuemin={0} aria-valuemax={pathway.requirements.length} aria-valuenow={plannedCount}><div className="h-2 overflow-hidden rounded-full bg-surface-muted"><div className="h-full bg-accent transition-[width]" style={{ width: `${pathway.requirements.length > 0 ? (plannedCount / pathway.requirements.length) * 100 : 0}%` }} /></div></div><ol className="mt-5 space-y-3">{pathway.requirements.map((requirement, index) => <RequirementCard key={requirement.name} requirement={requirement} position={index + 1} planned={plannedRequirementNames.has(requirement.name)} onToggle={() => toggleRequirement(requirement.name)} />)}</ol></section>
 
-    <section className="mt-8" aria-labelledby="provider-links-title"><p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Official places to continue</p><h3 id="provider-links-title" className="mt-2 text-xl font-semibold tracking-tight">Confirm the current route directly</h3><div className="mt-4 grid gap-3 sm:grid-cols-3">{providerLinks.map(([name, url]) => <a key={name} href={url} target="_blank" rel="noreferrer" className="border border-border bg-surface p-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">{name} <span aria-hidden="true">↗</span></a>)}</div><p className="mt-4 text-sm leading-6 text-muted">Training availability and entry requirements can change. Ask the provider about intake, cost, duration, and any medical or safety requirements before spending money.</p></section>
+    {generalProviderLinks.length > 0 ? <section className="mt-8" aria-labelledby="provider-links-title"><p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">General contacts</p><h3 id="provider-links-title" className="mt-2 text-xl font-semibold tracking-tight">Other places to ask about training</h3><p className="mt-2 text-sm leading-6 text-muted">These are general provider contacts, not confirmed course matches for this route. Ask about current intake, entry requirements, and costs before enrolling.</p><div className="mt-4 grid gap-3 sm:grid-cols-3">{generalProviderLinks.map(({ name, url }) => <a key={name} href={url} target="_blank" rel="noreferrer" className="border border-border bg-surface p-4 text-sm font-semibold text-foreground hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">{name} <span aria-hidden="true">↗</span></a>)}</div></section> : null}
 
     <section className="mt-8 rounded-lg border border-border bg-surface-muted p-5" aria-labelledby="account-title"><h3 id="account-title" className="text-lg font-semibold tracking-tight">Keep this career route</h3><p className="mt-2 max-w-xl text-sm leading-6 text-muted">Save this planning draft privately. Your interests and CSEC/CXC entries stay unverified and do not become qualifications.</p><div className="mt-4 flex flex-wrap gap-3"><SavePathwayControl viewer={viewer} plan={{ pathwayKind: "guided", pathwayKey: pathway.id, interests, selectedInterests, results, plannedRequirementNames: [...plannedRequirementNames], completedActionIds: [] }} /><button type="button" onClick={onEdit} className="inline-flex min-h-11 items-center justify-center rounded-md border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors hover:border-accent hover:text-accent">Edit my starting point</button></div></section>
   </section>;

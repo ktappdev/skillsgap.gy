@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = {
   title: "Build your career route",
   description: "Choose a career direction, add your CSEC/CXC starting point, and find practical next steps in Guyana.",
+  referrer: "no-referrer",
 };
 
 type IWantToBecomePageProps = {
@@ -30,7 +31,7 @@ export default async function IWantToBecomePage({ searchParams }: IWantToBecomeP
     accountHref = accountHome;
     accountLabel = "My account";
   }
-  const isSavingPathway = params.save === "pathway";
+  const isSavingPathway = params.save === "pathway" || (Array.isArray(params.save) && params.save.includes("pathway"));
 
   return (
     <main id="main-content" className="min-h-screen bg-background">
@@ -53,8 +54,9 @@ export default async function IWantToBecomePage({ searchParams }: IWantToBecomeP
         </section>
 
         <div className="mt-10">
-          {isSavingPathway ? <PathwaySaveHandoff viewer={viewer} /> : null}
-          <CareerExplorer viewer={viewer} initialCareerId={initialCareerId} autoOpenPathway={Boolean(initialCareerId)} />
+          {isSavingPathway
+            ? <PathwaySaveHandoff viewer={viewer} token={typeof params.handoff === "string" ? params.handoff : undefined} />
+            : <CareerExplorer viewer={viewer} initialCareerId={initialCareerId} autoOpenPathway={Boolean(initialCareerId)} />}
         </div>
 
         <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-6 text-muted">Career and training information is curated for this SkillsGap.gy demonstration. Confirm current entry requirements directly with a guidance counsellor, provider, or employer.</p>

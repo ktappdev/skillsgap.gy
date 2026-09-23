@@ -21,7 +21,7 @@ function PlanError({ onEdit }: { onEdit: () => void }) {
 
 export function CareerExplorer({ initialOccupations = occupationCatalog, initialCareerId, autoOpenPathway = false, viewer = "anonymous" }: CareerExplorerProps) {
   const explorer = useCareerExplorer(initialOccupations, initialCareerId, autoOpenPathway);
-  const { careerId, interests, selectedInterests, results, photoName, photoPreview, photoState, photoError, resultsReviewed, step, showPlan, occupations, occupationPlan, planSource, planLoading, planError, draftReady, draftRestored, guidedPathway, selectedOccupation, completedResults, selectedTitle, selectedDetail, updateResult, toggleInterest, selectCareer, readSlip, showResults, editStartingPoint, resetDraft, canVisitStep, setResults, setResultsReviewed, setStep } = explorer;
+  const { careerId, interests, selectedInterests, results, photoName, photoPreview, photoState, photoError, resultsReviewed, step, showPlan, occupations, occupationPlan, planSource, planLoading, planError, draftReady, draftRestored, guidedPathway, completedResults, selectedTitle, selectedDetail, updateResult, toggleInterest, selectCareer, readSlip, showResults, editStartingPoint, resetDraft, canVisitStep, setResults, setResultsReviewed, setStep } = explorer;
 
   function removeResult(index: number) {
     setResults((current) => current.length > 1 ? current.filter((_, itemIndex) => itemIndex !== index) : current);
@@ -37,7 +37,7 @@ export function CareerExplorer({ initialOccupations = occupationCatalog, initial
 
   if (showPlan) {
     if (guidedPathway) return <GuidedPathwayPlan pathway={guidedPathway} interests={interests} selectedInterests={selectedInterests} results={completedResults} viewer={viewer} onEdit={editStartingPoint} />;
-    if (selectedOccupation && occupationPlan) return <div>{planLoading ? <p className="mb-3 text-sm text-muted" role="status">Refreshing the verified pathway catalogue…</p> : null}<OccupationPathwayReport pathway={occupationPlan} interests={interests} selectedInterests={selectedInterests} results={completedResults} source={planSource} viewer={viewer} onEdit={editStartingPoint} /></div>;
+    if (occupationPlan) return <div>{planLoading ? <p className="mb-3 text-sm text-muted" role="status">Refreshing the verified pathway catalogue…</p> : null}<OccupationPathwayReport pathway={occupationPlan} interests={interests} selectedInterests={selectedInterests} results={completedResults} source={planSource} viewer={viewer} onEdit={editStartingPoint} /></div>;
     if (planError) return <PlanError onEdit={editStartingPoint} />;
   }
 
@@ -46,7 +46,7 @@ export function CareerExplorer({ initialOccupations = occupationCatalog, initial
   }
 
   return <div id="career-explorer" className="scroll-mt-6">
-    {draftRestored ? <div className="mb-4 flex flex-col gap-3 border border-accent/30 bg-teal-50/50 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-foreground">Your pathway draft is back.</p><p className="mt-1 text-sm text-muted">We kept it in this browser so you can pick up where you left off.</p></div><button type="button" onClick={resetDraft} className="w-fit text-sm font-semibold text-accent underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Start over</button></div> : null}
+    {draftRestored ? <div className="mb-4 flex flex-col gap-3 border border-accent/30 bg-teal-50/50 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-foreground">Your pathway draft is back.</p><p className="mt-1 text-sm text-muted">Your route and entries are back in this tab. Continue at step {step}.{step === 3 && completedResults.length > 0 ? " Review your CSEC/CXC entries again before building." : ""}</p></div><button type="button" onClick={resetDraft} className="w-fit text-sm font-semibold text-accent underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Start over</button></div> : null}
     <ExplorerProgress activeStep={step} hasCareer={Boolean(careerId)} hasStartingPoint={step >= 3 || showPlan} hasPlan={showPlan} canVisitStep={canVisitStep} onStepSelect={selectStep} />
     <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <CareerExplorerForm step={step} careerId={careerId} occupations={occupations} interests={interests} selectedInterests={selectedInterests} results={results} photoName={photoName} photoPreview={photoPreview} photoState={photoState} photoError={photoError} resultsReviewed={resultsReviewed} planLoading={planLoading} onCareerChange={selectCareer} onInterestsChange={explorer.setInterests} onToggleInterest={toggleInterest} onFileSelected={(file) => { void readSlip(file); }} onUpdateResult={updateResult} onRemoveResult={removeResult} onAddResult={addResult} onResultsReviewedChange={setResultsReviewed} onStepChange={setStep} onShowResults={() => { void showResults(); }} />

@@ -9,4 +9,6 @@ export type ExplorerDraft = {
   interests: string;
   selectedInterests: string[];
   results: CsecResult[];
+  step: ExplorerStep;
+  showPlan: boolean;
 };

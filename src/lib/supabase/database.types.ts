@@ -124,6 +124,10 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       clear_applicant_pathway: { Args: { target_applicant_id: string }; Returns: string[] };
+      create_pathway_plan_handoff: { Args: { target_payload: Json; target_token_hash: string }; Returns: boolean };
+      bind_pathway_plan_handoff: { Args: { target_email: string; target_token_hash: string }; Returns: boolean };
+      claim_pathway_plan_handoff: { Args: { target_token_hash: string }; Returns: Json };
+      complete_pathway_plan_handoff: { Args: { target_token_hash: string }; Returns: boolean };
       claim_processing_job: { Args: { processing_job_id: string }; Returns: ProcessingJob[] };
       apply_resume_extraction: { Args: { job_id: string; extraction: Json }; Returns: undefined };
       apply_match_recalculation: { Args: { job_id: string }; Returns: undefined };
