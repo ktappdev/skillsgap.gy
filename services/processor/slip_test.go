@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 type fakeSlipReader struct {
@@ -37,6 +38,104 @@ func TestCSECSlipRequiresSecretAndAllowsSupportedImages(t *testing.T) {
 	service.routes().ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusOK || !strings.Contains(recorder.Body.String(), `"Mathematics"`) {
 		t.Fatalf("response = %d %q", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestCSECSlipReturns429WhenSemaphoreWaitExpires(t *testing.T) {
+	service := newService(config{webhookSecret: "webhook", csecSlipSecret: "slip"}, fakeStore{}, fakePipeline{})
+	service.slipSemaphoreWait = 50 * time.Millisecond
+	for range maxConcurrentCSECSlips {
+		service.slipSlots <- struct{}{}
+	}
+
+	request := httptest.NewRequest(http.MethodPost, "/public/csec-result-slip", strings.NewReader("image"))
+	request.Header.Set("Content-Type", "image/jpeg")
+	request.Header.Set("X-CSEC-Slip-Secret", "slip")
+	recorder := httptest.NewRecorder()
+	service.routes().ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429", recorder.Code)
+	}
+	if recorder.Header().Get("Retry-After") != "1" {
+		t.Fatalf("Retry-After = %q, want 1", recorder.Header().Get("Retry-After"))
+	}
+}
+
+func TestCSECSlipSucceedsWhenSemaphoreSlotFrees(t *testing.T) {
+	service := newService(config{webhookSecret: "webhook", csecSlipSecret: "slip"}, fakeStore{}, fakePipeline{})
+	service.slipReader = fakeSlipReader{results: []csecResult{{Subject: "Mathematics", Grade: "I", Confidence: 0.95}}}
+	for range maxConcurrentCSECSlips {
+		service.slipSlots <- struct{}{}
+	}
+
+	type response struct {
+		status int
+		body   string
+	}
+	responses := make(chan response, 1)
+	go func() {
+		request := httptest.NewRequest(http.MethodPost, "/public/csec-result-slip", bytes.NewReader([]byte{0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00}))
+		request.Header.Set("Content-Type", "image/jpeg")
+		request.Header.Set("X-CSEC-Slip-Secret", "slip")
+		recorder := httptest.NewRecorder()
+		service.routes().ServeHTTP(recorder, request)
+		responses <- response{status: recorder.Code, body: recorder.Body.String()}
+	}()
+
+	time.Sleep(25 * time.Millisecond)
+	<-service.slipSlots
+	select {
+	case result := <-responses:
+		if result.status != http.StatusOK || !strings.Contains(result.body, `"Mathematics"`) {
+			t.Fatalf("response = %d %q, want successful extraction", result.status, result.body)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("request did not proceed after a semaphore slot freed")
+	}
+}
+
+func TestCSECSlipRateLimitReturns429OverBurst(t *testing.T) {
+	service := newService(config{webhookSecret: "webhook", csecSlipSecret: "slip"}, fakeStore{}, fakePipeline{})
+	for range int(csecSlipBucketCapacity) {
+		request := httptest.NewRequest(http.MethodPost, "/public/csec-result-slip", strings.NewReader("image"))
+		request.Header.Set("Content-Type", "application/pdf")
+		request.Header.Set("X-CSEC-Slip-Secret", "slip")
+		recorder := httptest.NewRecorder()
+		service.routes().ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusUnsupportedMediaType {
+			t.Fatalf("request before burst limit returned %d, want 415", recorder.Code)
+		}
+	}
+
+	request := httptest.NewRequest(http.MethodPost, "/public/csec-result-slip", strings.NewReader("image"))
+	request.Header.Set("Content-Type", "application/pdf")
+	request.Header.Set("X-CSEC-Slip-Secret", "slip")
+	recorder := httptest.NewRecorder()
+	service.routes().ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429", recorder.Code)
+	}
+	if recorder.Header().Get("Retry-After") == "" {
+		t.Fatal("Retry-After header is missing")
+	}
+}
+
+func TestCSECSlipAuthPrecedesSaturatedLimiter(t *testing.T) {
+	service := newService(config{webhookSecret: "webhook", csecSlipSecret: "slip"}, fakeStore{}, fakePipeline{})
+	for range maxConcurrentCSECSlips {
+		service.slipSlots <- struct{}{}
+	}
+	for range int(csecSlipBucketCapacity) {
+		service.slipRateLimit.take(time.Now())
+	}
+
+	request := httptest.NewRequest(http.MethodPost, "/public/csec-result-slip", strings.NewReader("image"))
+	request.Header.Set("Content-Type", "image/jpeg")
+	request.Header.Set("X-CSEC-Slip-Secret", "wrong")
+	recorder := httptest.NewRecorder()
+	service.routes().ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", recorder.Code)
 	}
 }
 

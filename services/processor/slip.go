@@ -6,13 +6,22 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 )
 
-const maxCSECSlipBytes = 8 * 1024 * 1024
+const (
+	maxCSECSlipBytes       = 8 * 1024 * 1024
+	maxConcurrentCSECSlips = 4
+	csecSlipSemaphoreWait  = 5 * time.Second
+	csecSlipBucketCapacity = 5.0
+	csecSlipBucketRate     = 20.0 / 60.0
+)
 
 type csecResult struct {
 	Subject    string  `json:"subject"`
@@ -22,6 +31,58 @@ type csecResult struct {
 
 type csecSlipReader interface {
 	extractCSECResults(context.Context, []byte, string) ([]csecResult, error)
+}
+
+type csecSlipTokenBucket struct {
+	mu         sync.Mutex
+	tokens     float64
+	lastRefill time.Time
+}
+
+func newCSECSlipTokenBucket() csecSlipTokenBucket {
+	return csecSlipTokenBucket{tokens: csecSlipBucketCapacity, lastRefill: time.Now()}
+}
+
+func (bucket *csecSlipTokenBucket) take(now time.Time) (bool, time.Duration) {
+	bucket.mu.Lock()
+	defer bucket.mu.Unlock()
+
+	elapsed := now.Sub(bucket.lastRefill).Seconds()
+	bucket.tokens = min(csecSlipBucketCapacity, bucket.tokens+elapsed*csecSlipBucketRate)
+	bucket.lastRefill = now
+	if bucket.tokens >= 1 {
+		bucket.tokens--
+		return true, 0
+	}
+	return false, time.Duration((1 - bucket.tokens) / csecSlipBucketRate * float64(time.Second))
+}
+
+func (service *service) limitCSECSlipRequests(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if allowed, retryAfter := service.slipRateLimit.take(time.Now()); !allowed {
+			writeCSECSlipRateLimit(writer, retryAfter)
+			return
+		}
+
+		timer := time.NewTimer(service.slipSemaphoreWait)
+		defer timer.Stop()
+		select {
+		case service.slipSlots <- struct{}{}:
+			defer func() { <-service.slipSlots }()
+			next.ServeHTTP(writer, request)
+		case <-timer.C:
+			writeCSECSlipRateLimit(writer, service.slipSemaphoreWait)
+		}
+	})
+}
+
+func writeCSECSlipRateLimit(writer http.ResponseWriter, retryAfter time.Duration) {
+	seconds := int(math.Ceil(retryAfter.Seconds()))
+	if seconds < 1 {
+		seconds = 1
+	}
+	writer.Header().Set("Retry-After", strconv.Itoa(seconds))
+	http.Error(writer, "too many requests", http.StatusTooManyRequests)
 }
 
 func (service *service) csecResultSlip(writer http.ResponseWriter, request *http.Request) {
