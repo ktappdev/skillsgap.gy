@@ -10,6 +10,8 @@ The Go service in `services/processor` builds an `llmClient` with three endpoint
 
 It sends `POST {base URL}/chat/completions` with a model name, temperature `0`, a system extraction prompt, ordered page images as `data:` URLs, and a strict JSON-schema response format. It also uses the same client shape for optional CSEC/CXC result-slip reading.
 
+Both production request paths set `reasoning_effort` to `none`. The readiness probe and documented model smoke test use the same setting, so configured models must accept reasoning-disabled requests.
+
 The client is intentionally built around the OpenAI-compatible chat-completions shape. The environment boundary is provider-neutral, while deployment runbooks can still name a particular private host or model. The readiness check verifies model discovery, image input, and strict JSON-schema output before a live rehearsal.
 
 ## Resume extraction contract

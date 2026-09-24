@@ -58,7 +58,7 @@ curl --fail --silent --show-error \
   http://127.0.0.1:8000/v1/chat/completions \
   -H "Authorization: Bearer $VLLM_API_KEY" \
   -H "Content-Type: application/json" \
-  -d "$(jq -n --arg model "$VLLM_MODEL" --arg image 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' '{model:$model,temperature:0,max_tokens:32,messages:[{role:"user",content:[{type:"text",text:"This is a synthetic one-pixel image. Reply with JSON containing ok=true."},{type:"image_url",image_url:{url:$image}}]}],response_format:{type:"json_schema",json_schema:{name:"vision_gate",strict:true,schema:{type:"object",properties:{ok:{type:"boolean"}},required:["ok"],additionalProperties:false}}}}')" | jq '.choices[0].message.content'
+  -d "$(jq -n --arg model "$VLLM_MODEL" --arg image 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' '{model:$model,temperature:0,reasoning_effort:"none",max_tokens:32,messages:[{role:"user",content:[{type:"text",text:"This is a synthetic one-pixel image. Reply with JSON containing ok=true."},{type:"image_url",image_url:{url:$image}}]}],response_format:{type:"json_schema",json_schema:{name:"vision_gate",strict:true,schema:{type:"object",properties:{ok:{type:"boolean"}},required:["ok"],additionalProperties:false}}}}')" | jq '.choices[0].message.content'
 ```
 
 The response must be schema-valid and use `evidence_method: "vision"` for every qualification. Do not enable live CV processing if image input or strict structured output is unsupported.

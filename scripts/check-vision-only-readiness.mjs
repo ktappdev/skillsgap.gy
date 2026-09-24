@@ -39,6 +39,7 @@ const visionResponse = await fetch(endpoint("chat/completions"), {
   body: JSON.stringify({
     model,
     temperature: 0,
+    reasoning_effort: "none",
     max_tokens: 32,
     messages: [{
       role: "user",
