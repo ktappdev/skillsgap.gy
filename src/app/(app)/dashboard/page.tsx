@@ -145,7 +145,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           {/* The revision travels as a prop, not a React `key`: remounting here
               discarded the applicant's unpacked review selections and gains. */}
           <MatchRecalculationProvider revision={matchRevision}>
-            <SkillDescriptionForm status={descriptionStatus} errorMessage={progress.skillDescription?.error ?? null} />
+            <SkillDescriptionForm key={`${progress.skillDescription?.id ?? "no-description"}:${descriptionStatus ?? "none"}`} status={descriptionStatus} errorMessage={progress.skillDescription?.error ?? null} retryText={progress.skillDescription?.retryText ?? null} />
             {isResumeProcessing ? <section id="skills-review" className="scroll-mt-6 rounded-lg border border-border bg-surface-muted p-5" aria-labelledby="skills-processing-heading" role="status">
               <h2 id="skills-processing-heading" className="text-lg font-semibold text-foreground">Next, review your skills</h2>
               <p className="mt-2 text-sm leading-6 text-muted">When the CV scan finishes, we’ll list suggested skills here. Only skills you confirm affect your job matches.</p>

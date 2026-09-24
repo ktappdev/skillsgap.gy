@@ -12,11 +12,12 @@ const minLength = 10;
 type SkillDescriptionFormProps = {
   status: Tables<"processing_jobs">["status"] | null;
   errorMessage: string | null;
+  retryText?: string | null;
 };
 
-export function SkillDescriptionForm({ status, errorMessage }: SkillDescriptionFormProps) {
+export function SkillDescriptionForm({ status, errorMessage, retryText }: SkillDescriptionFormProps) {
   const router = useRouter();
-  const [text, setText] = useState("");
+  const [text, setText] = useState(retryText ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isProcessing = status === "queued" || status === "processing";

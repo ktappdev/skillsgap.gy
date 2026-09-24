@@ -10,7 +10,7 @@ export type ApplicantProgress = {
   latestResume: Tables<"resumes"> | null;
   processingStatus: Tables<"processing_jobs">["status"] | null;
   processingError: string | null;
-  skillDescription: { status: Tables<"processing_jobs">["status"]; error: string | null } | null;
+  skillDescription: { id: string; status: Tables<"processing_jobs">["status"]; error: string | null; retryText: string | null } | null;
   matchRecalculation: MatchRecalculationView | null;
   unmappedTerms: string[];
   experience: Tables<"applicant_experience">[];
@@ -46,7 +46,12 @@ export async function getApplicantProgress(client: Client, applicantId: string):
     ...getUnmappedTerms(descriptionResult.data?.result_summary),
   ])];
   const skillDescription = descriptionResult.data
-    ? { status: descriptionResult.data.status, error: descriptionResult.data.error_message }
+    ? {
+      id: descriptionResult.data.id,
+      status: descriptionResult.data.status,
+      error: getDescriptionErrorMessage(descriptionResult.data.error_message),
+      retryText: descriptionResult.data.status === "failed" ? descriptionResult.data.input_text : null,
+    }
     : null;
   const currentRoleIds = currentMatches.map((row) => row.job_role_id);
   const activeRoleResult = currentRoleIds.length > 0
@@ -147,6 +152,14 @@ export async function getApplicantProgress(client: Client, applicantId: string):
       }];
     }),
   };
+}
+
+function getDescriptionErrorMessage(error: string | null): string | null {
+  if (error === "We could not process this CV. Please try again."
+    || error === "Processing could not complete. Please upload your CV again.") {
+    return "We could not process your description. Your text is restored below so you can edit it or try again.";
+  }
+  return error;
 }
 
 function getUnmappedTerms(summary: Json | undefined): string[] {
