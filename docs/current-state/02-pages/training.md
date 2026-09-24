@@ -24,6 +24,8 @@ When the current viewer resolves to the applicant dashboard, a banner links `←
 
 Public, dynamic, verified-only content. No course enrollment is performed inside the app; the enrollment URL opens externally.
 
+The shared public header follows the current session: signed-out visitors see sign-in and signup actions; signed-in visitors see their account home and sign-out. Applicants opening a qualification-filtered training list from their pathway get a direct return link to that pathway.
+
 ## Current UX observations
 
 Course detail has two sharing surfaces and two possible onward links. It has good back behavior, but its “Check current intake” link is the only action that reaches a provider workflow.

@@ -1,22 +1,30 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { signOut } from "@/lib/auth/actions";
+import { getCurrentUserHome } from "@/lib/auth/queries";
 import { MobilePublicNav } from "@/components/shareable/mobile-public-nav";
 
 type PublicContentHeaderProps = {
   appearance?: "default" | "overlay";
   active?: "positions" | "training" | "faq";
-  accountHref?: string;
-  accountLabel?: string;
-  showGetStarted?: boolean;
+  accountHome?: string | null;
 };
 
 const idleLink = "min-h-11 inline-flex items-center text-foreground hover:text-accent";
 const activeLink = "min-h-11 inline-flex items-center text-accent";
 
-export function PublicContentHeader({ appearance = "default", active, accountHref = "/login", accountLabel = "Sign in", showGetStarted = true }: PublicContentHeaderProps) {
+export async function PublicContentHeader({ appearance = "default", active, accountHome }: PublicContentHeaderProps) {
   const isOverlay = appearance === "overlay";
+  const resolvedAccountHome = accountHome === undefined ? await getCurrentUserHome() : accountHome;
+  const isSignedIn = resolvedAccountHome !== null;
+  const accountHref = resolvedAccountHome ?? "/login";
+  const accountLabel = resolvedAccountHome === "/dashboard" ? "My pathway" : isSignedIn ? "My account" : "Sign in";
   const linkClass = isOverlay ? "min-h-11 inline-flex items-center text-white hover:underline underline-offset-4" : idleLink;
+  const signOutClass = `${linkClass} underline underline-offset-4`;
+  const mobileSignOutClass = isOverlay
+    ? "flex min-h-11 w-full items-center justify-start rounded-md px-3 text-left text-white underline underline-offset-4 hover:bg-white/10"
+    : "flex min-h-11 w-full items-center justify-start rounded-md px-3 text-left text-foreground underline underline-offset-4 hover:bg-surface-muted";
 
   return (
     <header className="flex items-center justify-between gap-6">
@@ -56,9 +64,26 @@ export function PublicContentHeader({ appearance = "default", active, accountHre
           </Link>
         </nav>
         <Link href={accountHref} className={`${linkClass} underline underline-offset-4`}>{accountLabel}</Link>
-        {showGetStarted ? <Link href="/signup" className={`inline-flex min-h-11 items-center justify-center rounded-md px-4 text-sm font-semibold transition-colors ${isOverlay ? "bg-white text-foreground hover:bg-surface-muted" : "bg-accent text-white hover:bg-accent-strong"}`}>Get started</Link> : null}
+        {isSignedIn ? (
+          <form action={signOut}>
+            <button type="submit" className={signOutClass}>Sign out</button>
+          </form>
+        ) : <Link href="/signup" className={`inline-flex min-h-11 items-center justify-center rounded-md px-4 text-sm font-semibold transition-colors ${isOverlay ? "bg-white text-foreground hover:bg-surface-muted" : "bg-accent text-white hover:bg-accent-strong"}`}>Get started</Link>}
       </div>
-      <MobilePublicNav appearance={appearance} active={active} accountHref={accountHref} accountLabel={accountLabel} showGetStarted={showGetStarted} />
+      <MobilePublicNav
+        appearance={appearance}
+        active={active}
+        accountHref={accountHref}
+        accountLabel={accountLabel}
+        showGetStarted={!isSignedIn}
+        signOutControl={isSignedIn ? (
+          <form action={signOut} className="w-full">
+            <button type="submit" className={mobileSignOutClass}>
+              Sign out
+            </button>
+          </form>
+        ) : null}
+      />
     </header>
   );
 }

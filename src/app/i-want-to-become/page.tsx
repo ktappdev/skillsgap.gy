@@ -23,20 +23,17 @@ export default async function IWantToBecomePage({ searchParams }: IWantToBecomeP
   const { data } = await supabase.auth.getUser();
   const initialCareerId = typeof params.pathway === "string" ? params.pathway : undefined;
   let viewer: PathwaySaveViewer = "anonymous";
-  let accountHref = "/login";
-  let accountLabel = "Sign in";
+  let accountHome: string | null = null;
   if (data.user) {
-    const accountHome = await resolveUserHome(supabase, data.user.id);
+    accountHome = await resolveUserHome(supabase, data.user.id);
     viewer = accountHome === "/dashboard" ? "applicant" : "other";
-    accountHref = accountHome;
-    accountLabel = "My account";
   }
   const isSavingPathway = params.save === "pathway" || (Array.isArray(params.save) && params.save.includes("pathway"));
 
   return (
     <main id="main-content" className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        <PublicContentHeader accountHref={accountHref} accountLabel={accountLabel} showGetStarted={!data.user} />
+        <PublicContentHeader accountHome={accountHome} />
 
         <section className="mt-8 border-b border-border py-10 sm:py-12" aria-labelledby="page-title">
           <div className="max-w-3xl">

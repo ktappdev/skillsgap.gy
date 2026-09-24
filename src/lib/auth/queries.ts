@@ -34,6 +34,14 @@ export async function resolveUserHome(supabase: SupabaseClient<Database>, userId
   );
 }
 
+export async function getCurrentUserHome() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) return null;
+
+  return resolveUserHome(supabase, data.user.id);
+}
+
 export type ProviderSignupState =
   | { kind: "signed-out" }
   | { kind: "incomplete" }

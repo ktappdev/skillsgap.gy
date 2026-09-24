@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 type MobilePublicNavProps = {
@@ -9,6 +10,7 @@ type MobilePublicNavProps = {
   accountHref: string;
   accountLabel: string;
   showGetStarted: boolean;
+  signOutControl?: ReactNode;
 };
 
 const navItems: Array<{ href: string; label: string; active?: "positions" | "training" | "faq" }> = [
@@ -18,7 +20,7 @@ const navItems: Array<{ href: string; label: string; active?: "positions" | "tra
   { href: "/faq", label: "FAQ", active: "faq" },
 ] as const;
 
-export function MobilePublicNav({ appearance, active, accountHref, accountLabel, showGetStarted }: MobilePublicNavProps) {
+export function MobilePublicNav({ appearance, active, accountHref, accountLabel, showGetStarted, signOutControl }: MobilePublicNavProps) {
   const [open, setOpen] = useState(false);
   const isOverlay = appearance === "overlay";
 
@@ -76,6 +78,7 @@ export function MobilePublicNav({ appearance, active, accountHref, accountLabel,
             <Link href={accountHref} className={`${linkClass} underline underline-offset-4`} onClick={() => setOpen(false)}>
               {accountLabel}
             </Link>
+            {signOutControl}
             {showGetStarted ? (
               <Link
                 href="/signup"

@@ -8,10 +8,9 @@ import { ShareButton } from "@/components/shareable/share-button";
 import { TrainingProvidersLink } from "@/components/shareable/training-providers-link";
 import { buildCourseShareText } from "@/lib/share/messages";
 import { getPublicCourse } from "@/lib/share/public-content";
-import { resolveUserHome } from "@/lib/auth/queries";
+import { getCurrentUserHome } from "@/lib/auth/queries";
 import { env } from "@/lib/env";
 import { formatTrainingDate, formatTrainingFee, getDeliveryModeLabel, getProviderTypeLabel } from "@/lib/training";
-import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +47,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const course = await getPublicCourse(programId);
   if (!course) notFound();
 
-  const supabase = await createClient();
-  const { data: userResult } = await supabase.auth.getUser();
-  const accountHome = userResult.user ? await resolveUserHome(supabase, userResult.user.id) : null;
+  const accountHome = await getCurrentUserHome();
   const isApplicant = accountHome === "/dashboard";
 
   const courseUrl = `/training/${course.id}`;
@@ -74,7 +71,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
   return (
     <main id="main-content" className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        <PublicContentHeader active="training" />
+        <PublicContentHeader active="training" accountHome={accountHome} />
 
         {isApplicant ? (
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border border-accent/30 bg-teal-50/40 px-4 py-3 text-sm">

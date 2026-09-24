@@ -5,6 +5,7 @@ import { CourseDirectory } from "@/components/shareable/course-directory";
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
 import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 import { TrainingProviderInquiry } from "@/components/shareable/training-provider-inquiry";
+import { getCurrentUserHome } from "@/lib/auth/queries";
 import { getPublicCourses, getPublicTrainingProviders } from "@/lib/share/public-content";
 import { normalizeQualificationName } from "@/lib/training";
 
@@ -22,7 +23,7 @@ type TrainingPageProps = {
 export default async function TrainingPage({ searchParams }: TrainingPageProps) {
   const { qualification: rawQualification } = await searchParams;
   const qualification = typeof rawQualification === "string" ? rawQualification.trim().slice(0, 160) : "";
-  const allCourses = await getPublicCourses();
+  const [allCourses, accountHome] = await Promise.all([getPublicCourses(), getCurrentUserHome()]);
   const courses = qualification
     ? allCourses.filter((course) => course.outcomes.some((outcome) => normalizeQualificationName(outcome) === normalizeQualificationName(qualification)))
     : allCourses;
@@ -31,7 +32,16 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   return (
     <main id="main-content" className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        <PublicContentHeader active="training" />
+        <PublicContentHeader active="training" accountHome={accountHome} />
+
+        {qualification && accountHome === "/dashboard" ? (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border border-accent/30 bg-teal-50/40 px-4 py-3 text-sm">
+            <p className="text-muted">You came here from your pathway to explore training for {qualification}.</p>
+            <Link href="/dashboard" className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-4 hover:underline">
+              ← Back to my pathway
+            </Link>
+          </div>
+        ) : null}
 
         <section className="mt-6 max-w-3xl" aria-labelledby="training-title">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Training</p>
