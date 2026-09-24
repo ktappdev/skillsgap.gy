@@ -24,8 +24,8 @@ The worker:
 4. Loads a fresh active taxonomy snapshot.
 5. Sends the ordered images plus instructions; it does not send native PDF text or OCR text on the active path.
 6. Accepts up to 50 findings, employment rows, and unmapped terms within bounded text/numeric ranges, plus a structured contact object.
-7. Requires evidence-backed findings with valid taxonomy slugs, page numbers, `vision` method, and confidence. Contact values are limited to a plausible name, email address, and phone number; uncertain values are dropped.
-8. Persists the complete extraction through a database RPC that fills only blank profile contact fields. The sign-in email remains separate, and the CV contact email is returned to employers only through the role-consented profile RPC.
+7. Requires evidence-backed findings with valid taxonomy slugs, page numbers, `vision` method, and confidence. Contact suggestions include a value, source excerpt, page, and confidence; uncertain values are dropped.
+8. Persists contact suggestions privately without changing the profile. The applicant must apply a suggestion before profile values change. The sign-in email remains separate, and a CV contact email is returned to employers only through the role-consented profile RPC.
 
 ## Worker behavior
 

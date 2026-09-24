@@ -30,9 +30,16 @@ type extraction struct {
 }
 
 type resumeContactDetails struct {
-	FullName    string `json:"full_name"`
-	Email       string `json:"email"`
-	PhoneNumber string `json:"phone_number"`
+	FullName    resumeContactField `json:"full_name"`
+	Email       resumeContactField `json:"email"`
+	PhoneNumber resumeContactField `json:"phone_number"`
+}
+
+type resumeContactField struct {
+	Value        string  `json:"value"`
+	Evidence     string  `json:"evidence"`
+	EvidencePage int     `json:"evidence_page"`
+	Confidence   float64 `json:"confidence"`
 }
 
 type extractedQualification struct {

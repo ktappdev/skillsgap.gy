@@ -19,7 +19,7 @@ Source: `src/app/(app)/dashboard/page.tsx:25`
 The detailed workspace is the core applicant page:
 
 1. Header with greeting and automatic-update state.
-2. Contact details form with name, CV contact email, and phone; sign-in email is shown separately and remains private.
+2. Contact details area with CV suggestions and source-page evidence for review; the applicant can apply or dismiss a suggestion. The editable name, separate CV contact email, and phone fields remain private until role-specific sharing; sign-in email is shown separately and remains private.
 3. CV upload or collapsed “Manage your file” section.
 4. Skills review: pending findings, confirmed skills, corrections, years, unmapped private terms, and add/remove controls.
 5. Match results: top three approved active roles, score, strengths, gaps, and pathway links.

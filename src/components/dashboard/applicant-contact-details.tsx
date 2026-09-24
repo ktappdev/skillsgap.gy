@@ -2,7 +2,9 @@
 
 import { useActionState } from "react";
 
+import { CvContactSuggestion } from "@/components/dashboard/cv-contact-suggestion";
 import { updateProfile, type ProfileActionState } from "@/lib/profile/actions";
+import type { Tables } from "@/lib/supabase/database.types";
 
 const initialState: ProfileActionState = {};
 
@@ -11,10 +13,11 @@ type ApplicantContactDetailsProps = {
   contactEmail: string;
   fullName: string;
   phoneNumber: string;
+  suggestion?: Tables<"applicant_contact_suggestions"> | null;
   initiallyOpen?: boolean;
 };
 
-export function ApplicantContactDetails({ email, contactEmail, fullName, phoneNumber, initiallyOpen = false }: ApplicantContactDetailsProps) {
+export function ApplicantContactDetails({ email, contactEmail, fullName, phoneNumber, suggestion = null, initiallyOpen = false }: ApplicantContactDetailsProps) {
   const [state, formAction, isPending] = useActionState(updateProfile, initialState);
   const isReadyToShare = Boolean(fullName.trim() && phoneNumber.trim());
 
@@ -28,9 +31,11 @@ export function ApplicantContactDetails({ email, contactEmail, fullName, phoneNu
       </summary>
       <div className="mt-3 border-t border-border pt-4">
         <p className="max-w-2xl text-sm leading-6 text-muted">
-          We fill empty contact fields from your CV; check them before sharing. They stay private unless you share your profile with an approved company for one role. That company can then open your CV. Your sign-in email stays private.
+          {suggestion ? "CV details are suggestions until you choose to use them. " : "Add your contact details here, or review suggestions after your CV is processed. "}They stay private unless you share your profile with an approved company for one role. That company can then open your CV. Your sign-in email stays private.
         </p>
         {email ? <p className="mt-3 text-sm text-muted"><span className="font-semibold text-foreground">Sign-in email:</span> {email} · Not shared with employers.</p> : null}
+
+        {suggestion ? <div className="mt-4"><CvContactSuggestion suggestion={suggestion} /></div> : null}
 
         <form key={JSON.stringify([fullName, contactEmail, phoneNumber])} action={formAction} className="mt-4 grid gap-4 sm:grid-cols-2">
           <label htmlFor="profile-full-name" className="block text-sm font-semibold text-foreground">
@@ -57,7 +62,7 @@ export function ApplicantContactDetails({ email, contactEmail, fullName, phoneNu
               aria-describedby="profile-contact-email-help"
               className="mt-1 min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm font-normal outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             />
-            <span id="profile-contact-email-help" className="mt-1 block text-xs font-normal leading-5 text-muted">From your CV if found. Shared only when you share your profile for one role. Your sign-in email stays private.</span>
+            <span id="profile-contact-email-help" className="mt-1 block text-xs font-normal leading-5 text-muted">Use a separate address for employers. Shared only when you share your profile for one role; your sign-in email stays private.</span>
           </label>
           <label htmlFor="profile-phone-number" className="block text-sm font-semibold text-foreground">
             Phone number <span className="font-normal text-muted">(optional)</span>

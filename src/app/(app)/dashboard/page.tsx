@@ -29,6 +29,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     searchParams,
     supabase.from("profiles").select("full_name,contact_email,phone_number").eq("id", user.id).maybeSingle(),
   ]);
+  const contactSuggestionResult = progress.latestResume?.status === "processed"
+    ? await supabase.from("applicant_contact_suggestions").select("*").eq("resume_id", progress.latestResume.id).eq("status", "pending").maybeSingle()
+    : null;
+  const contactSuggestion = contactSuggestionResult?.data ?? null;
   const profile = profileResult.data;
   const requestedRole = typeof params.roleId === "string" ? await getPublicPosition(params.roleId) : null;
   const usingDemoMatches = shouldUseDemoMatches({
@@ -114,7 +118,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <PathwaySteps steps={pathwaySteps} />
       </div>
 
-      {profile ? <div className="mt-4"><ApplicantContactDetails email={user.email ?? null} contactEmail={profile.contact_email ?? ""} fullName={profile.full_name ?? ""} phoneNumber={profile.phone_number ?? ""} initiallyOpen={params.editContact === "1"} /></div> : <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger" role="alert">We couldn’t load your contact details. Refresh this page and try again.</p>}
+      {profile ? <div className="mt-4"><ApplicantContactDetails email={user.email ?? null} contactEmail={profile.contact_email ?? ""} fullName={profile.full_name ?? ""} phoneNumber={profile.phone_number ?? ""} suggestion={contactSuggestion} initiallyOpen={params.editContact === "1" || Boolean(contactSuggestion)} /></div> : <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger" role="alert">We couldn’t load your contact details. Refresh this page and try again.</p>}
 
       {requestedRole ? <RoleContextBanner role={requestedRole} /> : null}
 

@@ -8,13 +8,14 @@ Primary sources: `src/lib/supabase/database.types.ts`, `supabase/migrations/`, `
 | --- | --- |
 | Identity | `profiles`, `platform_admins`, `company_members`, `companies`, `company_recruiter_invitations` |
 | Taxonomy/guidance | `qualifications`, `qualification_aliases`, `occupations`, `occupation_aliases`, `local_content_categories`, `occupation_local_content_categories`, `career_preparation_subjects`, `occupation_pathway_actions` |
-| Applicant | `applicant_pathway_plans`, `resumes`, `processing_jobs`, `applicant_qualifications`, `resume_extraction_findings`, `resume_extraction_finding_candidates`, `applicant_experience` |
+| Applicant | `applicant_pathway_plans`, `resumes`, `processing_jobs`, `applicant_qualifications`, `resume_extraction_findings`, `resume_extraction_finding_candidates`, `applicant_experience`, `applicant_contact_suggestions` |
 | Marketplace | `job_roles`, `job_requirements`, `training_providers`, `training_programs`, `training_program_outcomes` |
 | Matching/recruiting | `job_matches`, `match_gaps`, `job_applications`, `candidate_consents`, `job_fairs`, `interview_slots`, `interview_invitations`, `interview_bookings` |
 
 ## Important RPCs
 
 - `claim_processing_job`, `apply_resume_extraction_with_contact_details`, `fail_processing_job`, and `apply_match_recalculation` coordinate durable processing.
+- `apply_contact_suggestion` and `dismiss_contact_suggestion` let an applicant review CV-derived contact details without giving the processor direct profile-write behavior.
 - `get_active_extraction_taxonomy` provides active qualifications/aliases to the processor.
 - `confirm_extraction_finding` and `reject_extraction_finding` keep applicant confirmation explicit.
 - `clear_applicant_pathway` resets applicant-derived records.

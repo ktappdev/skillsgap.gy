@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getDatabaseErrorMessage } from "@/lib/errors";
 import { requireApplicant } from "@/lib/auth/queries";
-import { getTrimmedFormString } from "@/lib/validation";
+import { getTrimmedFormString, isUuid } from "@/lib/validation";
 
 export type ProfileActionState = {
   error?: string;
@@ -62,4 +62,35 @@ export async function updateProfile(
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/overview");
   return { message: "Profile saved." };
+}
+
+export async function applyContactSuggestion(
+  _previousState: ProfileActionState,
+  formData: FormData,
+): Promise<ProfileActionState> {
+  const { supabase } = await requireApplicant();
+  const suggestionId = getTrimmedFormString(formData, "suggestion_id");
+  if (!isUuid(suggestionId)) return { error: "We could not find that CV suggestion. Refresh and try again." };
+
+  const { error } = await supabase.rpc("apply_contact_suggestion", { target_suggestion_id: suggestionId });
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not use those CV details. Refresh and try again.") };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/overview");
+  return { message: "CV contact details saved." };
+}
+
+export async function dismissContactSuggestion(
+  _previousState: ProfileActionState,
+  formData: FormData,
+): Promise<ProfileActionState> {
+  const { supabase } = await requireApplicant();
+  const suggestionId = getTrimmedFormString(formData, "suggestion_id");
+  if (!isUuid(suggestionId)) return { error: "We could not find that CV suggestion. Refresh and try again." };
+
+  const { error } = await supabase.rpc("dismiss_contact_suggestion", { target_suggestion_id: suggestionId });
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not dismiss those CV details. Refresh and try again.") };
+
+  revalidatePath("/dashboard");
+  return { message: "CV contact suggestion dismissed." };
 }

@@ -28,6 +28,7 @@ export type ReviewStatus = "pending_review" | "confirmed" | "rejected";
 export type ExtractionMethod = "native" | "ocr" | "vision";
 export type ExtractionFindingStatus = "pending" | "confirmed" | "rejected" | "superseded";
 export type FindingSelectionSource = "model_option" | "applicant_correction";
+export type ContactSuggestionStatus = "pending" | "applied" | "dismissed" | "superseded";
 export type MatchStatus = "current" | "stale";
 export type GapStatus = "unresolved" | "plan_started" | "completed";
 export type ApplicationStatus = "applied" | "withdrawn";
@@ -79,6 +80,7 @@ type ApplicantQualification = Timestamps & { applicant_id: string; confidence: n
 type ResumeExtractionFinding = Timestamps & { applicant_id: string; confidence: number; created_at: string; evidence: string; evidence_method: ExtractionMethod; evidence_page: number; id: string; original_term: string; resume_id: string; selected_qualification_id: string | null; selection_source: FindingSelectionSource | null; status: ExtractionFindingStatus; updated_at: string; years_experience: number | null };
 type ResumeExtractionFindingCandidate = { created_at: string; finding_id: string; qualification_id: string; rank: number };
 type ApplicantExperience = Timestamps & { applicant_id: string; confidence: number | null; created_at: string; employer: string | null; evidence: string | null; id: string; resume_id: string | null; title: string; updated_at: string; years: number };
+type ApplicantContactSuggestion = Timestamps & { applicant_id: string; contact_email: string | null; contact_email_confidence: number | null; contact_email_evidence: string | null; contact_email_evidence_page: number | null; created_at: string; full_name: string | null; full_name_confidence: number | null; full_name_evidence: string | null; full_name_evidence_page: number | null; id: string; phone_number: string | null; phone_number_confidence: number | null; phone_number_evidence: string | null; phone_number_evidence_page: number | null; resume_id: string; status: ContactSuggestionStatus; updated_at: string };
 type JobMatch = Timestamps & { applicant_id: string; calculated_at: string; id: string; interview_eligible: boolean; job_role_id: string; mandatory_requirements_met: boolean; score: number; status: MatchStatus };
 type MatchGap = Timestamps & { id: string; job_requirement_id: string; match_id: string; status: GapStatus };
 type JobApplication = Timestamps & { applicant_id: string; company_id: string; id: string; job_role_id: string; status: ApplicationStatus };
@@ -119,6 +121,7 @@ export type Database = {
       resume_extraction_findings: Table<ResumeExtractionFinding, InsertOf<ResumeExtractionFinding> & Pick<ResumeExtractionFinding, "applicant_id" | "resume_id" | "original_term" | "evidence" | "evidence_page" | "evidence_method" | "confidence">, Partial<ResumeExtractionFinding>>;
       resume_extraction_finding_candidates: Table<ResumeExtractionFindingCandidate, InsertOf<ResumeExtractionFindingCandidate> & Pick<ResumeExtractionFindingCandidate, "finding_id" | "qualification_id" | "rank">, Partial<ResumeExtractionFindingCandidate>>;
       applicant_experience: Table<ApplicantExperience, InsertOf<ApplicantExperience> & Pick<ApplicantExperience, "applicant_id" | "title">, Partial<ApplicantExperience>>;
+      applicant_contact_suggestions: Table<ApplicantContactSuggestion, InsertOf<ApplicantContactSuggestion> & Pick<ApplicantContactSuggestion, "applicant_id" | "resume_id">, Partial<ApplicantContactSuggestion>>;
       job_matches: Table<JobMatch, InsertOf<JobMatch> & Pick<JobMatch, "applicant_id" | "job_role_id" | "score" | "mandatory_requirements_met" | "interview_eligible">, Partial<JobMatch>>;
       match_gaps: Table<MatchGap, InsertOf<MatchGap> & Pick<MatchGap, "match_id" | "job_requirement_id">, Partial<MatchGap>>;
       job_applications: Table<JobApplication, InsertOf<JobApplication> & Pick<JobApplication, "applicant_id" | "job_role_id" | "company_id">, Partial<JobApplication>>;
@@ -138,6 +141,8 @@ export type Database = {
       claim_processing_job: { Args: { processing_job_id: string }; Returns: ProcessingJob[] };
       apply_resume_extraction: { Args: { job_id: string; extraction: Json }; Returns: undefined };
       apply_resume_extraction_with_contact_details: { Args: { job_id: string; extraction: Json }; Returns: undefined };
+      apply_contact_suggestion: { Args: { target_suggestion_id: string }; Returns: undefined };
+      dismiss_contact_suggestion: { Args: { target_suggestion_id: string }; Returns: undefined };
       apply_match_recalculation: { Args: { job_id: string }; Returns: undefined };
       get_consented_resume_path: { Args: { target_job_role_id: string; target_resume_id: string }; Returns: string };
       get_consented_candidate_resume_path: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: string };
