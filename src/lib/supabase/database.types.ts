@@ -41,6 +41,7 @@ export type TrainingProviderType = "government_public" | "university_college" | 
 export type TrainingProgramDeliveryMode = "in_person" | "online" | "hybrid";
 export type QualificationSubmissionStatus = "pending" | "approved" | "rejected";
 export type ProviderVerificationReviewStatus = "pending" | "approved" | "needs_changes";
+export type QualificationReviewDecision = "existing" | "existing_with_alias" | "new" | "decline";
 
 type Profile = {
   account_type: AccountType;
@@ -59,8 +60,9 @@ type Company = Timestamps & { contact_phone: string | null; description: string 
 type CompanyMember = { company_id: string; created_at: string; invited_email: string | null; role: CompanyMemberRole; user_id: string };
 type CompanyRecruiterInvitation = Timestamps & { accepted_at: string | null; accepted_by: string | null; company_id: string; email: string; expires_at: string; id: string; invited_by: string; revoked_at: string | null; token_hash: string };
 type PlatformAdmin = { created_at: string; user_id: string };
-type Qualification = Timestamps & { category: RequirementKind; description: string | null; id: string; is_active: boolean; name: string; slug: string; submitted_by_provider_id: string | null; submission_status: QualificationSubmissionStatus | null };
+type Qualification = Timestamps & { category: RequirementKind; description: string | null; id: string; is_active: boolean; name: string; qualification_review_decision: QualificationReviewDecision | null; qualification_review_reason: string | null; qualification_reviewed_at: string | null; qualification_reviewed_by: string | null; resolved_qualification_id: string | null; slug: string; submitted_by_provider_id: string | null; submission_status: QualificationSubmissionStatus | null };
 type QualificationAlias = { alias: string; created_at: string; id: string; normalized_alias: string; qualification_id: string };
+type QualificationRequest = Timestamps & { category: RequirementKind; company_id: string; explanation: string; id: string; job_role_id: string; mandatory: boolean; minimum_years: number | null; normalized_name: string; proposed_name: string; resolved_qualification_id: string | null; review_decision: QualificationReviewDecision | null; review_reason: string | null; reviewed_at: string | null; reviewed_by: string | null; status: "pending" | "approved" | "declined" | "withdrawn"; submitted_by: string | null; weight: number; withdrawn_at: string | null; withdrawn_by: string | null };
 type Occupation = Timestamps & { id: string; industry_transfer_summary: string; is_active: boolean; isco08_code: string; isco08_level: "unit" | "minor" | "sub_major" | "major"; role_family: string; slug: string; source_locator: string | null; source_summary: string; source_url: string; title: string; value_chain_stages: string[] };
 type OccupationAlias = { alias: string; created_at: string; id: string; normalized_alias: string; occupation_id: string; source_locator: string | null; source_url: string };
 type LocalContentCategory = Timestamps & { id: string; is_active: boolean; name: string; slug: string; source_locator: string; source_url: string; target_percentage: number | null };
@@ -102,6 +104,7 @@ export type Database = {
       company_recruiter_invitations: Table<CompanyRecruiterInvitation, InsertOf<CompanyRecruiterInvitation> & Pick<CompanyRecruiterInvitation, "company_id" | "email" | "token_hash" | "invited_by" | "expires_at">, Partial<CompanyRecruiterInvitation>>;
       qualifications: Table<Qualification, InsertOf<Qualification> & Pick<Qualification, "name" | "slug" | "category">, Partial<Qualification>>;
       qualification_aliases: Table<QualificationAlias, InsertOf<QualificationAlias> & Pick<QualificationAlias, "qualification_id" | "alias">, Partial<QualificationAlias>>;
+      qualification_requests: Table<QualificationRequest, InsertOf<QualificationRequest> & Pick<QualificationRequest, "company_id" | "job_role_id" | "proposed_name" | "category" | "explanation">, Partial<QualificationRequest>>;
       occupations: Table<Occupation, InsertOf<Occupation> & Pick<Occupation, "slug" | "title" | "isco08_code" | "isco08_level" | "role_family" | "source_summary" | "source_url">, Partial<Occupation>>;
       occupation_aliases: Table<OccupationAlias, InsertOf<OccupationAlias> & Pick<OccupationAlias, "occupation_id" | "alias" | "source_url">, Partial<OccupationAlias>>;
       local_content_categories: Table<LocalContentCategory, InsertOf<LocalContentCategory> & Pick<LocalContentCategory, "slug" | "name" | "source_url" | "source_locator">, Partial<LocalContentCategory>>;
@@ -158,6 +161,14 @@ export type Database = {
       };
       get_public_occupations: { Args: Record<string, never>; Returns: Array<{ id: string; slug: string; title: string; isco08_code: string; isco08_level: "unit" | "minor" | "sub_major" | "major"; role_family: string; value_chain_stages: string[]; source_summary: string; source_url: string; source_locator: string | null; local_content_categories: string[]; example_titles: string[]; industry_transfer_summary: string }> };
       get_public_occupation_pathway: { Args: { occupation_slug: string }; Returns: Array<{ id: string; slug: string; title: string; isco08_code: string; isco08_level: "unit" | "minor" | "sub_major" | "major"; role_family: string; value_chain_stages: string[]; source_summary: string; source_url: string; source_locator: string | null; local_content_categories: string[]; example_titles: string[]; industry_transfer_summary: string; preparation_subjects: Json; actions: Json }> };
+      search_active_qualifications: { Args: { p_search: string; p_excluded_qualification_ids?: string[]; p_page?: number }; Returns: Array<{ id: string; name: string; category: RequirementKind; description: string | null; slug: string; matching_aliases: string[]; total_count: number }> };
+      save_qualification_request: { Args: { target_request_id: string | null; target_role_id: string; proposed_name: string; target_category: RequirementKind; explanation: string; requirement_weight: number; target_minimum_years: number | null; target_mandatory: boolean }; Returns: string };
+      withdraw_qualification_request: { Args: { target_request_id: string }; Returns: undefined };
+      review_qualification_submission: { Args: { submission_source: string; submission_id: string; decision: string; target_qualification_id: string | null; new_name: string | null; new_slug: string | null; new_category: RequirementKind | null; new_description: string | null; target_alias: string | null; requirement_category: RequirementKind | null; requirement_weight: number | null; requirement_minimum_years: number | null; requirement_mandatory: boolean | null; reviewer_reason: string | null; requirement_settings_confirmed: boolean }; Returns: Json };
+      create_admin_qualification: { Args: { target_name: string; target_slug: string; target_category: RequirementKind; target_description: string }; Returns: string };
+      update_admin_qualification: { Args: { target_qualification_id: string; target_name: string; target_category: RequirementKind; target_description: string; target_is_active: boolean }; Returns: string };
+      create_admin_qualification_alias: { Args: { target_qualification_id: string; target_alias: string }; Returns: string };
+      get_qualifications_without_verified_training: { Args: Record<string, never>; Returns: string[] };
     };
     Enums: {
       account_type: AccountType;

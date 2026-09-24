@@ -10,13 +10,15 @@ import type { CareerActionType } from "@/lib/i-want-to-become/guidance";
 import { DEFAULT_ELIGIBILITY_THRESHOLD } from "@/lib/skillsgap/constants";
 import { validateJobRequirementInput, validateJobRoleDetails, type JobRoleDetailsInput } from "@/lib/skillsgap/job-role";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Tables } from "@/lib/supabase/database.types";
+import type { QualificationReviewDecision, RequirementKind, Tables } from "@/lib/supabase/database.types";
 
 const maxResumeBytes = 15 * 1024 * 1024;
 
 export type QueueResumeResult = { error?: string; resumeId?: string };
 export type ClearApplicantPathwayResult = { error?: string };
 export type MatchScoreGain = { roleId: string; roleTitle: string; points: number };
+export type QualificationSearchEntry = Pick<Tables<"qualifications">, "id" | "name" | "category" | "description" | "slug"> & { matching_aliases: string[]; total_count: number };
+export type QualificationRequestInput = { requestId: string | null; roleId: string; name: string; category: RequirementKind; explanation: string; weight: number; minimumYears: number | null; mandatory: boolean };
 
 export async function clearApplicantPathway(): Promise<ClearApplicantPathwayResult> {
   const { user } = await requireApplicant();
@@ -481,9 +483,135 @@ export async function setJobRoleStatus(roleId: string, status: "draft" | "active
   }
   const values = status === "active" ? { status, published_at: new Date().toISOString() } : { status };
   const { error } = await supabase.from("job_roles").update(values).eq("id", roleId).eq("company_id", companyId);
-  if (error) return { error: getDatabaseErrorMessage(error, "We could not update that role.") };
+  if (error) {
+    if (error.code === "23514" && error.message.includes("pending qualification request")) {
+      return { error: "Resolve or remove every pending qualification request before publishing this role." };
+    }
+    return { error: getDatabaseErrorMessage(error, "We could not update that role.") };
+  }
   revalidatePath("/company/jobs");
   return {};
+}
+
+export async function searchQualifications(search: string, page: number, excludedQualificationIds: string[]): Promise<{ error?: string; results: QualificationSearchEntry[]; totalCount: number }> {
+  const { supabase } = await requireApprovedCompanyMember();
+  const cleanSearch = search.trim();
+  if (cleanSearch.length < 2) return { results: [], totalCount: 0 };
+  if (!Number.isInteger(page) || page < 1 || page > 50000) return { error: "Choose a valid search page.", results: [], totalCount: 0 };
+  const { data, error } = await supabase.rpc("search_active_qualifications", {
+    p_search: cleanSearch,
+    p_excluded_qualification_ids: excludedQualificationIds,
+    p_page: page,
+  });
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not search the qualification catalogue."), results: [], totalCount: 0 };
+  return { results: data ?? [], totalCount: data?.[0]?.total_count ?? 0 };
+}
+
+export async function saveQualificationRequest(input: QualificationRequestInput): Promise<{ error?: string; request?: Tables<"qualification_requests"> }> {
+  const { supabase } = await requireApprovedCompanyMember();
+  const name = input.name.trim();
+  const explanation = input.explanation.trim();
+  const allowedCategories: RequirementKind[] = ["technical_skill", "certification", "compliance", "experience", "education"];
+  if (name.length < 2 || name.length > 160 || explanation.length < 10 || explanation.length > 2000 || !allowedCategories.includes(input.category)) {
+    return { error: "Add a qualification name, category, and explanation of at least 10 characters." };
+  }
+  const inputError = validateJobRequirementInput(input.weight, input.mandatory, input.minimumYears);
+  if (inputError) return { error: inputError };
+  const { data: requestId, error } = await supabase.rpc("save_qualification_request", {
+    target_request_id: input.requestId,
+    target_role_id: input.roleId,
+    proposed_name: name,
+    target_category: input.category,
+    explanation,
+    requirement_weight: input.weight,
+    target_minimum_years: input.minimumYears,
+    target_mandatory: input.mandatory,
+  });
+  if (error || !requestId) return { error: getDatabaseErrorMessage(error, "We could not save that qualification request.") };
+  const { data: request, error: readError } = await supabase.from("qualification_requests").select("*").eq("id", requestId).single();
+  if (readError || !request) return { error: getDatabaseErrorMessage(readError, "The request was saved, but we could not refresh its status.") };
+  revalidatePath("/company/jobs");
+  revalidatePath("/admin/qualifications");
+  return { request };
+}
+
+export async function withdrawQualificationRequest(requestId: string): Promise<{ error?: string }> {
+  const { supabase } = await requireApprovedCompanyMember();
+  if (!requestId) return { error: "Choose a qualification request to remove." };
+  const { error } = await supabase.rpc("withdraw_qualification_request", { target_request_id: requestId });
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not remove that qualification request.") };
+  revalidatePath("/company/jobs");
+  revalidatePath("/admin/qualifications");
+  return {};
+}
+
+export async function reviewQualificationSubmission(formData: FormData): Promise<{ error?: string; message?: string }> {
+  const { supabase } = await requirePlatformAdmin();
+  const source = getTrimmedFormString(formData, "source");
+  const submissionId = getTrimmedFormString(formData, "submissionId");
+  const decision = getTrimmedFormString(formData, "decision") as QualificationReviewDecision;
+  const name = getTrimmedFormString(formData, "name");
+  const suppliedSlug = getTrimmedFormString(formData, "slug");
+  const slug = suppliedSlug || slugifyQualification(name);
+  const category = getTrimmedFormString(formData, "category") as RequirementKind;
+  const description = getTrimmedFormString(formData, "description");
+  const alias = getTrimmedFormString(formData, "alias");
+  const reason = getTrimmedFormString(formData, "reason");
+  const targetQualificationId = getTrimmedFormString(formData, "targetQualificationId");
+  const requirementCategory = getTrimmedFormString(formData, "requirementCategory") as RequirementKind;
+  const weightText = getTrimmedFormString(formData, "weight");
+  const minimumYearsText = getTrimmedFormString(formData, "minimumYears");
+  const mandatoryText = getTrimmedFormString(formData, "mandatory");
+  const requirementSettingsConfirmed = getTrimmedFormString(formData, "requirementSettingsConfirmed") === "true";
+  const allowedCategories: RequirementKind[] = ["technical_skill", "certification", "compliance", "experience", "education"];
+  if ((source !== "employer" && source !== "provider") || !submissionId || !["existing", "existing_with_alias", "new", "decline"].includes(decision)) {
+    return { error: "Choose a valid qualification submission and review decision." };
+  }
+  if (decision !== "decline" && decision !== "new" && !targetQualificationId) return { error: "Choose the approved qualification to use." };
+  if (decision === "new" && (!allowedCategories.includes(category) || name.trim().length < 2 || description.trim().length < 10 || description.length > 500 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))) {
+    return { error: "A new qualification needs a name, valid slug, category, and description between 10 and 500 characters." };
+  }
+  if (decision === "decline" && reason.trim().length < 3) return { error: "Add a reason before declining this submission." };
+  const weight = Number(weightText);
+  const minimumYears = minimumYearsText === "" ? null : Number(minimumYearsText);
+  const mandatory = mandatoryText === "true";
+  if (source === "employer" && decision !== "decline") {
+    if (!allowedCategories.includes(requirementCategory) || !Number.isInteger(weight) || mandatoryText !== "true" && mandatoryText !== "false") {
+      return { error: "Choose final requirement settings before approving this employer request." };
+    }
+    const inputError = validateJobRequirementInput(weight, mandatory, minimumYears);
+    if (inputError) return { error: inputError };
+    if (!requirementSettingsConfirmed) return { error: "Confirm the final requirement settings before approving this employer request." };
+  }
+  const { error } = await supabase.rpc("review_qualification_submission", {
+    submission_source: source,
+    submission_id: submissionId,
+    decision,
+    target_qualification_id: targetQualificationId || null,
+    new_name: name || null,
+    new_slug: slug || null,
+    new_category: category || null,
+    new_description: description || null,
+    target_alias: alias || null,
+    requirement_category: source === "employer" && decision !== "decline" ? requirementCategory : null,
+    requirement_weight: source === "employer" && decision !== "decline" ? weight : null,
+    requirement_minimum_years: source === "employer" && decision !== "decline" ? minimumYears : null,
+    requirement_mandatory: source === "employer" && decision !== "decline" ? mandatory : null,
+    reviewer_reason: reason || null,
+    requirement_settings_confirmed: requirementSettingsConfirmed,
+  });
+  if (error) return { error: getDatabaseErrorMessage(error, "We could not review that qualification submission.") };
+  revalidatePath("/admin/qualifications");
+  revalidatePath("/company/jobs");
+  revalidatePath("/provider/programs");
+  revalidatePath("/training");
+  revalidatePath("/dashboard");
+  revalidatePath("/matches/[matchId]", "page");
+  return { message: decision === "decline" ? "Qualification submission declined." : "Qualification submission approved and linked." };
+}
+
+function slugifyQualification(name: string) {
+  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
 export async function addJobRequirement(
@@ -578,13 +706,23 @@ export async function openJobFair(fairId: string, status: "open" | "closed"): Pr
   return {};
 }
 
-export async function createQualification(name: string, slug: string, category: "technical_skill" | "certification" | "compliance" | "experience" | "education"): Promise<{ error?: string; qualification?: Tables<"qualifications"> }> {
+export async function createQualification(name: string, slug: string, category: RequirementKind, description: string): Promise<{ error?: string; qualification?: Tables<"qualifications"> }> {
   const { supabase } = await requirePlatformAdmin();
   const cleanName = name.trim();
   const cleanSlug = slug.trim().toLowerCase();
-  if (cleanName.length < 2 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(cleanSlug)) return { error: "Use a name and a lowercase slug such as hydraulic-maintenance." };
-  const { data, error } = await supabase.from("qualifications").insert({ name: cleanName, slug: cleanSlug, category, description: null, is_active: true }).select("*").single();
-  if (error) return { error: getDatabaseErrorMessage(error, "We could not create that qualification.") };
+  const cleanDescription = description.trim();
+  if (cleanName.length < 2 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(cleanSlug) || cleanDescription.length < 10 || cleanDescription.length > 500) {
+    return { error: "Add a name, lowercase slug, and description between 10 and 500 characters." };
+  }
+  const { data: qualificationId, error } = await supabase.rpc("create_admin_qualification", {
+    target_name: cleanName,
+    target_slug: cleanSlug,
+    target_category: category,
+    target_description: cleanDescription,
+  });
+  if (error || !qualificationId) return { error: getDatabaseErrorMessage(error, "We could not create that qualification.") };
+  const { data, error: readError } = await supabase.from("qualifications").select("*").eq("id", qualificationId).single();
+  if (readError || !data) return { error: getDatabaseErrorMessage(readError, "The qualification was created, but we could not refresh it.") };
   revalidatePath("/admin/qualifications");
   return { qualification: data };
 }
@@ -603,13 +741,16 @@ export async function updateQualification(
   if (!qualificationId || cleanName.length < 2 || cleanName.length > 160 || !allowedCategories.includes(category) || cleanDescription.length > 500) {
     return { error: "Use a valid qualification name, category, and description." };
   }
-  const { data, error } = await supabase
-    .from("qualifications")
-    .update({ name: cleanName, category, description: cleanDescription || null, is_active: isActive })
-    .eq("id", qualificationId)
-    .select("*")
-    .single();
-  if (error) return { error: getDatabaseErrorMessage(error, "We could not update that qualification.") };
+  const { data: updatedId, error } = await supabase.rpc("update_admin_qualification", {
+    target_qualification_id: qualificationId,
+    target_name: cleanName,
+    target_category: category,
+    target_description: cleanDescription,
+    target_is_active: isActive,
+  });
+  if (error || !updatedId) return { error: getDatabaseErrorMessage(error, "We could not update that qualification.") };
+  const { data, error: readError } = await supabase.from("qualifications").select("*").eq("id", updatedId).single();
+  if (readError || !data) return { error: getDatabaseErrorMessage(readError, "The qualification was updated, but we could not refresh it.") };
   revalidatePath("/admin/qualifications");
   return { qualification: data };
 }
@@ -618,8 +759,10 @@ export async function createQualificationAlias(qualificationId: string, alias: s
   const { supabase } = await requirePlatformAdmin();
   const cleanAlias = alias.trim();
   if (!qualificationId || cleanAlias.length < 2 || cleanAlias.length > 160) return { error: "Use an alias between 2 and 160 characters." };
-  const { data, error } = await supabase.from("qualification_aliases").insert({ qualification_id: qualificationId, alias: cleanAlias }).select("*").single();
-  if (error) return { error: error.code === "23505" ? "That alias is already mapped." : getDatabaseErrorMessage(error, "We could not add that alias.") };
+  const { data: aliasId, error } = await supabase.rpc("create_admin_qualification_alias", { target_qualification_id: qualificationId, target_alias: cleanAlias });
+  if (error || !aliasId) return { error: error?.code === "23505" ? "That wording already identifies a qualification." : getDatabaseErrorMessage(error, "We could not add that alias.") };
+  const { data, error: readError } = await supabase.from("qualification_aliases").select("*").eq("id", aliasId).single();
+  if (readError || !data) return { error: getDatabaseErrorMessage(readError, "The alias was added, but we could not refresh it.") };
   revalidatePath("/admin/qualifications");
   return { alias: data };
 }

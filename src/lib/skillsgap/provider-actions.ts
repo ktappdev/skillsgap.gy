@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { requirePlatformAdmin, requireTrainingProvider, requireUser } from "@/lib/auth/queries";
+import { requireTrainingProvider, requireUser } from "@/lib/auth/queries";
 import { getDatabaseErrorMessage } from "@/lib/errors";
 import { getTrimmedFormString } from "@/lib/validation";
 import {
@@ -403,6 +403,11 @@ export async function createProviderQualification(formData: FormData): Promise<P
           description: description || null,
           is_active: false,
           submission_status: "pending",
+          qualification_reviewed_by: null,
+          qualification_reviewed_at: null,
+          qualification_review_reason: null,
+          qualification_review_decision: null,
+          resolved_qualification_id: null,
         })
         .eq("id", existingSuggestion.id)
         .eq("submission_status", "rejected")
@@ -430,39 +435,6 @@ export async function createProviderQualification(formData: FormData): Promise<P
   revalidateProviderTraining(provider.id, programId);
   revalidatePath("/admin/qualifications");
   return { message: "Qualification submitted for admin review. It will be eligible for recommendations once approved." };
-}
-
-export async function reviewProviderQualification(formData: FormData): Promise<ProviderActionResult> {
-  const { supabase } = await requirePlatformAdmin();
-  const qualificationId = getTrimmedFormString(formData, "qualificationId");
-  const decision = getTrimmedFormString(formData, "decision");
-  if (!qualificationId || (decision !== "approve" && decision !== "reject")) {
-    return { error: "Choose a qualification suggestion and review decision." };
-  }
-
-  const { data: suggestion, error: readError } = await supabase
-    .from("qualifications")
-    .select("id,submission_status")
-    .eq("id", qualificationId)
-    .not("submitted_by_provider_id", "is", null)
-    .eq("submission_status", "pending")
-    .maybeSingle();
-  if (readError || !suggestion) return { error: "That qualification request is no longer pending." };
-
-  const approved = decision === "approve";
-  const { error } = await supabase
-    .from("qualifications")
-    .update({ submission_status: approved ? "approved" : "rejected", is_active: approved })
-    .eq("id", qualificationId)
-    .eq("submission_status", "pending");
-  if (error) return { error: getDatabaseErrorMessage(error, "We could not review that qualification request.") };
-
-  revalidatePath("/admin/qualifications");
-  revalidatePath("/provider/programs");
-  revalidatePath("/training");
-  revalidatePath("/dashboard");
-  revalidatePath("/matches/[matchId]", "page");
-  return { message: approved ? "Qualification approved and added to the active taxonomy." : "Qualification request declined." };
 }
 
 function readProviderProgramInput(formData: FormData) {
