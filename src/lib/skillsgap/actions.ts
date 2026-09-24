@@ -134,6 +134,55 @@ export async function queueResumeProcessing(
   return { resumeId: resume.id };
 }
 
+/**
+ * Queue an applicant's plain-language description of their work. The processor
+ * maps it to the active taxonomy exactly like a CV, and the resulting findings
+ * appear in the same review/confirm flow.
+ */
+export async function queueSkillDescription(text: string): Promise<{ error?: string }> {
+  const { supabase, user } = await requireApplicant();
+  const cleanText = text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+
+  if (cleanText.length < 10) {
+    return { error: "Add a little more detail about the work you do." };
+  }
+  if (cleanText.length > 2000) {
+    return { error: "Keep your description under 2000 characters." };
+  }
+
+  const { data: openJob, error: openJobError } = await supabase
+    .from("processing_jobs")
+    .select("id")
+    .eq("applicant_id", user.id)
+    .eq("kind", "description_analysis")
+    .in("status", ["queued", "processing"])
+    .maybeSingle();
+  if (openJobError) {
+    return { error: getDatabaseErrorMessage(openJobError, "We could not check your last description. Please try again.") };
+  }
+  if (openJob) {
+    return { error: "We are still translating your last description. Give it a moment." };
+  }
+
+  const { error } = await supabase.from("processing_jobs").insert({
+    applicant_id: user.id,
+    kind: "description_analysis",
+    status: "queued",
+    attempts: 0,
+    input_text: cleanText,
+  });
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "We are still translating your last description. Give it a moment." };
+    }
+    return { error: getDatabaseErrorMessage(error, "We could not start translating your description. Please try again.") };
+  }
+
+  await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id);
+  revalidatePath("/dashboard");
+  return {};
+}
+
 export async function applyToJob(roleId: string): Promise<{ error?: string; message?: string }> {
   const { supabase, user } = await requireApplicant();
   const cleanRoleId = roleId.trim();

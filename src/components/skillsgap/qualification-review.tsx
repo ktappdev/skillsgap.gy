@@ -100,8 +100,13 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
       ...confirmedItems.filter((item) => !current.some((existing) => existing.qualification_id === item.qualification_id)),
     ]);
     if (result.error) {
+      // A partial failure still saved some skills, so the recalculation may or
+      // may not be running. Clear the optimistic flag either way and let the
+      // server-reported job status say whether work is still in flight — an
+      // optimistic flag left standing here used to latch behind a spinner.
       setMessage(result.error);
       if (result.confirmedFindingIds.length === 0) matchRecalculation?.fail(result.error);
+      else matchRecalculation?.settle();
       router.refresh();
       return;
     }
@@ -192,7 +197,7 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
   return (
     <section id="skills-review" className="scroll-mt-6 rounded-lg border border-border bg-surface p-5" aria-labelledby="qualification-review-heading">
       <h2 id="qualification-review-heading" className="text-xl font-semibold tracking-tight text-foreground">{findings.length > 0 ? "Check the skills we found" : qualifications.length > 0 ? "Your confirmed skills" : "Add your skills"}</h2>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{findings.length > 0 ? "Select the skills that describe you, then confirm. Only confirmed skills count toward job matches." : qualifications.length > 0 ? "These skills are used to find your job matches. You can edit them or add a missing skill below." : resumeScanFailed ? "We couldn’t read your CV. Retry the upload or add skills yourself below." : hasResume ? "We didn’t find any skills to confirm. Add a skill below to start finding job matches." : "No CV is needed to start. Add skills you already have and we’ll compare them with active roles."}</p>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{findings.length > 0 ? "Select the skills that describe you, then confirm. Only confirmed skills count toward job matches." : qualifications.length > 0 ? "These skills are used to find your job matches. You can edit them or add a missing skill below." : resumeScanFailed ? "We couldn’t read your CV. Retry the upload or add skills yourself below." : hasResume ? "We didn’t find any skills to confirm. Add a skill below to start finding job matches." : "No CV is needed to start. Describe your work above or add skills you already have and we’ll compare them with active roles."}</p>
 
       {findings.length > 0 ? <section className="mt-5 space-y-4" aria-labelledby="pending-findings-heading">
         <div><h3 id="pending-findings-heading" className="text-sm font-semibold text-foreground">{findings.length} suggestions to review</h3><p className="mt-1 text-sm leading-6 text-muted">Choose the skill that best describes your experience, or dismiss it if it does not apply.</p></div>

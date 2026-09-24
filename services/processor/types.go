@@ -1,11 +1,20 @@
 package main
 
+// Processing job kinds the worker routes on. Applicant-authored skill
+// descriptions arrive as text on the job row; CVs arrive as a stored PDF.
+const (
+	jobKindResume      = "resume_analysis"
+	jobKindDescription = "description_analysis"
+	jobKindRecalculate = "recalculate_matches"
+)
+
 type processingJob struct {
 	ID          string `json:"id"`
 	ResumeID    string `json:"resume_id"`
 	Kind        string `json:"kind"`
 	StoragePath string `json:"storage_path"`
 	Attempts    int    `json:"attempts"`
+	InputText   string `json:"input_text"`
 }
 
 type taxonomyEntry struct {

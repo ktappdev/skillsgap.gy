@@ -164,7 +164,7 @@ func (service *service) process(ctx context.Context, jobID string) {
 	}()
 	processingContext, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
-	if job.Kind == "recalculate_matches" {
+	if job.Kind == jobKindRecalculate {
 		started = time.Now()
 		err = service.store.recalculate(processingContext, job)
 		logProcessingStage(job.ID, "recalculate_matches", started)

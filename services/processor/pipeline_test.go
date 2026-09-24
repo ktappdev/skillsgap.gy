@@ -49,12 +49,22 @@ type fakeLLM struct {
 	visionErr    error
 	visionCalls  int
 	images       []pageImage
+	textResult   extraction
+	textErr      error
+	textCalls    int
+	text         string
 }
 
 func (llm *fakeLLM) extractWithVision(_ context.Context, images []pageImage, _ []taxonomyEntry) (extraction, error) {
 	llm.visionCalls++
 	llm.images = append([]pageImage(nil), images...)
 	return llm.visionResult, llm.visionErr
+}
+
+func (llm *fakeLLM) extractWithText(_ context.Context, text string, _ []taxonomyEntry) (extraction, error) {
+	llm.textCalls++
+	llm.text = text
+	return llm.textResult, llm.textErr
 }
 
 func TestPipelineRendersEveryPageAndUsesVisionOnly(t *testing.T) {
@@ -155,6 +165,46 @@ func TestPipelineReturnsVisionFailureWithoutOCRFallback(t *testing.T) {
 	}
 	if llm.visionCalls != 1 {
 		t.Fatalf("vision calls = %d", llm.visionCalls)
+	}
+}
+
+// The description path must never touch the PDF renderer: the text is already
+// on the job row.
+func TestPipelineRoutesDescriptionTextWithoutRenderingPDF(t *testing.T) {
+	pdf := &fakePDF{pages: 3}
+	renderer := &fakeRenderer{images: []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("page-1")}}}
+	llm := &fakeLLM{textResult: extraction{Findings: []extractedQualification{{OriginalTerm: "boat captain", CandidateSlugs: []string{"mechanical-maintenance"}, Evidence: "I operate boats in the interior", EvidencePage: 0, EvidenceMethod: methodText, Confidence: 0.9}}}}
+	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, pdf, renderer, llm)
+
+	result, err := pipeline.process(context.Background(), processingJob{ID: "job-1", Kind: jobKindDescription, InputText: "I operate boats in the interior."})
+	if err != nil {
+		t.Fatalf("process: %v", err)
+	}
+	if pdf.called || renderer.called || llm.visionCalls != 0 {
+		t.Fatalf("description must skip the PDF path: pdf=%v render=%v vision=%d", pdf.called, renderer.called, llm.visionCalls)
+	}
+	if llm.textCalls != 1 || llm.text != "I operate boats in the interior." {
+		t.Fatalf("text calls = %d, text = %q", llm.textCalls, llm.text)
+	}
+	if len(result.Findings) != 1 || result.Findings[0].EvidenceMethod != methodText || result.Findings[0].EvidencePage != 0 {
+		t.Fatalf("findings = %#v", result.Findings)
+	}
+}
+
+func TestPipelineRejectsBlankDescriptionText(t *testing.T) {
+	llm := &fakeLLM{}
+	pipeline := newPipeline(fakeStore{document: []byte("PDF")}, &fakePDF{}, &fakeRenderer{}, llm)
+
+	_, err := pipeline.process(context.Background(), processingJob{ID: "job-1", Kind: jobKindDescription, InputText: "   "})
+	if err == nil {
+		t.Fatal("expected blank description failure")
+	}
+	var failure processingError
+	if !errors.As(err, &failure) || !failure.terminal {
+		t.Fatalf("error = %v", err)
+	}
+	if llm.textCalls != 0 {
+		t.Fatal("model should not run for a blank description")
 	}
 }
 

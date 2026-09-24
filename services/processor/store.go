@@ -218,8 +218,14 @@ func (store *supabaseStore) resume(ctx context.Context, resumeID string) (resume
 }
 
 func (store *supabaseStore) complete(ctx context.Context, job processingJob, result extraction) error {
-	// This RPC owns persistence and matching in one database transaction. It must
-	// reject a job that is not currently claimed by this worker.
+	// These RPCs own persistence and matching in one database transaction. They
+	// must reject a job that is not currently claimed by this worker.
+	if job.Kind == jobKindDescription {
+		return store.postJSON(ctx, "/rest/v1/rpc/apply_description_extraction", map[string]any{
+			"job_id":     job.ID,
+			"extraction": result,
+		}, nil)
+	}
 	return store.postJSON(ctx, "/rest/v1/rpc/apply_resume_extraction_with_contact_details", map[string]any{
 		"job_id":     job.ID,
 		"extraction": result,
@@ -233,7 +239,7 @@ func (store *supabaseStore) recalculate(ctx context.Context, job processingJob) 
 func (store *supabaseStore) fail(ctx context.Context, job processingJob, cause error) error {
 	// Only explicit processingError messages are applicant-safe. All upstream
 	// errors remain private because they may contain provider or document data.
-	message, terminal := processingFailureDetails(cause)
+	message, terminal := processingFailureDetails(cause, job.Kind)
 	return store.postJSON(ctx, "/rest/v1/rpc/fail_processing_job", map[string]any{
 		"processing_job_id":  job.ID,
 		"safe_error_message": message,

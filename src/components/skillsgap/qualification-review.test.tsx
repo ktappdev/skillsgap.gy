@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { MatchRecalculationProvider } from "@/components/dashboard/match-recalculation-context";
+import { MatchRecalculationProvider, useMatchRecalculation } from "@/components/dashboard/match-recalculation-context";
 import { addApplicantQualification, confirmExtractionFindings } from "@/lib/skillsgap/actions";
 
 import { QualificationReview } from "./qualification-review";
@@ -42,6 +42,11 @@ const qualification = {
   is_active: true,
   submitted_by_provider_id: null,
   submission_status: null,
+  qualification_reviewed_by: null,
+  qualification_reviewed_at: null,
+  qualification_review_reason: null,
+  qualification_review_decision: null,
+  resolved_qualification_id: null,
   created_at: now,
   updated_at: now,
 };
@@ -49,6 +54,7 @@ const finding = {
   id: "finding-1",
   applicant_id: "applicant-1",
   resume_id: "resume-1",
+  processing_job_id: null,
   original_term: "Safety procedures",
   evidence: "Followed site safety procedures",
   evidence_page: 1,
@@ -71,7 +77,7 @@ describe("QualificationReview", () => {
     });
 
     render(
-      <MatchRecalculationProvider>
+      <MatchRecalculationProvider revision="revision-1">
         <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />
         <section id="matches-area" tabIndex={-1}>Matches</section>
       </MatchRecalculationProvider>,
@@ -101,12 +107,12 @@ describe("QualificationReview", () => {
   it("lets applicants without a CV add a skill and refresh their new matches", async () => {
     vi.mocked(addApplicantQualification).mockResolvedValue({});
     render(
-      <MatchRecalculationProvider>
+      <MatchRecalculationProvider revision="revision-1">
         <QualificationReview applicantId="applicant-1" hasResume={false} resumeScanFailed={false} initialFindings={[]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />
       </MatchRecalculationProvider>,
     );
 
-    expect(screen.getByText("No CV is needed to start. Add skills you already have and we’ll compare them with active roles.")).not.toBeNull();
+    expect(screen.getByText("No CV is needed to start. Describe your work above or add skills you already have and we’ll compare them with active roles.")).not.toBeNull();
     fireEvent.change(screen.getByLabelText("Choose a skill"), { target: { value: qualification.id } });
     fireEvent.click(screen.getByRole("button", { name: "Add skill" }));
 
@@ -114,4 +120,76 @@ describe("QualificationReview", () => {
     expect(await screen.findByText("Skill added. Your role matches are being recalculated.")).not.toBeNull();
   });
 
+  it("keeps the unpacked selection and the gains panel when the match revision changes", async () => {
+    vi.mocked(confirmExtractionFindings).mockResolvedValue({
+      confirmedFindingIds: [finding.id],
+      gains: [{ roleId: "role-1", roleTitle: "Process Technician", points: 10 }],
+    });
+    const { rerender } = render(
+      <MatchRecalculationProvider revision="revision-1">
+        <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />
+      </MatchRecalculationProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /Industrial Safety/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm selected (1)" }));
+    expect(await screen.findByText("+10% to Process Technician")).not.toBeNull();
+
+    rerender(
+      <MatchRecalculationProvider revision="revision-2">
+        <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />
+      </MatchRecalculationProvider>,
+    );
+
+    expect(screen.getByText("+10% to Process Technician")).not.toBeNull();
+    expect(screen.getByText("1 skill confirmed.")).not.toBeNull();
+  });
+
+  it("keeps an unconfirmed selection when the match revision changes", () => {
+    const { rerender } = render(
+      <MatchRecalculationProvider revision="revision-1">
+        <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />
+        <RecalculationStatus />
+      </MatchRecalculationProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /Industrial Safety/i }));
+    expect(screen.getByText("1 skill ready to confirm")).not.toBeNull();
+
+    rerender(
+      <MatchRecalculationProvider revision="revision-2">
+        <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />
+        <RecalculationStatus />
+      </MatchRecalculationProvider>,
+    );
+
+    expect(screen.getByRole<HTMLInputElement>("radio", { name: /Industrial Safety/i }).checked).toBe(true);
+    expect(screen.getByText("1 skill ready to confirm")).not.toBeNull();
+  });
+
+  it("clears the recalculation state when only a partial confirmation fails", async () => {
+    vi.mocked(confirmExtractionFindings).mockResolvedValue({
+      confirmedFindingIds: [finding.id],
+      error: "We could not confirm every selected skill.",
+      gains: [],
+    });
+    render(
+      <MatchRecalculationProvider revision="revision-1">
+        <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />
+        <RecalculationStatus />
+      </MatchRecalculationProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /Industrial Safety/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm selected (1)" }));
+
+    expect(await screen.findByText("We could not confirm every selected skill.")).not.toBeNull();
+    expect(screen.getByText("recalculation idle")).not.toBeNull();
+  });
+
 });
+
+function RecalculationStatus() {
+  const recalculation = useMatchRecalculation();
+  return <p>{`recalculation ${recalculation?.state.status ?? "absent"}`}</p>;
+}

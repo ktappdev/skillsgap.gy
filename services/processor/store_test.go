@@ -114,6 +114,45 @@ func TestDecodeTaxonomySnapshotDetectsResponseOverflow(t *testing.T) {
 	}
 }
 
+func TestCompleteRoutesDescriptionJobsToDescriptionRPC(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/rest/v1/rpc/apply_description_extraction" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		var payload struct {
+			JobID string `json:"job_id"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if payload.JobID != "job-1" {
+			t.Fatalf("job_id = %q", payload.JobID)
+		}
+		writer.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	store := &supabaseStore{baseURL: server.URL, apiKey: "service-key", client: server.Client()}
+	if err := store.complete(context.Background(), processingJob{ID: "job-1", Kind: jobKindDescription}, extraction{}); err != nil {
+		t.Fatalf("complete: %v", err)
+	}
+}
+
+func TestCompleteRoutesResumeJobsToContactRPC(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/rest/v1/rpc/apply_resume_extraction_with_contact_details" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		writer.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	store := &supabaseStore{baseURL: server.URL, apiKey: "service-key", client: server.Client()}
+	if err := store.complete(context.Background(), processingJob{ID: "job-2", Kind: jobKindResume}, extraction{}); err != nil {
+		t.Fatalf("complete: %v", err)
+	}
+}
+
 func TestPermanentFailureIsMarkedTerminalWithoutLeakingCause(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if request.URL.Path != "/rest/v1/rpc/fail_processing_job" {

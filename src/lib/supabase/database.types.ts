@@ -22,10 +22,10 @@ export type JobStatus = "draft" | "active" | "archived";
 export type RequirementKind = "technical_skill" | "certification" | "compliance" | "experience" | "education";
 export type ResumeStatus = "uploaded" | "processing" | "processed" | "failed" | "archived";
 export type ProcessingStatus = "queued" | "processing" | "completed" | "failed";
-export type ProcessingKind = "resume_analysis" | "recalculate_matches";
+export type ProcessingKind = "resume_analysis" | "recalculate_matches" | "description_analysis";
 export type QualificationSource = "extracted" | "applicant_confirmed" | "admin_verified";
 export type ReviewStatus = "pending_review" | "confirmed" | "rejected";
-export type ExtractionMethod = "native" | "ocr" | "vision";
+export type ExtractionMethod = "native" | "ocr" | "vision" | "text";
 export type ExtractionFindingStatus = "pending" | "confirmed" | "rejected" | "superseded";
 export type FindingSelectionSource = "model_option" | "applicant_correction";
 export type ContactSuggestionStatus = "pending" | "applied" | "dismissed" | "superseded";
@@ -77,9 +77,9 @@ type TrainingProviderVerificationDetails = { accrediting_body: string | null; ac
 type TrainingProgram = Timestamps & { application_deadline: string | null; award_title: string | null; delivery_location: string | null; delivery_mode: TrainingProgramDeliveryMode | null; description: string | null; duration_text: string | null; enrollment_url: string | null; entry_requirements: string | null; fee_amount: number | null; fee_currency: string; fee_notes: string | null; id: string; intake_text: string | null; is_active: boolean; name: string; next_intake_date: string | null; provider_id: string; qualification_level: string | null; schedule_text: string | null };
 type TrainingProgramOutcome = { created_at: string; qualification_id: string; training_program_id: string };
 type Resume = { applicant_id: string; byte_size: number; deleted_at: string | null; id: string; mime_type: string; original_filename: string; processed_at: string | null; status: ResumeStatus; storage_path: string; uploaded_at: string };
-type ProcessingJob = Timestamps & { applicant_id: string; attempts: number; completed_at: string | null; error_message: string | null; id: string; kind: ProcessingKind; result_summary: Json; resume_id: string | null; started_at: string | null; status: ProcessingStatus };
+type ProcessingJob = Timestamps & { applicant_id: string; attempts: number; completed_at: string | null; error_message: string | null; id: string; input_text: string | null; kind: ProcessingKind; result_summary: Json; resume_id: string | null; started_at: string | null; status: ProcessingStatus };
 type ApplicantQualification = Timestamps & { applicant_id: string; confidence: number | null; evidence: string | null; evidence_method: ExtractionMethod | null; evidence_page: number | null; id: string; original_term: string | null; qualification_id: string; resume_id: string | null; review_status: ReviewStatus; source: QualificationSource; years_experience: number | null };
-type ResumeExtractionFinding = Timestamps & { applicant_id: string; confidence: number; created_at: string; evidence: string; evidence_method: ExtractionMethod; evidence_page: number; id: string; original_term: string; resume_id: string; selected_qualification_id: string | null; selection_source: FindingSelectionSource | null; status: ExtractionFindingStatus; updated_at: string; years_experience: number | null };
+type ResumeExtractionFinding = Timestamps & { applicant_id: string; confidence: number; created_at: string; evidence: string; evidence_method: ExtractionMethod; evidence_page: number | null; id: string; original_term: string; processing_job_id: string | null; resume_id: string | null; selected_qualification_id: string | null; selection_source: FindingSelectionSource | null; status: ExtractionFindingStatus; updated_at: string; years_experience: number | null };
 type ResumeExtractionFindingCandidate = { created_at: string; finding_id: string; qualification_id: string; rank: number };
 type ApplicantExperience = Timestamps & { applicant_id: string; confidence: number | null; created_at: string; employer: string | null; evidence: string | null; id: string; resume_id: string | null; title: string; updated_at: string; years: number };
 type ApplicantContactSuggestion = Timestamps & { applicant_id: string; contact_email: string | null; contact_email_confidence: number | null; contact_email_evidence: string | null; contact_email_evidence_page: number | null; created_at: string; full_name: string | null; full_name_confidence: number | null; full_name_evidence: string | null; full_name_evidence_page: number | null; id: string; phone_number: string | null; phone_number_confidence: number | null; phone_number_evidence: string | null; phone_number_evidence_page: number | null; resume_id: string; status: ContactSuggestionStatus; updated_at: string };
@@ -169,6 +169,7 @@ export type Database = {
       update_admin_qualification: { Args: { target_qualification_id: string; target_name: string; target_category: RequirementKind; target_description: string; target_is_active: boolean }; Returns: string };
       create_admin_qualification_alias: { Args: { target_qualification_id: string; target_alias: string }; Returns: string };
       get_qualifications_without_verified_training: { Args: Record<string, never>; Returns: string[] };
+      apply_description_extraction: { Args: { job_id: string; extraction: Json }; Returns: undefined };
     };
     Enums: {
       account_type: AccountType;

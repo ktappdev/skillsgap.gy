@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -20,6 +21,7 @@ type pageRenderer interface {
 
 type profileExtractor interface {
 	extractWithVision(context.Context, []pageImage, []taxonomyEntry) (extraction, error)
+	extractWithText(context.Context, string, []taxonomyEntry) (extraction, error)
 }
 
 type pipeline struct {
@@ -35,6 +37,25 @@ func newPipeline(store jobStore, pdf pdfPageCounter, renderer pageRenderer, llm 
 
 func (pipeline *pipeline) process(ctx context.Context, job processingJob) (extraction, error) {
 	started := time.Now()
+	taxonomy, err := pipeline.store.loadTaxonomy(ctx)
+	logProcessingStage(job.ID, "load_taxonomy", started)
+	if err != nil {
+		return extraction{}, err
+	}
+
+	// Applicant-authored descriptions skip the PDF path entirely: the text is
+	// already on the job row and only needs the same taxonomy mapping.
+	if job.Kind == jobKindDescription {
+		if strings.TrimSpace(job.InputText) == "" {
+			return extraction{}, terminalProcessingError("We could not read that description. Please describe your work again.")
+		}
+		started = time.Now()
+		result, err := pipeline.llm.extractWithText(ctx, job.InputText, taxonomy)
+		logProcessingStage(job.ID, "text_extract", started)
+		return result, err
+	}
+
+	started = time.Now()
 	contents, err := pipeline.store.downloadResume(ctx, job)
 	logProcessingStage(job.ID, "download_resume", started)
 	if err != nil {
@@ -67,12 +88,6 @@ func (pipeline *pipeline) process(ctx context.Context, job processingJob) (extra
 		if image.Page != index+1 {
 			return extraction{}, errors.New("document renderer returned pages out of order")
 		}
-	}
-	started = time.Now()
-	taxonomy, err := pipeline.store.loadTaxonomy(ctx)
-	logProcessingStage(job.ID, "load_taxonomy", started)
-	if err != nil {
-		return extraction{}, err
 	}
 	started = time.Now()
 	result, err := pipeline.llm.extractWithVision(ctx, images, taxonomy)

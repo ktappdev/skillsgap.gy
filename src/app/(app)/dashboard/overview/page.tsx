@@ -24,7 +24,9 @@ export default async function ApplicantDashboardOverviewPage() {
   const isProcessing = progress.processingStatus === "queued"
     || progress.processingStatus === "processing"
     || progress.latestResume?.status === "uploaded"
-    || progress.latestResume?.status === "processing";
+    || progress.latestResume?.status === "processing"
+    || progress.skillDescription?.status === "queued"
+    || progress.skillDescription?.status === "processing";
   const metadataName = user.user_metadata.full_name;
   const profileName = profileResult.data?.full_name?.trim() ?? "";
   const metadataFullName = typeof metadataName === "string" ? metadataName.trim() : "";

@@ -10,6 +10,7 @@ import { SavedCareerRoute } from "@/components/dashboard/saved-career-route";
 import { CvUpload } from "@/components/skillsgap/cv-upload";
 import { ExperienceReview } from "@/components/skillsgap/experience-review";
 import { QualificationReview } from "@/components/skillsgap/qualification-review";
+import { SkillDescriptionForm } from "@/components/skillsgap/skill-description-form";
 import { isDemoApplicantMetadata } from "@/lib/auth/demo";
 import { requireApplicant } from "@/lib/auth/queries";
 import { getPublicPosition, type PublicPosition } from "@/lib/share/public-content";
@@ -48,6 +49,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     || progress.latestResume?.status === "processing");
   const matchStatus = progress.matchRecalculation?.status ?? null;
   const isMatchRecalculating = matchStatus === "queued" || matchStatus === "processing";
+  const descriptionStatus = progress.skillDescription?.status ?? null;
+  const isDescriptionProcessing = descriptionStatus === "queued" || descriptionStatus === "processing";
+  const matchRecalculationStartedAt = isMatchRecalculating ? progress.matchRecalculation?.updated_at ?? null : null;
   const matchRecalculationError = matchStatus === "failed"
     ? progress.matchRecalculation?.error_message ?? "We could not update your matches. Review a confirmed skill and try again."
     : null;
@@ -85,7 +89,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     },
     {
       label: "Add or confirm skills",
-      detail: progress.findings.length > 0 ? `${progress.findings.length} to review` : progress.qualifications.length > 0 ? `${progress.qualifications.length} confirmed` : "Add skills or upload a CV",
+      detail: progress.findings.length > 0 ? `${progress.findings.length} to review` : isDescriptionProcessing ? "Translating your words" : progress.qualifications.length > 0 ? `${progress.qualifications.length} confirmed` : "Describe your work or upload a CV",
       href: "#skills-review",
       state: needsReview ? "current" : progress.qualifications.length > 0 ? "complete" : "next",
     },
@@ -108,10 +112,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       <header className="border-b border-border pb-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Your career pathway</p>
-          <RealtimeSync userId={user.id} isProcessing={isResumeProcessing || isMatchRecalculating} />
+          <RealtimeSync userId={user.id} isProcessing={isResumeProcessing || isMatchRecalculating || isDescriptionProcessing} />
         </div>
         <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-foreground sm:text-4xl">Good to see you, {name}.</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{isResumeProcessing ? "We’re reading your CV. Once it’s ready, confirm your skills and we’ll show fitting roles and training for the gaps." : <>Upload your CV or <a href="#skills-review" className="font-semibold text-accent underline-offset-4 hover:underline">add skills yourself</a>. We’ll show the roles that fit and training for the gaps—no job title needed.</>}</p>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{isResumeProcessing ? "We’re reading your CV. Once it’s ready, confirm your skills and we’ll show fitting roles and training for the gaps." : <>Upload your CV, <a href="#describe-skills" className="font-semibold text-accent underline-offset-4 hover:underline">describe your work in your own words</a>, or add skills yourself. We’ll show the roles that fit and training for the gaps—no job title needed.</>}</p>
       </header>
 
       <div className="mt-6">
@@ -138,12 +142,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               processingError={progress.processingError}
             />}
           </div>
-          <MatchRecalculationProvider key={matchRevision}>
+          {/* The revision travels as a prop, not a React `key`: remounting here
+              discarded the applicant's unpacked review selections and gains. */}
+          <MatchRecalculationProvider revision={matchRevision}>
+            <SkillDescriptionForm status={descriptionStatus} errorMessage={progress.skillDescription?.error ?? null} />
             {isResumeProcessing ? <section id="skills-review" className="scroll-mt-6 rounded-lg border border-border bg-surface-muted p-5" aria-labelledby="skills-processing-heading" role="status">
               <h2 id="skills-processing-heading" className="text-lg font-semibold text-foreground">Next, review your skills</h2>
               <p className="mt-2 text-sm leading-6 text-muted">When the CV scan finishes, we’ll list suggested skills here. Only skills you confirm affect your job matches.</p>
             </section> : <QualificationReview applicantId={user.id} hasResume={Boolean(progress.latestResume)} resumeScanFailed={scanFailed} initialFindings={progress.findings} initialQualifications={progress.qualifications} availableQualifications={progress.availableQualifications} unmappedTerms={progress.unmappedTerms} />}
-            {!isResumeProcessing ? progress.qualifications.length > 0 || usingDemoMatches ? <MatchResultsSection matches={matches} roleLabel={roleLabel} isRecalculating={isMatchRecalculating} recalculationError={matchRecalculationError} /> : <p id="matches-area" className="scroll-mt-6 rounded-md bg-surface-muted p-4 text-sm text-muted">Your job matches will appear here after you confirm or add a skill above.</p> : null}
+            {!isResumeProcessing ? progress.qualifications.length > 0 || usingDemoMatches ? <MatchResultsSection matches={matches} roleLabel={roleLabel} isRecalculating={isMatchRecalculating} recalculationStartedAt={matchRecalculationStartedAt} recalculationError={matchRecalculationError} /> : <p id="matches-area" className="scroll-mt-6 rounded-md bg-surface-muted p-4 text-sm text-muted">Your job matches will appear here after you confirm or add a skill above.</p> : null}
             {!isResumeProcessing && progress.experience.length > 0 ? <details className="border-t border-border pt-4"><summary className="cursor-pointer py-2 text-sm font-semibold text-muted">Work history · {progress.experience.length} entries · Edit if needed</summary><div className="mt-3"><ExperienceReview key={progress.experience.map((item) => `${item.id}-${item.updated_at}`).join(",")} initialExperience={progress.experience} /></div></details> : null}
           </MatchRecalculationProvider>
           {!isResumeProcessing && params.pathway !== "saved" ? progress.pathwayPlan ? <details className="border-t border-border pt-4"><summary className="cursor-pointer py-2 text-sm font-semibold text-muted">Your saved career route</summary><div className="mt-3"><SavedCareerRoute plan={progress.pathwayPlan} /></div></details> : showProfileResults && !needsReview ? <SavedCareerRoute plan={null} /> : null : null}

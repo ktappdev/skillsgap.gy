@@ -10,7 +10,7 @@ import (
 )
 
 func TestDecodeExtractionRejectsUnknownQualificationSlug(t *testing.T) {
-	_, err := decodeExtraction(`{"findings":[{"original_term":"BOSIET","candidate_slugs":["not-in-taxonomy"],"years_experience":0,"evidence":"BOSIET certificate","evidence_page":1,"evidence_method":"vision","confidence":0.9}],"employment":[],"unmapped_terms":[]}`, testTaxonomy())
+	_, err := decodeExtraction(`{"findings":[{"original_term":"BOSIET","candidate_slugs":["not-in-taxonomy"],"years_experience":0,"evidence":"BOSIET certificate","evidence_page":1,"evidence_method":"vision","confidence":0.9}],"employment":[],"unmapped_terms":[]}`, testTaxonomy(), methodVision)
 	if err == nil {
 		t.Fatal("expected unknown slug error")
 	}
@@ -35,14 +35,14 @@ func TestLLMClientEnforcesConfiguredTaxonomyLimit(t *testing.T) {
 }
 
 func TestDecodeExtractionRejectsMultipleJSONValues(t *testing.T) {
-	_, err := decodeExtraction(`{"findings":[],"employment":[],"unmapped_terms":[]} {}`, testTaxonomy())
+	_, err := decodeExtraction(`{"findings":[],"employment":[],"unmapped_terms":[]} {}`, testTaxonomy(), methodVision)
 	if err == nil {
 		t.Fatal("expected multiple JSON values error")
 	}
 }
 
 func TestDecodeExtractionAcceptsStrictSchema(t *testing.T) {
-	result, err := decodeExtraction(`{"findings":[{"original_term":"minibus diesel repair","candidate_slugs":["mechanical-maintenance"],"years_experience":4,"evidence":"Four years repairing diesel engines","evidence_page":2,"evidence_method":"vision","confidence":0.95}],"employment":[],"unmapped_terms":["route scheduling"]}`, testTaxonomy())
+	result, err := decodeExtraction(`{"findings":[{"original_term":"minibus diesel repair","candidate_slugs":["mechanical-maintenance"],"years_experience":4,"evidence":"Four years repairing diesel engines","evidence_page":2,"evidence_method":"vision","confidence":0.95}],"employment":[],"unmapped_terms":["route scheduling"]}`, testTaxonomy(), methodVision)
 	if err != nil {
 		fatalf(t, "unexpected error: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestDecodeExtractionAcceptsStrictSchema(t *testing.T) {
 }
 
 func TestDecodeExtractionRejectsImpossibleExperience(t *testing.T) {
-	_, err := decodeExtraction(`{"findings":[{"original_term":"Diesel mechanics","candidate_slugs":["mechanical-maintenance"],"years_experience":61,"evidence":"Worked as a mechanic","evidence_page":1,"evidence_method":"vision","confidence":0.95}],"employment":[],"unmapped_terms":[]}`, testTaxonomy())
+	_, err := decodeExtraction(`{"findings":[{"original_term":"Diesel mechanics","candidate_slugs":["mechanical-maintenance"],"years_experience":61,"evidence":"Worked as a mechanic","evidence_page":1,"evidence_method":"vision","confidence":0.95}],"employment":[],"unmapped_terms":[]}`, testTaxonomy(), methodVision)
 	if err == nil {
 		t.Fatal("expected impossible experience to be rejected")
 	}
@@ -64,14 +64,14 @@ func TestDecodeExtractionRejectsDuplicateAndThirdCandidate(t *testing.T) {
 		`{"findings":[{"original_term":"porter","candidate_slugs":["domestic-services","mechanical-maintenance","warehouse-operations"],"years_experience":2,"evidence":"Loaded stock","evidence_page":1,"evidence_method":"vision","confidence":0.8}],"employment":[],"unmapped_terms":[]}`,
 	}
 	for _, value := range tests {
-		if _, err := decodeExtraction(value, testTaxonomy()); err == nil {
+		if _, err := decodeExtraction(value, testTaxonomy(), methodVision); err == nil {
 			t.Fatal("expected candidate choices to be rejected")
 		}
 	}
 }
 
 func TestDecodeExtractionKeepsUnsupportedTermsUnmapped(t *testing.T) {
-	result, err := decodeExtraction(`{"findings":[],"employment":[],"unmapped_terms":["professional drinker"]}`, testTaxonomy())
+	result, err := decodeExtraction(`{"findings":[],"employment":[],"unmapped_terms":["professional drinker"]}`, testTaxonomy(), methodVision)
 	if err != nil {
 		t.Fatalf("decode unmapped term: %v", err)
 	}
@@ -188,6 +188,112 @@ func TestVisionExtractionWorksWithoutAPIKeyForLocalEndpoint(t *testing.T) {
 	_, err := client.extractWithVision(context.Background(), []pageImage{{Page: 1, MediaType: "image/jpeg", Data: []byte("image")}}, testTaxonomy())
 	if err != nil {
 		t.Fatalf("extract vision without API key: %v", err)
+	}
+}
+
+func TestExtractionSchemaConstrainsTextMethod(t *testing.T) {
+	encoded, err := json.Marshal(textExtractionSchema(testTaxonomy()))
+	if err != nil {
+		t.Fatalf("marshal text schema: %v", err)
+	}
+	schema := string(encoded)
+	if !strings.Contains(schema, `"enum":["text"]`) || !strings.Contains(schema, `"mechanical-maintenance"`) {
+		t.Fatalf("text schema missing method enum or slugs: %s", schema)
+	}
+	if strings.Contains(schema, "employment") || strings.Contains(schema, `"enum":["vision"]`) {
+		t.Fatalf("text schema must stay skills-only: %s", schema)
+	}
+}
+
+func TestTextExtractionSendsApplicantWordsWithStrictSchema(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.Header.Get("Authorization") != "Bearer secret" {
+			t.Fatal("missing model authorization")
+		}
+		var payload struct {
+			Model    string `json:"model"`
+			Messages []struct {
+				Content json.RawMessage `json:"content"`
+			} `json:"messages"`
+			ResponseFormat struct {
+				Type       string `json:"type"`
+				JSONSchema struct {
+					Name   string `json:"name"`
+					Strict bool   `json:"strict"`
+				} `json:"json_schema"`
+			} `json:"response_format"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		if request.URL.Path != "/chat/completions" || payload.Model != "test-model" || len(payload.Messages) != 2 {
+			t.Fatalf("payload = %#v", payload)
+		}
+		if payload.ResponseFormat.Type != "json_schema" || !payload.ResponseFormat.JSONSchema.Strict || payload.ResponseFormat.JSONSchema.Name != "skills_gap_description_extraction" {
+			t.Fatalf("response format = %#v", payload.ResponseFormat)
+		}
+		var instructions string
+		if err := json.Unmarshal(payload.Messages[0].Content, &instructions); err != nil {
+			t.Fatalf("decode instructions: %v", err)
+		}
+		if !strings.Contains(instructions, "untrusted evidence") || !strings.Contains(instructions, `evidence_method must be "text"`) || !strings.Contains(instructions, "mechanical-maintenance") {
+			t.Fatalf("instructions = %s", instructions)
+		}
+		var description string
+		if err := json.Unmarshal(payload.Messages[1].Content, &description); err != nil {
+			t.Fatalf("decode user message: %v", err)
+		}
+		if !strings.Contains(description, "I operate boats in the interior") || !strings.Contains(description, "<DESCRIPTION>") {
+			t.Fatalf("user content = %s", description)
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(writer).Encode(map[string]any{"choices": []map[string]any{{"message": map[string]string{"content": `{"findings":[{"original_term":"operates boats","candidate_slugs":["mechanical-maintenance"],"years_experience":0,"evidence":"I operate boats in the interior","evidence_page":0,"evidence_method":"text","confidence":0.8}],"unmapped_terms":["gold diving"]}`}}}})
+	}))
+	defer server.Close()
+
+	client := newLLMClient(config{llmBaseURL: server.URL, llmAPIKey: "secret", llmModel: "test-model"})
+	result, err := client.extractWithText(context.Background(), "I operate boats in the interior", testTaxonomy())
+	if err != nil {
+		t.Fatalf("extract text: %v", err)
+	}
+	if len(result.Findings) != 1 || result.Findings[0].EvidenceMethod != methodText || result.Findings[0].EvidencePage != 0 {
+		t.Fatalf("findings = %#v", result.Findings)
+	}
+	if len(result.UnmappedTerms) != 1 || result.UnmappedTerms[0] != "gold diving" {
+		t.Fatalf("unmapped terms = %#v", result.UnmappedTerms)
+	}
+}
+
+func TestTextExtractionRejectsVisionEvidence(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(writer).Encode(map[string]any{"choices": []map[string]any{{"message": map[string]string{"content": `{"findings":[{"original_term":"mechanic","candidate_slugs":["mechanical-maintenance"],"years_experience":4,"evidence":"mechanic","evidence_page":0,"evidence_method":"vision","confidence":0.9}],"unmapped_terms":[]}`}}}})
+	}))
+	defer server.Close()
+
+	client := newLLMClient(config{llmBaseURL: server.URL, llmAPIKey: "secret", llmModel: "test-model"})
+	if _, err := client.extractWithText(context.Background(), "I fix diesel engines", testTaxonomy()); err == nil {
+		t.Fatal("expected vision evidence to be rejected by the text path")
+	}
+}
+
+func TestTextExtractionRejectsNonZeroEvidencePage(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(writer).Encode(map[string]any{"choices": []map[string]any{{"message": map[string]string{"content": `{"findings":[{"original_term":"mechanic","candidate_slugs":["mechanical-maintenance"],"years_experience":4,"evidence":"mechanic","evidence_page":2,"evidence_method":"text","confidence":0.9}],"unmapped_terms":[]}`}}}})
+	}))
+	defer server.Close()
+
+	client := newLLMClient(config{llmBaseURL: server.URL, llmAPIKey: "secret", llmModel: "test-model"})
+	if _, err := client.extractWithText(context.Background(), "I fix diesel engines", testTaxonomy()); err == nil {
+		t.Fatal("expected a non-zero text evidence page to be rejected")
+	}
+}
+
+func TestTextExtractionRejectsShortDescriptionBeforeCallingModel(t *testing.T) {
+	client := newLLMClient(config{llmBaseURL: "http://127.0.0.1:1", llmModel: "test-model"})
+	if _, err := client.extractWithText(context.Background(), "fix", testTaxonomy()); err == nil {
+		t.Fatal("expected a too-short description to be rejected")
 	}
 }
 

@@ -7,11 +7,11 @@ export function PendingFindingCard({ finding, availableQualifications, selectedQ
   return (
     <article className="rounded-lg border border-border bg-surface p-5">
       <div>
-        <p className="text-xs font-semibold text-muted">We found this in your CV</p>
+        <p className="text-xs font-semibold text-muted">{finding.evidence_method === "text" ? "You described this" : "We found this in your CV"}</p>
         <h4 className="mt-1 text-lg font-semibold text-foreground">{finding.original_term}</h4>
       </div>
 
-      <details className="mt-3 text-sm"><summary className="cursor-pointer py-2 text-muted">See CV evidence · Page {finding.evidence_page}</summary>
+      <details className="mt-3 text-sm"><summary className="cursor-pointer py-2 text-muted">{finding.evidence_method === "text" ? "See what you wrote" : `See CV evidence · Page ${finding.evidence_page}`}</summary>
         <p className="mt-1 text-sm leading-6 text-foreground">“{finding.evidence}”</p>
       </details>
 
@@ -57,11 +57,11 @@ export function ConfirmedQualificationCard({ item, years, correction, availableQ
   return (
     <li className="border border-border bg-surface-muted/40 p-4">
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
-        <div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Found in your CV</p><p className="mt-1 font-semibold text-foreground">{item.original_term ?? (item.source === "applicant_confirmed" ? "Added by you" : item.qualificationName)}</p></div>
+        <div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{item.evidence_method === "text" ? "You described this" : "Found in your CV"}</p><p className="mt-1 font-semibold text-foreground">{item.original_term ?? (item.source === "applicant_confirmed" ? "Added by you" : item.qualificationName)}</p></div>
         <span className="hidden text-xl text-accent sm:block" aria-hidden="true">→</span>
         <div><p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">Confirmed skill</p><p className="mt-1 font-semibold text-foreground">{item.qualificationName}</p></div>
       </div>
-      {item.evidence ? <p className="mt-3 border-l-2 border-border pl-3 text-sm leading-6 text-muted">“{item.evidence}”{item.evidence_page ? ` · Page ${item.evidence_page}, ${evidenceMethodLabel(item.evidence_method)}` : ""}</p> : null}
+      {item.evidence ? <p className="mt-3 border-l-2 border-border pl-3 text-sm leading-6 text-muted">“{item.evidence}” · {item.evidence_method === "text" || !item.evidence_page ? evidenceMethodLabel(item.evidence_method) : `Page ${item.evidence_page}, ${evidenceMethodLabel(item.evidence_method)}`}</p> : null}
       <div className="mt-4 flex flex-wrap items-center gap-3"><span className="text-sm font-semibold text-emerald-800">Confirmed by you ✓</span><button type="button" onClick={onRemove} className="min-h-11 rounded-md px-1 text-sm font-semibold text-danger transition-colors hover:bg-red-50 hover:underline">Remove qualification</button></div>
       <div className="mt-4 grid gap-4 border-t border-border pt-4 md:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
@@ -82,6 +82,7 @@ function formatCategory(category: Tables<"qualifications">["category"]): string 
 }
 
 function evidenceMethodLabel(method: Tables<"applicant_qualifications">["evidence_method"]): string {
+  if (method === "text") return "your own words";
   if (method === "ocr") return "OCR";
   if (method === "vision") return "visual review";
   return "CV text";

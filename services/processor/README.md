@@ -1,6 +1,6 @@
 # SkillsGap processor
 
-The processor is the private coordinator for resume processing. It accepts a lightweight Supabase webhook, claims durable jobs through Supabase REST RPCs, loads the active qualification taxonomy, renders every page of a private CV, sends those page images plus the taxonomy vocabulary to the configured vision model, and persists validated structured facts. It never logs CV text, page images, model input/output, names, email addresses, or phone numbers.
+The processor is the private coordinator for applicant skill intake. It accepts a lightweight Supabase webhook, claims durable jobs through Supabase REST RPCs, loads the active qualification taxonomy, and persists validated structured facts. CV jobs render every page of a private CV and send those page images plus the taxonomy vocabulary to the configured vision model. Plain-language jobs send the applicant's own typed description to the same model with the same taxonomy. It never logs CV text, page images, descriptions, model input/output, names, email addresses, or phone numbers.
 
 ## Runtime dependencies
 
@@ -30,9 +30,10 @@ Other optional settings are `PORT` (default `8080`), `PROCESSOR_SCRATCH_DIR` (de
 
 The worker calls these service-role-only RPCs:
 
-- `claim_processing_job(processing_job_id uuid)` atomically changes a queued/retryable job to processing and returns exactly one row with `id`, `resume_id`, `applicant_id`, `kind`, `storage_path`, and `attempts`; no row means another worker already owns it.
+- `claim_processing_job(processing_job_id uuid)` atomically changes a queued/retryable job to processing and returns exactly one row with `id`, `resume_id`, `applicant_id`, `kind`, `storage_path`, `attempts`, and `input_text`; `input_text` carries an applicant-authored description for `description_analysis` jobs and is null for CV jobs. No row means another worker already owns it.
 - `get_active_extraction_taxonomy_snapshot(p_limit bigint)` returns one JSON object with the exact active count and up to `p_limit + 1` entries. The worker uses it to detect a catalogue larger than its configured limit without relying on the Data API's row limit. Snapshot responses have a dedicated 32 MiB decoding limit. `get_active_extraction_taxonomy()` remains available for compatibility.
 - `apply_resume_extraction_with_contact_details(job_id uuid, extraction jsonb)` persists pending taxonomy findings, employment evidence, and private contact suggestions with page evidence, recalculates matches from already-confirmed qualifications, and marks the job completed in one transaction. Contact suggestions change no profile fields until the applicant applies them. The sign-in email remains separate, and CV contact email remains private until role-specific profile sharing. The database stores model options separately; the model never scores candidates.
+- `apply_description_extraction(job_id uuid, extraction jsonb)` persists pending taxonomy findings for an applicant-authored description, records unmatched phrases as unmapped terms, recalculates matches from already-confirmed qualifications, and marks the job completed in one transaction. Text findings carry `evidence_method = 'text'` and page 0; they never touch a resume, employment, or contact fields.
 - `confirm_extraction_finding(finding_id uuid, qualification_id uuid)` is an applicant-only RPC that turns a selected option (or explicit correction) into one confirmed qualification.
 - `reject_extraction_finding(finding_id uuid)` lets the owning applicant dismiss a pending finding without affecting matching.
 - `apply_match_recalculation(job_id uuid)` recalculates a completed applicant after they confirm a qualification.
@@ -41,6 +42,8 @@ The worker calls these service-role-only RPCs:
 The poller reads queued IDs and claims older-than-15-minute processing jobs from `processing_jobs`; webhook requests are merely fast delivery signals. Each CV is downloaded from the private `resumes` bucket using `resumes.storage_path` when the claim response does not include it. A per-job processing context times out after 10 minutes.
 
 The document route is deterministic: `pdfinfo` validates the file and page count, every page is rendered at 144 DPI, and one strict vision request receives the ordered page images plus a fresh active qualification taxonomy snapshot. The model returns one or two approved qualification slugs per evidence-backed finding; it never receives job requirements or calculates scores. PDF size is capped at 15 MB, page count at eight, and rendered image bytes at 20 MB. Permanent document errors fail immediately; transient service errors retain the three-attempt retry policy. Native text extraction and OCR are not active processing paths.
+
+The description route reuses the same taxonomy snapshot and strict-schema request for `description_analysis` jobs. The applicant's typed text is sent as untrusted evidence, never instructions; the path returns findings and unmapped terms only, with `evidence_method = "text"` and page 0, and never reads a resume, employment, or contact. Descriptions are capped at 2000 characters by the database, and a partial unique index allows only one queued or processing description per applicant.
 
 The webhook handler accepts either the configured compact body `{ "job_id": "…" }` or the standard Supabase Database Webhook envelope and reads only `record.id`. It never trusts or logs the rest of the event payload.
 
