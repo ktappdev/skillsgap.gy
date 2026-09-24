@@ -39,20 +39,29 @@ func TestQueuedIncludesStaleProcessingJobs(t *testing.T) {
 	}
 }
 
-func TestLoadTaxonomyUsesPrivateRPCAndReturnsAliases(t *testing.T) {
+func TestLoadTaxonomyUsesSnapshotRPCAndReturnsAliases(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if request.URL.Path != "/rest/v1/rpc/get_active_extraction_taxonomy" {
+		if request.URL.Path != "/rest/v1/rpc/get_active_extraction_taxonomy_snapshot" {
 			t.Fatalf("path = %q", request.URL.Path)
+		}
+		var payload struct {
+			PLimit int `json:"p_limit"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		if payload.PLimit != 2000 {
+			t.Fatalf("p_limit = %d, want 2000", payload.PLimit)
 		}
 		if request.Header.Get("Authorization") != "Bearer service-key" || request.Header.Get("apikey") != "service-key" {
 			t.Fatal("expected service-role headers")
 		}
 		writer.Header().Set("Content-Type", "application/json")
-		_, _ = writer.Write([]byte(`[{"id":"qualification-1","slug":"manual-handling-and-lifting","name":"Manual Handling and Safe Lifting","category":"technical_skill","description":"Moves materials safely.","aliases":["heavy lifting","porter"]}]`))
+		_, _ = writer.Write([]byte(`{"active_count":1,"entries":[{"id":"qualification-1","slug":"manual-handling-and-lifting","name":"Manual Handling and Safe Lifting","category":"technical_skill","description":"Moves materials safely.","aliases":["heavy lifting","porter"]}]}`))
 	}))
 	defer server.Close()
 
-	store := &supabaseStore{baseURL: server.URL, apiKey: "service-key", client: server.Client()}
+	store := &supabaseStore{baseURL: server.URL, apiKey: "service-key", taxonomyEntryLimit: defaultMaxTaxonomyEntries, client: server.Client()}
 	entries, err := store.loadTaxonomy(context.Background())
 	if err != nil {
 		t.Fatalf("load taxonomy: %v", err)
@@ -65,13 +74,43 @@ func TestLoadTaxonomyUsesPrivateRPCAndReturnsAliases(t *testing.T) {
 func TestLoadTaxonomyRejectsDuplicateSlugs(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		writer.Header().Set("Content-Type", "application/json")
-		_, _ = writer.Write([]byte(`[{"id":"one","slug":"same","name":"One"},{"id":"two","slug":"same","name":"Two"}]`))
+		_, _ = writer.Write([]byte(`{"active_count":2,"entries":[{"id":"one","slug":"same","name":"One"},{"id":"two","slug":"same","name":"Two"}]}`))
 	}))
 	defer server.Close()
 
-	store := &supabaseStore{baseURL: server.URL, apiKey: "service-key", client: server.Client()}
+	store := &supabaseStore{baseURL: server.URL, apiKey: "service-key", taxonomyEntryLimit: 10, client: server.Client()}
 	if _, err := store.loadTaxonomy(context.Background()); err == nil {
 		t.Fatal("expected duplicate taxonomy slug to be rejected")
+	}
+}
+
+func TestLoadTaxonomyReportsActualCountAboveConfiguredLimit(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			PLimit int `json:"p_limit"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		if payload.PLimit != 3 {
+			t.Fatalf("p_limit = %d, want 3", payload.PLimit)
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`{"active_count":4,"entries":[{"id":"one","slug":"one","name":"One"},{"id":"two","slug":"two","name":"Two"},{"id":"three","slug":"three","name":"Three"}]}`))
+	}))
+	defer server.Close()
+
+	store := &supabaseStore{baseURL: server.URL, apiKey: "service-key", taxonomyEntryLimit: 3, client: server.Client()}
+	if _, err := store.loadTaxonomy(context.Background()); err == nil || !strings.Contains(err.Error(), "4 active qualifications") || !strings.Contains(err.Error(), "configured limit is 3") {
+		t.Fatalf("load taxonomy error = %v", err)
+	}
+}
+
+func TestDecodeTaxonomySnapshotDetectsResponseOverflow(t *testing.T) {
+	oversized := strings.NewReader(strings.Repeat(" ", int(maxTaxonomySnapshotResponseBytes+1)))
+	_, err := decodeTaxonomySnapshot(oversized)
+	if err == nil || !strings.Contains(err.Error(), "exceeds the 32 MiB limit") {
+		t.Fatalf("decode overflow error = %v", err)
 	}
 }
 

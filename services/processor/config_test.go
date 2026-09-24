@@ -13,6 +13,7 @@ func setRequiredConfig(t *testing.T) {
 	t.Setenv("LLM_BASE_URL", "http://127.0.0.1:1234/v1")
 	t.Setenv("LLM_MODEL", "local-model")
 	t.Setenv("LLM_API_KEY", "")
+	t.Setenv("LLM_MAX_TAXONOMY_ENTRIES", "")
 }
 
 func TestLoadConfigAllowsKeylessOpenAICompatibleEndpoint(t *testing.T) {
@@ -24,6 +25,57 @@ func TestLoadConfigAllowsKeylessOpenAICompatibleEndpoint(t *testing.T) {
 	}
 	if value.llmBaseURL != "http://127.0.0.1:1234/v1" || value.llmModel != "local-model" || value.llmAPIKey != "" {
 		t.Fatalf("LLM config = %#v", value)
+	}
+	if value.taxonomyEntryLimit != defaultMaxTaxonomyEntries {
+		t.Fatalf("taxonomy limit = %d, want default %d", value.taxonomyEntryLimit, defaultMaxTaxonomyEntries)
+	}
+}
+
+func TestLoadConfigReadsTaxonomyLimit(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		value string
+		want  int
+	}{
+		{name: "below default", value: " 125 ", want: 125},
+		{name: "above default", value: "25000", want: 25000},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			setRequiredConfig(t)
+			t.Setenv("LLM_MAX_TAXONOMY_ENTRIES", test.value)
+
+			value, err := loadConfig()
+			if err != nil {
+				t.Fatalf("load config: %v", err)
+			}
+			if value.taxonomyEntryLimit != test.want {
+				t.Fatalf("taxonomy limit = %d, want %d", value.taxonomyEntryLimit, test.want)
+			}
+		})
+	}
+}
+
+func TestConfiguredTaxonomyLimitDefaultsForWhitespace(t *testing.T) {
+	limit, err := configuredTaxonomyEntryLimit(" \t\n")
+	if err != nil {
+		t.Fatalf("parse whitespace taxonomy limit: %v", err)
+	}
+	if limit != defaultMaxTaxonomyEntries {
+		t.Fatalf("taxonomy limit = %d, want default %d", limit, defaultMaxTaxonomyEntries)
+	}
+}
+
+func TestLoadConfigRejectsInvalidTaxonomyLimit(t *testing.T) {
+	for _, invalid := range []string{"0", "-1", "3.5", "many"} {
+		t.Run(invalid, func(t *testing.T) {
+			setRequiredConfig(t)
+			t.Setenv("LLM_MAX_TAXONOMY_ENTRIES", invalid)
+
+			_, err := loadConfig()
+			if err == nil || !strings.Contains(err.Error(), "LLM_MAX_TAXONOMY_ENTRIES must be a positive integer") {
+				t.Fatalf("load config error = %v", err)
+			}
+		})
 	}
 }
 

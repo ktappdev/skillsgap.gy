@@ -28,21 +28,27 @@ const (
 type llmClient struct {
 	baseURL string
 	apiKey  string
-	model   string
-	client  *http.Client
+	model              string
+	taxonomyEntryLimit int
+	client             *http.Client
 }
 
 func newLLMClient(config config) *llmClient {
+	taxonomyEntryLimit := config.taxonomyEntryLimit
+	if taxonomyEntryLimit < 1 {
+		taxonomyEntryLimit = defaultMaxTaxonomyEntries
+	}
 	return &llmClient{
-		baseURL: strings.TrimRight(config.llmBaseURL, "/"),
-		apiKey:  config.llmAPIKey,
-		model:   config.llmModel,
-		client:  &http.Client{Timeout: 5 * time.Minute},
+		baseURL:            strings.TrimRight(config.llmBaseURL, "/"),
+		apiKey:             config.llmAPIKey,
+		model:              config.llmModel,
+		taxonomyEntryLimit: taxonomyEntryLimit,
+		client:             &http.Client{Timeout: 5 * time.Minute},
 	}
 }
 
 func (client *llmClient) extractWithVision(ctx context.Context, images []pageImage, taxonomy []taxonomyEntry) (extraction, error) {
-	if err := validateTaxonomy(taxonomy); err != nil {
+	if err := validateTaxonomy(taxonomy, client.taxonomyEntryLimit); err != nil {
 		return extraction{}, err
 	}
 	taxonomyData, err := taxonomyPrompt(taxonomy)

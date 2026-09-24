@@ -8,14 +8,17 @@ import (
 	"strings"
 )
 
-const maxTaxonomyEntries = 500
+const defaultMaxTaxonomyEntries = 2_000
 
-func validateTaxonomy(entries []taxonomyEntry) error {
+func validateTaxonomy(entries []taxonomyEntry, maxEntries int) error {
 	if len(entries) == 0 {
 		return errors.New("taxonomy snapshot is empty")
 	}
-	if len(entries) > maxTaxonomyEntries {
-		return fmt.Errorf("taxonomy snapshot contains too many qualifications")
+	if maxEntries < 1 {
+		return errors.New("taxonomy limit must be a positive integer")
+	}
+	if len(entries) > maxEntries {
+		return taxonomyLimitError(len(entries), maxEntries)
 	}
 	seenSlugs := make(map[string]struct{}, len(entries))
 	for _, entry := range entries {
@@ -28,6 +31,10 @@ func validateTaxonomy(entries []taxonomyEntry) error {
 		seenSlugs[entry.Slug] = struct{}{}
 	}
 	return nil
+}
+
+func taxonomyLimitError(actualCount, configuredLimit int) error {
+	return fmt.Errorf("taxonomy snapshot contains %d active qualifications; configured limit is %d", actualCount, configuredLimit)
 }
 
 func taxonomySlugs(entries []taxonomyEntry) map[string]struct{} {

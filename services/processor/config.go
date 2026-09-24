@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -17,6 +18,7 @@ type config struct {
 	llmBaseURL         string
 	llmAPIKey          string
 	llmModel           string
+	taxonomyEntryLimit int
 	scratchDirectory   string
 	pollInterval       time.Duration
 	csecSlipSecret     string
@@ -24,6 +26,10 @@ type config struct {
 
 func loadConfig() (config, error) {
 	if err := loadLocalEnv(); err != nil {
+		return config{}, err
+	}
+	taxonomyEntryLimit, err := configuredTaxonomyEntryLimit(os.Getenv("LLM_MAX_TAXONOMY_ENTRIES"))
+	if err != nil {
 		return config{}, err
 	}
 	value := config{
@@ -36,6 +42,7 @@ func loadConfig() (config, error) {
 		llmBaseURL:         strings.TrimRight(strings.TrimSpace(os.Getenv("LLM_BASE_URL")), "/"),
 		llmAPIKey:          strings.TrimSpace(os.Getenv("LLM_API_KEY")),
 		llmModel:           strings.TrimSpace(os.Getenv("LLM_MODEL")),
+		taxonomyEntryLimit: taxonomyEntryLimit,
 		scratchDirectory:   envOrDefault("PROCESSOR_SCRATCH_DIR", "/ephemeral/skillsgap-processor"),
 		pollInterval:       20 * time.Second,
 		csecSlipSecret:     strings.TrimSpace(os.Getenv("CSEC_SLIP_PROCESSOR_SECRET")),
@@ -53,6 +60,18 @@ func loadConfig() (config, error) {
 		return config{}, errors.New("LLM_MODEL must be set")
 	}
 	return value, nil
+}
+
+func configuredTaxonomyEntryLimit(value string) (int, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return defaultMaxTaxonomyEntries, nil
+	}
+	limit, err := strconv.Atoi(trimmed)
+	if err != nil || limit < 1 {
+		return 0, errors.New("LLM_MAX_TAXONOMY_ENTRIES must be a positive integer")
+	}
+	return limit, nil
 }
 
 func envOrDefault(name, fallback string) string {

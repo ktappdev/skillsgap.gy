@@ -15,6 +15,8 @@ import (
 
 var errJobNotClaimed = errors.New("processing job was not claimed")
 
+const maxTaxonomySnapshotResponseBytes int64 = 32 * 1024 * 1024
+
 type jobStore interface {
 	claim(context.Context, string) (processingJob, error)
 	queued(context.Context) ([]string, error)
@@ -26,27 +28,93 @@ type jobStore interface {
 }
 
 type supabaseStore struct {
-	baseURL string
-	apiKey  string
-	client  *http.Client
+	baseURL            string
+	apiKey             string
+	taxonomyEntryLimit int
+	client             *http.Client
 }
 
 func (store *supabaseStore) loadTaxonomy(ctx context.Context) ([]taxonomyEntry, error) {
-	var entries []taxonomyEntry
-	if err := store.postJSON(ctx, "/rest/v1/rpc/get_active_extraction_taxonomy", map[string]any{}, &entries); err != nil {
+	limit := store.taxonomyEntryLimit
+	if limit < 1 {
+		limit = defaultMaxTaxonomyEntries
+	}
+	snapshot, err := store.loadTaxonomySnapshot(ctx, limit)
+	if err != nil {
 		return nil, err
 	}
-	if err := validateTaxonomy(entries); err != nil {
+	if snapshot.ActiveCount < 0 {
+		return nil, errors.New("taxonomy snapshot has a negative active qualification count")
+	}
+	if snapshot.ActiveCount > limit {
+		return nil, taxonomyLimitError(snapshot.ActiveCount, limit)
+	}
+	if snapshot.ActiveCount != len(snapshot.Entries) {
+		return nil, fmt.Errorf("taxonomy snapshot is incomplete: reports %d active qualifications but received %d entries", snapshot.ActiveCount, len(snapshot.Entries))
+	}
+	if err := validateTaxonomy(snapshot.Entries, limit); err != nil {
 		return nil, err
 	}
-	return entries, nil
+	return snapshot.Entries, nil
+}
+
+type taxonomySnapshot struct {
+	ActiveCount int             `json:"active_count"`
+	Entries     []taxonomyEntry `json:"entries"`
+}
+
+func (store *supabaseStore) loadTaxonomySnapshot(ctx context.Context, limit int) (taxonomySnapshot, error) {
+	payload, err := json.Marshal(struct {
+		PLimit int `json:"p_limit"`
+	}{PLimit: limit})
+	if err != nil {
+		return taxonomySnapshot{}, fmt.Errorf("encode taxonomy limit: %w", err)
+	}
+	request, err := store.request(ctx, http.MethodPost, "/rest/v1/rpc/get_active_extraction_taxonomy_snapshot", bytes.NewReader(payload))
+	if err != nil {
+		return taxonomySnapshot{}, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := store.client.Do(request)
+	if err != nil {
+		return taxonomySnapshot{}, fmt.Errorf("load taxonomy snapshot: %w", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return taxonomySnapshot{}, responseError(response)
+	}
+	snapshot, err := decodeTaxonomySnapshot(response.Body)
+	if err != nil {
+		return taxonomySnapshot{}, err
+	}
+	return snapshot, nil
+}
+
+func decodeTaxonomySnapshot(reader io.Reader) (taxonomySnapshot, error) {
+	contents, err := io.ReadAll(io.LimitReader(reader, maxTaxonomySnapshotResponseBytes+1))
+	if err != nil {
+		return taxonomySnapshot{}, fmt.Errorf("read taxonomy snapshot: %w", err)
+	}
+	if int64(len(contents)) > maxTaxonomySnapshotResponseBytes {
+		return taxonomySnapshot{}, errors.New("taxonomy snapshot response exceeds the 32 MiB limit")
+	}
+	var snapshot taxonomySnapshot
+	if err := json.Unmarshal(contents, &snapshot); err != nil {
+		return taxonomySnapshot{}, fmt.Errorf("decode taxonomy snapshot: %w", err)
+	}
+	return snapshot, nil
 }
 
 func newSupabaseStore(config config) *supabaseStore {
+	taxonomyEntryLimit := config.taxonomyEntryLimit
+	if taxonomyEntryLimit < 1 {
+		taxonomyEntryLimit = defaultMaxTaxonomyEntries
+	}
 	return &supabaseStore{
-		baseURL: config.supabaseURL,
-		apiKey:  config.supabaseServiceKey,
-		client:  &http.Client{Timeout: 45 * time.Second},
+		baseURL:            config.supabaseURL,
+		apiKey:             config.supabaseServiceKey,
+		taxonomyEntryLimit: taxonomyEntryLimit,
+		client:             &http.Client{Timeout: 45 * time.Second},
 	}
 }
 

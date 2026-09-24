@@ -24,14 +24,14 @@ Every model request sets `reasoning_effort` to `none`; the OpenRouter API define
 
 For example, a hosted OpenRouter setup uses a base URL such as `https://openrouter.ai/api/v1`, an API key, and the provider's exact model ID. A local llama.cpp setup can use `http://127.0.0.1:8080/v1`, an empty API key, and the model ID configured in the local server. If both processes run on one machine, give the Go processor a different `PORT` from the model server.
 
-Other optional settings are `PORT` (default `8080`), `PROCESSOR_SCRATCH_DIR` (default `/ephemeral/skillsgap-processor`), `CSEC_SLIP_PROCESSOR_SECRET`, `OCR_URL`, and `OCR_SERVICE_SECRET`. The OCR settings remain supported only for a dormant rollback path; the active worker never calls OCR.
+Other optional settings are `PORT` (default `8080`), `PROCESSOR_SCRATCH_DIR` (default `/ephemeral/skillsgap-processor`), `CSEC_SLIP_PROCESSOR_SECRET`, `OCR_URL`, and `OCR_SERVICE_SECRET`. `LLM_MAX_TAXONOMY_ENTRIES` sets the maximum active qualifications loaded for extraction; its built-in default is `2000`. Unset or whitespace-only values use the default. A configured value must be a positive integer, and invalid values stop startup with a configuration error. Changes take effect after the processor restarts. The OCR settings remain supported only for a dormant rollback path; the active worker never calls OCR.
 
 ## Supabase RPC contract
 
 The worker calls these service-role-only RPCs:
 
 - `claim_processing_job(processing_job_id uuid)` atomically changes a queued/retryable job to processing and returns exactly one row with `id`, `resume_id`, `applicant_id`, `kind`, `storage_path`, and `attempts`; no row means another worker already owns it.
-- `get_active_extraction_taxonomy()` returns the active qualification slugs, descriptions, and aliases to the private worker. The taxonomy constrains the model's translation vocabulary.
+- `get_active_extraction_taxonomy_snapshot(p_limit bigint)` returns one JSON object with the exact active count and up to `p_limit + 1` entries. The worker uses it to detect a catalogue larger than its configured limit without relying on the Data API's row limit. Snapshot responses have a dedicated 32 MiB decoding limit. `get_active_extraction_taxonomy()` remains available for compatibility.
 - `apply_resume_extraction_with_contact_details(job_id uuid, extraction jsonb)` persists pending taxonomy findings, employment evidence, and private contact suggestions with page evidence, recalculates matches from already-confirmed qualifications, and marks the job completed in one transaction. Contact suggestions change no profile fields until the applicant applies them. The sign-in email remains separate, and CV contact email remains private until role-specific profile sharing. The database stores model options separately; the model never scores candidates.
 - `confirm_extraction_finding(finding_id uuid, qualification_id uuid)` is an applicant-only RPC that turns a selected option (or explicit correction) into one confirmed qualification.
 - `reject_extraction_finding(finding_id uuid)` lets the owning applicant dismiss a pending finding without affecting matching.

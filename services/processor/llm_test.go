@@ -26,6 +26,14 @@ func TestExtractionSchemaConstrainsQualificationSlugs(t *testing.T) {
 	}
 }
 
+func TestLLMClientEnforcesConfiguredTaxonomyLimit(t *testing.T) {
+	client := newLLMClient(config{taxonomyEntryLimit: 2})
+	_, err := client.extractWithVision(context.Background(), nil, testTaxonomy())
+	if err == nil || !strings.Contains(err.Error(), "3 active qualifications") || !strings.Contains(err.Error(), "configured limit is 2") {
+		t.Fatalf("extract vision error = %v", err)
+	}
+}
+
 func TestDecodeExtractionRejectsMultipleJSONValues(t *testing.T) {
 	_, err := decodeExtraction(`{"findings":[],"employment":[],"unmapped_terms":[]} {}`, testTaxonomy())
 	if err == nil {
