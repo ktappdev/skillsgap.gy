@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ConfirmedQualificationCard, PendingFindingCard } from "./qualification-review-cards";
@@ -32,6 +32,7 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
   const router = useRouter();
   const matchRecalculation = useMatchRecalculation();
   const [findings, setFindings] = useState(initialFindings);
+  const receivedFindingIds = useRef(new Set(initialFindings.map((finding) => finding.id)));
   const [qualifications, setQualifications] = useState(initialQualifications);
   const [years, setYears] = useState<Record<string, string>>(() => Object.fromEntries(initialQualifications.map((item) => [item.id, item.years_experience?.toString() ?? ""])));
   const [corrections, setCorrections] = useState<Record<string, string>>({});
@@ -41,6 +42,24 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
   const [isConfirming, setIsConfirming] = useState(false);
   const [isAddingQualification, setIsAddingQualification] = useState(false);
   const [matchGains, setMatchGains] = useState<MatchScoreGain[]>([]);
+
+  useEffect(() => {
+    const arrivedFindings = initialFindings.filter((finding) => !receivedFindingIds.current.has(finding.id));
+    if (arrivedFindings.length === 0) return;
+
+    for (const finding of arrivedFindings) receivedFindingIds.current.add(finding.id);
+    setFindings((current) => {
+      const currentIds = new Set(current.map((finding) => finding.id));
+      return [...current, ...arrivedFindings.filter((finding) => !currentIds.has(finding.id))];
+    });
+    setFindingChoices((current) => {
+      const next = { ...current };
+      for (const finding of arrivedFindings) {
+        if (!(finding.id in next)) next[finding.id] = "";
+      }
+      return next;
+    });
+  }, [initialFindings]);
 
   async function confirmSelectedFindings() {
     const selectedFindings = findings.filter((finding) => Boolean(findingChoices[finding.id]));

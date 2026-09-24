@@ -50,7 +50,6 @@ export function MatchResultsSection({ matches, roleLabel, isRecalculating, recal
       tabIndex={-1}
       className="scroll-mt-6 focus:outline-none"
       aria-labelledby="matches-heading"
-      aria-busy={updating || undefined}
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -67,7 +66,7 @@ export function MatchResultsSection({ matches, roleLabel, isRecalculating, recal
       {updating && matches.length === 0 ? <MatchLoadingState /> : error && matches.length === 0 ? <MatchErrorState message={error} title={errorTitle} /> : matches.length > 0 ? (
         <>
           {error ? <MatchErrorState message={error} title={errorTitle} /> : null}
-          <div className="mt-5 grid gap-4 xl:grid-cols-2">
+          <div className="mt-5 grid gap-4 xl:grid-cols-2" aria-busy={updating || undefined}>
             {matches.map((match) => <MatchCard key={match.id} match={match} />)}
           </div>
         </>
@@ -81,7 +80,7 @@ export function MatchResultsSection({ matches, roleLabel, isRecalculating, recal
 // Dimming the cards was rejected — it drops the muted body text below 4.5:1.
 function UpdatingPill() {
   return (
-    <span role="status" aria-live="polite" className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-teal-50/50 px-2.5 py-1 text-xs font-semibold text-accent">
+    <span role="status" className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-teal-50/50 px-2.5 py-1 text-xs font-semibold text-accent">
       <span className="size-3 shrink-0 animate-spin rounded-full border-2 border-accent/25 border-t-accent motion-reduce:animate-none" aria-hidden="true" />
       Updating matches
     </span>
@@ -93,16 +92,14 @@ function UpdatingPill() {
 // derived from the job's own timestamp instead of a mirror of it in state, so
 // a new job resets the clock without an extra render.
 function useStaleRecalculation(startedAt: string | null, isRecalculating: boolean) {
-  const [checkedAt, setCheckedAt] = useState(() => Date.now());
+  const [checkedAt, setCheckedAt] = useState(0);
   const startedTime = startedAt ? Date.parse(startedAt) : Number.NaN;
   const stale = isRecalculating && !Number.isNaN(startedTime) && checkedAt >= startedTime + staleRecalculationMs;
 
   useEffect(() => {
     if (!isRecalculating || Number.isNaN(startedTime)) return;
 
-    const remaining = startedTime + staleRecalculationMs - Date.now();
-    if (remaining <= 0) return;
-
+    const remaining = Math.max(0, startedTime + staleRecalculationMs - Date.now());
     const timer = window.setTimeout(() => {
       setCheckedAt(Date.now());
     }, remaining);
@@ -115,7 +112,7 @@ function useStaleRecalculation(startedAt: string | null, isRecalculating: boolea
 
 function MatchLoadingState() {
   return (
-    <div className="mt-5 rounded-lg border border-accent/30 bg-teal-50/50 p-5" role="status" aria-live="polite" aria-busy="true">
+    <div className="mt-5 rounded-lg border border-accent/30 bg-teal-50/50 p-5" role="status" aria-busy="true">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 size-5 shrink-0 animate-spin rounded-full border-2 border-accent/25 border-t-accent motion-reduce:animate-none" aria-hidden="true" />
         <div>

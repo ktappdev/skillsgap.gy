@@ -120,6 +120,70 @@ describe("QualificationReview", () => {
     expect(await screen.findByText("Skill added. Your role matches are being recalculated.")).not.toBeNull();
   });
 
+  it("does not append findings when the same initial finding is re-sent", () => {
+    const { rerender } = render(
+      <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />,
+    );
+
+    rerender(
+      <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification]} unmappedTerms={[]} />,
+    );
+
+    expect(screen.getByRole("heading", { name: "1 suggestions to review" })).not.toBeNull();
+    expect(screen.queryByRole("heading", { name: "2 suggestions to review" })).toBeNull();
+  });
+
+  it("preserves the confirmation message and match gains when a finding arrives", async () => {
+    vi.mocked(confirmExtractionFindings).mockResolvedValue({
+      confirmedFindingIds: [finding.id],
+      gains: [{ roleId: "role-1", roleTitle: "Process Technician", points: 10 }],
+    });
+    const secondQualification = { ...qualification, id: "qualification-2", name: "Confined Space Safety", slug: "confined-space-safety" };
+    const secondFinding = {
+      ...finding,
+      id: "finding-2",
+      original_term: "Confined space",
+      candidates: [{ ...finding.candidates[0], finding_id: "finding-2", qualification_id: secondQualification.id, qualificationName: secondQualification.name }],
+    };
+    const { rerender } = render(
+      <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification, secondQualification]} unmappedTerms={[]} />,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /Industrial Safety/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm selected (1)" }));
+    expect(await screen.findByText("1 skill confirmed.")).not.toBeNull();
+    expect(screen.getByText("+10% to Process Technician")).not.toBeNull();
+
+    rerender(
+      <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding, secondFinding]} initialQualifications={[]} availableQualifications={[qualification, secondQualification]} unmappedTerms={[]} />,
+    );
+
+    expect(await screen.findByRole("radio", { name: /Confined Space Safety/i })).not.toBeNull();
+    expect(screen.getByText("1 skill confirmed.")).not.toBeNull();
+    expect(screen.getByText("+10% to Process Technician")).not.toBeNull();
+  });
+
+  it("renders newly arrived findings while preserving an existing selection", () => {
+    const secondQualification = { ...qualification, id: "qualification-2", name: "Confined Space Safety", slug: "confined-space-safety" };
+    const secondFinding = {
+      ...finding,
+      id: "finding-2",
+      original_term: "Confined space",
+      candidates: [{ ...finding.candidates[0], finding_id: "finding-2", qualification_id: secondQualification.id, qualificationName: secondQualification.name }],
+    };
+    const { rerender } = render(
+      <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding]} initialQualifications={[]} availableQualifications={[qualification, secondQualification]} unmappedTerms={[]} />,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /Industrial Safety/i }));
+    rerender(
+      <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[finding, secondFinding]} initialQualifications={[]} availableQualifications={[qualification, secondQualification]} unmappedTerms={[]} />,
+    );
+
+    expect(screen.getByRole("radio", { name: /Confined Space Safety/i })).not.toBeNull();
+    expect(screen.getByRole<HTMLInputElement>("radio", { name: /Industrial Safety/i }).checked).toBe(true);
+  });
+
   it("keeps the unpacked selection and the gains panel when the match revision changes", async () => {
     vi.mocked(confirmExtractionFindings).mockResolvedValue({
       confirmedFindingIds: [finding.id],

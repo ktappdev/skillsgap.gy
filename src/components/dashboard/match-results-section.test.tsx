@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -36,14 +39,23 @@ function renderSection({ matches, isRecalculating = false, startedAt = null }: {
 }
 
 describe("MatchResultsSection", () => {
-  it("keeps the ranked list navigable and labels the region busy while the recalculation runs", () => {
+  it("wires match revision as a prop rather than a remounting key", () => {
+    const dashboardPage = readFileSync(resolve(process.cwd(), "src/app/(app)/dashboard/page.tsx"), "utf8");
+
+    expect(dashboardPage).toMatch(/<MatchRecalculationProvider\b[^>]*\brevision=\{matchRevision\}/);
+    expect(dashboardPage).not.toMatch(/<MatchRecalculationProvider\b[^>]*\bkey=\{matchRevision\}/);
+  });
+
+  it("keeps the ranked list busy while announcing the update outside the busy region", () => {
     renderSection({ matches: [match], isRecalculating: true, startedAt: new Date().toISOString() });
 
     expect(screen.getByText(match.title)).not.toBeNull();
     expect(screen.getByRole("link", { name: /Open pathway/ })).not.toBeNull();
     expect(screen.getByRole("status").textContent).toContain("Updating matches");
     expect(screen.getByText("Top 1 of 4 roles")).not.toBeNull();
-    expect(screen.getByRole("region", { name: "Your best-fit routes" }).getAttribute("aria-busy")).toBe("true");
+    expect(screen.getByRole("region", { name: "Your best-fit routes" }).getAttribute("aria-busy")).toBeNull();
+    expect(screen.getByRole("status").closest('[aria-busy="true"]')).toBeNull();
+    expect(screen.getByText(match.title).closest('[aria-busy="true"]')).not.toBeNull();
   });
 
   it("shows the full loading panel only before any matches have loaded", () => {
@@ -90,12 +102,13 @@ describe("MatchResultsSection", () => {
     expect(screen.getByText("No matching routes yet")).not.toBeNull();
   });
 
-  it("gives up the updating badge and offers recovery once the job is stale", () => {
+  it("gives up the updating badge and offers recovery once the job is stale", async () => {
     renderSection({ matches: [match], isRecalculating: true, startedAt: new Date(Date.now() - 5 * 60_000).toISOString() });
 
+    const alert = await screen.findByRole("alert");
     expect(screen.queryByText("Updating your matches")).toBeNull();
     expect(screen.queryByText("Updating matches")).toBeNull();
-    expect(screen.getByRole("alert").textContent).toContain("Your matches are still updating.");
+    expect(alert.textContent).toContain("Your matches are still updating.");
     expect(screen.getByRole("alert").textContent).toContain("Usually this takes under a minute");
     expect(screen.getByText(match.title)).not.toBeNull();
     expect(screen.getByRole("link", { name: "Review your confirmed skills" })).not.toBeNull();

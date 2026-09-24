@@ -42,10 +42,10 @@ export function MatchRecalculationProvider({ revision, children }: { revision: s
   }, [revision]);
 
   useEffect(() => {
-    if (state.status !== "loading") return;
+    if (state.status === "idle") return;
 
     const timer = window.setTimeout(() => {
-      setState((current) => current.status === "loading" ? { status: "idle" } : current);
+      setState((current) => current.status === "idle" ? current : { status: "idle" });
     }, optimisticWindowMs);
 
     return () => window.clearTimeout(timer);

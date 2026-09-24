@@ -69,6 +69,21 @@ describe("MatchRecalculationProvider", () => {
     expect(screen.queryByText("Matches could not update.")).toBeNull();
   });
 
+  it("expires an optimistic failure after the bounded window", () => {
+    vi.useFakeTimers();
+    renderProvider("revision-1");
+
+    fireEvent.click(screen.getByRole("button", { name: "Fail recalculation" }));
+    expect(screen.getByText("error")).not.toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(15_000);
+    });
+
+    expect(screen.getByText("idle")).not.toBeNull();
+    expect(screen.queryByText("Matches could not update.")).toBeNull();
+  });
+
   it("settles the optimistic loading state when no revision change arrives", () => {
     vi.useFakeTimers();
     renderProvider("revision-1");
