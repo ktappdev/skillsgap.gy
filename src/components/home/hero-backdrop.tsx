@@ -10,6 +10,9 @@ const heroImages = [
   "/images/oil-rig-workers.webp",
   "/images/hospitality-housekeeping.webp",
   "/images/commercial-kitchen-chef.webp",
+  "/images/offshore-fieldwork.webp",
+  "/images/industrial-maintenance-team.webp",
+  "/images/career-skills-coaching.webp",
 ] as const;
 
 type HeroImage = (typeof heroImages)[number];

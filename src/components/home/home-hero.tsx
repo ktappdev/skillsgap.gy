@@ -36,7 +36,7 @@ export function HomeHero() {
           <a href="#how-it-works" className="inline-flex min-h-11 items-center gap-4 font-semibold hover:underline">
             A practical path forward <span aria-hidden="true">↓</span>
           </a>
-          <p className="text-xs text-white/75">AI-generated offshore illustration</p>
+          <p className="text-xs text-white/75">Scenes of work and skills</p>
         </div>
       </div>
     </section>
