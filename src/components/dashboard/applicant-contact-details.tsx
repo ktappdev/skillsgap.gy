@@ -8,12 +8,13 @@ const initialState: ProfileActionState = {};
 
 type ApplicantContactDetailsProps = {
   email: string | null;
+  contactEmail: string;
   fullName: string;
   phoneNumber: string;
   initiallyOpen?: boolean;
 };
 
-export function ApplicantContactDetails({ email, fullName, phoneNumber, initiallyOpen = false }: ApplicantContactDetailsProps) {
+export function ApplicantContactDetails({ email, contactEmail, fullName, phoneNumber, initiallyOpen = false }: ApplicantContactDetailsProps) {
   const [state, formAction, isPending] = useActionState(updateProfile, initialState);
   const isReadyToShare = Boolean(fullName.trim() && phoneNumber.trim());
 
@@ -22,16 +23,16 @@ export function ApplicantContactDetails({ email, fullName, phoneNumber, initiall
       <summary className="flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-2 text-sm font-semibold text-foreground">
         <span>Contact details</span>
         <span className={`text-xs font-medium ${isReadyToShare ? "text-emerald-800" : "text-muted"}`}>
-          {isReadyToShare ? "Ready for private sharing" : "Needed only if you share your profile"}
+          {isReadyToShare ? "Check before sharing" : "Needed only if you share your profile"}
         </span>
       </summary>
       <div className="mt-3 border-t border-border pt-4">
         <p className="max-w-2xl text-sm leading-6 text-muted">
-          Your name and phone stay private unless you share your profile with an approved company for one role. If you have a CV on file, the company can open it too. Applying alone does not reveal your identity.
+          We fill empty contact fields from your CV; check them before sharing. They stay private unless you share your profile with an approved company for one role. That company can then open your CV. Your sign-in email stays private.
         </p>
         {email ? <p className="mt-3 text-sm text-muted"><span className="font-semibold text-foreground">Sign-in email:</span> {email} · Not shared with employers.</p> : null}
 
-        <form action={formAction} className="mt-4 grid gap-4 sm:grid-cols-2">
+        <form key={JSON.stringify([fullName, contactEmail, phoneNumber])} action={formAction} className="mt-4 grid gap-4 sm:grid-cols-2">
           <label htmlFor="profile-full-name" className="block text-sm font-semibold text-foreground">
             Full name <span className="font-normal text-muted">(optional)</span>
             <input
@@ -43,6 +44,20 @@ export function ApplicantContactDetails({ email, fullName, phoneNumber, initiall
               defaultValue={fullName}
               className="mt-1 min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm font-normal outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             />
+          </label>
+          <label htmlFor="profile-contact-email" className="block text-sm font-semibold text-foreground">
+            Contact email <span className="font-normal text-muted">(optional)</span>
+            <input
+              id="profile-contact-email"
+              name="contact_email"
+              type="email"
+              autoComplete="off"
+              maxLength={254}
+              defaultValue={contactEmail}
+              aria-describedby="profile-contact-email-help"
+              className="mt-1 min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm font-normal outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            />
+            <span id="profile-contact-email-help" className="mt-1 block text-xs font-normal leading-5 text-muted">From your CV if found. Shared only when you share your profile for one role. Your sign-in email stays private.</span>
           </label>
           <label htmlFor="profile-phone-number" className="block text-sm font-semibold text-foreground">
             Phone number <span className="font-normal text-muted">(optional)</span>

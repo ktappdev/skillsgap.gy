@@ -10,7 +10,7 @@ The UI distinguishes local upload, waiting, queued/reading, ready, and error sta
 
 ## Processing result
 
-The processor returns qualification findings and employment facts. The database stores findings as pending and work history as applicant-private. The browser never treats model suggestions as confirmed skills.
+The processor returns qualification findings, employment facts, and candidate-owned name, email, and phone details when they are clearly visible. The database stores findings as pending and work history as applicant-private. Extracted contact details fill only blank profile fields; existing values and the account sign-in email stay unchanged. A CV contact email is visible to an employer only after role-specific profile sharing. The browser never treats model suggestions as confirmed skills.
 
 ## Review and corrections
 

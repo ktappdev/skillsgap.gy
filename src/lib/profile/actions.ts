@@ -17,10 +17,15 @@ export async function updateProfile(
 ): Promise<ProfileActionState> {
   const { supabase, user } = await requireApplicant();
   const fullName = getTrimmedFormString(formData, "full_name");
+  const contactEmail = getTrimmedFormString(formData, "contact_email");
   const phoneNumber = getTrimmedFormString(formData, "phone_number");
 
   if (fullName.length > 80) {
     return { error: "Your name must be 80 characters or fewer." };
+  }
+
+  if (contactEmail.length > 254 || (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail))) {
+    return { error: "Enter a valid contact email address." };
   }
 
   const phoneDigits = phoneNumber.replace(/\D/g, "");
@@ -40,6 +45,7 @@ export async function updateProfile(
 
   const profileValues = {
     full_name: fullName || null,
+    contact_email: contactEmail || null,
     phone_number: phoneNumber || null,
   };
 

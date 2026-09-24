@@ -19,11 +19,12 @@ Source: `src/app/(app)/dashboard/page.tsx:25`
 The detailed workspace is the core applicant page:
 
 1. Header with greeting and automatic-update state.
-2. CV upload or collapsed “Manage your file” section.
-3. Skills review: pending findings, confirmed skills, corrections, years, unmapped private terms, and add/remove controls.
-4. Match results: top three approved active roles, score, strengths, gaps, and pathway links.
-5. Work history disclosure for editing extracted employment.
-6. Saved career-route disclosure or empty save prompt.
+2. Contact details form with name, CV contact email, and phone; sign-in email is shown separately and remains private.
+3. CV upload or collapsed “Manage your file” section.
+4. Skills review: pending findings, confirmed skills, corrections, years, unmapped private terms, and add/remove controls.
+5. Match results: top three approved active roles, score, strengths, gaps, and pathway links.
+6. Work history disclosure for editing extracted employment.
+7. Saved career-route disclosure or empty save prompt.
 
 Processing and recalculation are represented by status, polling/realtime refresh, and error states. The user can clear the pathway, which removes the CV and derived profile/matches.
 

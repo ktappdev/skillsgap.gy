@@ -9,9 +9,9 @@ afterEach(cleanup);
 
 describe("ApplicantContactDetails", () => {
   it("keeps employer contact details private until the applicant shares them", () => {
-    render(<ApplicantContactDetails email="applicant@example.com" fullName="" phoneNumber="" initiallyOpen />);
+    render(<ApplicantContactDetails email="applicant@example.com" contactEmail="" fullName="" phoneNumber="" initiallyOpen />);
 
-    expect(screen.getByText(/Your name and phone stay private unless you share your profile/i)).not.toBeNull();
+    expect(screen.getByText(/We fill empty contact fields from your CV; check them before sharing/i)).not.toBeNull();
     expect(screen.getByText("applicant@example.com · Not shared with employers.")).not.toBeNull();
     expect(screen.getByLabelText(/Full name/i)).not.toBeNull();
     expect(screen.getByLabelText(/Phone number/i)).not.toBeNull();

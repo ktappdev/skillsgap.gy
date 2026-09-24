@@ -107,7 +107,7 @@ Before declaring the pathway complete, run `supabase db push --dry-run --include
 - Configure the model endpoint, model identifier, and API key through server-only environment variables. The processor must support OpenAI-compatible hosted and local endpoints without hardcoding a hosting vendor or model family.
 - Model API keys are bearer secrets: never commit them, print them, paste them into issues, or include them in logs.
 - Before live processing, verify that the configured endpoint exposes the selected model and supports the capabilities required by the extraction contract: vision input and strict structured JSON output. Do not expose the key while checking connectivity.
-- Render every validated PDF page locally and send an instruction prompt, active qualification taxonomy snapshot, and ordered page images to the configured vision model. Do not send native PDF text, OCR text, job requirements, or match data in the active MVP path. The model extracts evidence-backed taxonomy slugs only; PostgreSQL calculates matches and applicant confirmation remains the eligibility gate.
+- Render every validated PDF page locally and send an instruction prompt, active qualification taxonomy snapshot, and ordered page images to the configured vision model. Do not send native PDF text, OCR text, job requirements, or match data in the active MVP path. The model extracts evidence-backed qualifications and employment, plus candidate-owned contact details only when clearly visible. PostgreSQL calculates matches and applicant confirmation remains the eligibility gate. CV contact details fill blank profile fields; the sign-in email is separate, and role-specific profile sharing controls employer access to a CV contact email.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

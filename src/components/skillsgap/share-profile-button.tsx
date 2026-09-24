@@ -5,19 +5,23 @@ import Link from "next/link";
 
 import { revokeProfileShare, shareProfileForRole } from "@/lib/skillsgap/actions";
 
-function getPrivacyDescription(shared: boolean, hasResume: boolean) {
+function getPrivacyDescription(shared: boolean, hasResume: boolean, hasContactEmail: boolean) {
+  const contactDetails = hasContactEmail
+    ? "your name, phone number, and contact email"
+    : "your name and phone number";
+
   if (shared) {
     return hasResume
-      ? "This approved company can see your name and phone number and open your CV for this role. You can revoke access at any time."
-      : "This approved company can see your name and phone number for this role. You can revoke access at any time.";
+      ? `This approved company can see ${contactDetails} and open your CV for this role. Your sign-in email stays private. You can revoke access at any time.`
+      : `This approved company can see ${contactDetails} for this role. Your sign-in email stays private. You can revoke access at any time.`;
   }
 
   return hasResume
-    ? "Share your name and phone number with this approved company and let them open your CV for this role. You can revoke access later. Applying alone keeps your identity private."
-    : "Share your name and phone number with this approved company for this role. You can revoke access later. Applying alone keeps your identity private.";
+    ? `Share ${contactDetails} with this approved company and let them open your CV for this role. Your sign-in email stays private. You can revoke access later. Applying alone keeps your identity private.`
+    : `Share ${contactDetails} with this approved company for this role. Your sign-in email stays private. You can revoke access later. Applying alone keeps your identity private.`;
 }
 
-export function ShareProfileButton({ roleId, alreadyShared, hasResume }: { roleId?: string; alreadyShared?: boolean; hasResume: boolean }) {
+export function ShareProfileButton({ roleId, alreadyShared, hasResume, hasContactEmail = false }: { roleId?: string; alreadyShared?: boolean; hasResume: boolean; hasContactEmail?: boolean }) {
   const [shared, setShared] = useState(Boolean(alreadyShared));
   const [message, setMessage] = useState<string | null>(null);
   const [requiresContactDetails, setRequiresContactDetails] = useState(false);
@@ -69,7 +73,7 @@ export function ShareProfileButton({ roleId, alreadyShared, hasResume }: { roleI
     <section className="rounded-lg border border-border bg-surface-muted p-5" aria-live="polite">
       <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Privacy choice</p>
       <h2 className="mt-2 text-lg font-semibold">{shared ? "Your profile is shared privately for this role" : "Ready to be considered?"}</h2>
-      <p className="mt-2 text-sm leading-6 text-muted">{getPrivacyDescription(shared, hasResume)}</p>
+      <p className="mt-2 text-sm leading-6 text-muted">{getPrivacyDescription(shared, hasResume, hasContactEmail)}</p>
       {shared ? <button type="button" disabled={saving} onClick={() => { void revoke(); }} className="mt-4 min-h-11 rounded-md px-1 text-sm font-semibold text-danger underline-offset-4 transition-colors hover:bg-red-50 hover:underline disabled:cursor-wait disabled:opacity-60">{saving ? "Updating…" : "Revoke private sharing"}</button> : <button type="button" disabled={saving} onClick={() => { void share(); }} className="mt-4 min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent transition-colors hover:bg-teal-50 disabled:cursor-wait disabled:opacity-60">{saving ? "Sharing privately…" : "Share profile privately"}</button>}
       {message ? <p className="mt-3 text-sm text-muted" role="status">{message}</p> : null}
       {requiresContactDetails ? <Link href="/dashboard?editContact=1#contact-details" className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">Add contact details →</Link> : null}

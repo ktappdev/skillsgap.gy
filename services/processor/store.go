@@ -152,7 +152,7 @@ func (store *supabaseStore) resume(ctx context.Context, resumeID string) (resume
 func (store *supabaseStore) complete(ctx context.Context, job processingJob, result extraction) error {
 	// This RPC owns persistence and matching in one database transaction. It must
 	// reject a job that is not currently claimed by this worker.
-	return store.postJSON(ctx, "/rest/v1/rpc/apply_resume_extraction", map[string]any{
+	return store.postJSON(ctx, "/rest/v1/rpc/apply_resume_extraction_with_contact_details", map[string]any{
 		"job_id":     job.ID,
 		"extraction": result,
 	}, nil)

@@ -23,9 +23,9 @@ The worker:
 3. Renders every page at the configured renderer’s resolution.
 4. Loads a fresh active taxonomy snapshot.
 5. Sends the ordered images plus instructions; it does not send native PDF text or OCR text on the active path.
-6. Accepts up to 50 findings, employment rows, and unmapped terms within bounded text/numeric ranges.
-7. Requires evidence-backed findings with valid taxonomy slugs, page numbers, `vision` method, and confidence.
-8. Persists the complete extraction through a database RPC.
+6. Accepts up to 50 findings, employment rows, and unmapped terms within bounded text/numeric ranges, plus a structured contact object.
+7. Requires evidence-backed findings with valid taxonomy slugs, page numbers, `vision` method, and confidence. Contact values are limited to a plausible name, email address, and phone number; uncertain values are dropped.
+8. Persists the complete extraction through a database RPC that fills only blank profile contact fields. The sign-in email remains separate, and the CV contact email is returned to employers only through the role-consented profile RPC.
 
 ## Worker behavior
 

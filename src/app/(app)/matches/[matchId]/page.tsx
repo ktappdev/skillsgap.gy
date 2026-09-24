@@ -21,7 +21,11 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ ma
   const resumeResult = liveMatch
     ? await supabase.from("resumes").select("id").eq("applicant_id", user.id).is("deleted_at", null).limit(1).maybeSingle()
     : null;
+  const profileResult = liveMatch
+    ? await supabase.from("profiles").select("contact_email").eq("id", user.id).maybeSingle()
+    : null;
   const hasResume = Boolean(resumeResult?.data);
+  const hasContactEmail = Boolean(profileResult?.data?.contact_email?.trim());
 
   const eligibilityProgress = Math.min(Math.round((match.score / match.threshold) * 100), 100);
 
@@ -50,14 +54,14 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ ma
 
       {liveMatch ? (
         <div className="mt-6 space-y-4">
-          <ShareProfileButton roleId={match.roleId} alreadyShared={match.consented} hasResume={hasResume} />
+          <ShareProfileButton roleId={match.roleId} alreadyShared={match.consented} hasResume={hasResume} hasContactEmail={hasContactEmail} />
           <ApplyButton roleId={match.roleId} initialStatus={match.applicationStatus} eligible={match.score >= match.threshold} threshold={match.threshold} />
           <section className="rounded-lg border border-border bg-surface p-5" aria-labelledby="privacy-choices-heading">
             <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Your privacy choices</p>
             <h2 id="privacy-choices-heading" className="mt-2 text-lg font-semibold text-foreground">Interest and identity are separate.</h2>
             <ul className="mt-3 space-y-2 text-sm leading-6 text-muted" role="list">
               <li><span className="font-semibold text-foreground">Apply</span> tells the company you are interested without sharing your name or CV.</li>
-              <li><span className="font-semibold text-foreground">Share your profile privately</span> lets this company see your name and phone number{hasResume ? " and open your CV" : ""} for this role.</li>
+              <li><span className="font-semibold text-foreground">Share your profile privately</span> lets this company see your name and phone number{hasContactEmail ? " and contact email" : ""}{hasResume ? " and open your CV" : ""} for this role. Your sign-in email stays private.</li>
               <li><span className="font-semibold text-foreground">Share position</span> sends a public role link to someone else.</li>
             </ul>
           </section>

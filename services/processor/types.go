@@ -25,7 +25,14 @@ type resumeRecord struct {
 type extraction struct {
 	Findings      []extractedQualification `json:"findings"`
 	Employment    []employmentRecord       `json:"employment"`
+	Contact       resumeContactDetails     `json:"contact"`
 	UnmappedTerms []string                 `json:"unmapped_terms"`
+}
+
+type resumeContactDetails struct {
+	FullName    string `json:"full_name"`
+	Email       string `json:"email"`
+	PhoneNumber string `json:"phone_number"`
 }
 
 type extractedQualification struct {

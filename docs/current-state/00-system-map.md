@@ -39,8 +39,8 @@ The priority matters when one user has more than one relationship. Admin wins; a
 1. Applicant uploads one private PDF CV.
 2. The app creates a `resumes` row and a queued `processing_jobs` row.
 3. The processor claims the job, validates the PDF, renders every page, loads the active qualification taxonomy, and requests a complete vision extraction.
-4. The processor validates the model response and calls `apply_resume_extraction`.
-5. Supabase stores pending findings and experience records. Pending findings do not count toward matches.
+4. The processor validates the model response and calls `apply_resume_extraction_with_contact_details`.
+5. Supabase stores pending findings and experience records, and fills blank applicant name, phone, and contact-email fields. Pending findings do not count toward matches; the sign-in email is kept separate.
 6. Applicant selects a taxonomy qualification for each finding or dismisses it.
 7. Confirmation creates/updates confirmed qualifications and enqueues match recalculation.
 8. PostgreSQL calculates weighted scores, mandatory gates, `job_matches`, and `match_gaps`.

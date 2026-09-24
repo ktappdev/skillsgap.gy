@@ -44,6 +44,7 @@ export type ProviderVerificationReviewStatus = "pending" | "approved" | "needs_c
 type Profile = {
   account_type: AccountType;
   avatar_url: string | null;
+  contact_email: string | null;
   created_at: string;
   full_name: string | null;
   id: string;
@@ -136,10 +137,11 @@ export type Database = {
       complete_pathway_plan_handoff: { Args: { target_token_hash: string }; Returns: boolean };
       claim_processing_job: { Args: { processing_job_id: string }; Returns: ProcessingJob[] };
       apply_resume_extraction: { Args: { job_id: string; extraction: Json }; Returns: undefined };
+      apply_resume_extraction_with_contact_details: { Args: { job_id: string; extraction: Json }; Returns: undefined };
       apply_match_recalculation: { Args: { job_id: string }; Returns: undefined };
       get_consented_resume_path: { Args: { target_job_role_id: string; target_resume_id: string }; Returns: string };
       get_consented_candidate_resume_path: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: string };
-      get_consented_candidate_profile: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: Array<{ full_name: string | null; phone_number: string | null }> };
+      get_consented_candidate_profile: { Args: { target_applicant_id: string; target_job_role_id: string }; Returns: Array<{ contact_email: string | null; full_name: string | null; phone_number: string | null }> };
       get_active_extraction_taxonomy: { Args: Record<string, never>; Returns: Array<{ id: string; slug: string; name: string; category: RequirementKind; description: string | null; aliases: string[] }> };
       review_training_provider: { Args: { target_provider_id: string; approve: boolean; reviewer_notes?: string | null }; Returns: undefined };
       confirm_extraction_finding: { Args: { target_finding_id: string; target_qualification_id: string }; Returns: undefined };

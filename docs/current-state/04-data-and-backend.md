@@ -14,7 +14,7 @@ Primary sources: `src/lib/supabase/database.types.ts`, `supabase/migrations/`, `
 
 ## Important RPCs
 
-- `claim_processing_job`, `apply_resume_extraction`, `fail_processing_job`, and `apply_match_recalculation` coordinate durable processing.
+- `claim_processing_job`, `apply_resume_extraction_with_contact_details`, `fail_processing_job`, and `apply_match_recalculation` coordinate durable processing.
 - `get_active_extraction_taxonomy` provides active qualifications/aliases to the processor.
 - `confirm_extraction_finding` and `reject_extraction_finding` keep applicant confirmation explicit.
 - `clear_applicant_pathway` resets applicant-derived records.
