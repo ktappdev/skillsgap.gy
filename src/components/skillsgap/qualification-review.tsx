@@ -61,14 +61,10 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
     });
   }, [initialFindings]);
 
-  async function confirmSelectedFindings() {
-    const selectedFindings = findings.filter((finding) => Boolean(findingChoices[finding.id]));
-    const selections = selectedFindings.flatMap((finding) => {
-      const qualificationId = findingChoices[finding.id];
-      return qualificationId
-        ? getSourceFindingIds(finding).map((findingId) => ({ findingId, qualificationId }))
-        : [];
-    });
+  async function confirmFindings(selectedFindings: Array<{ finding: ApplicantExtractionFindingView; qualificationId: string }>) {
+    const selections = selectedFindings.flatMap(({ finding, qualificationId }) =>
+      getSourceFindingIds(finding).map((findingId) => ({ findingId, qualificationId })),
+    );
     if (selections.length === 0) return setMessage("Choose at least one skill to confirm.");
 
     setIsConfirming(true);
@@ -90,10 +86,9 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
       return sourceFindingIds.length > 0 ? [{ ...finding, sourceFindingIds }] : [];
     }));
     setIsConfirming(false);
-    const confirmedItems = selectedFindings.flatMap((finding) => {
+    const confirmedItems = selectedFindings.flatMap(({ finding, qualificationId }) => {
       const wasConfirmed = getSourceFindingIds(finding).some((findingId) => result.confirmedFindingIds.includes(findingId));
       if (!wasConfirmed) return [];
-      const qualificationId = findingChoices[finding.id];
       const qualification = availableQualifications.find((item) => item.id === qualificationId);
       if (!qualification) return [];
       return [{
@@ -130,8 +125,35 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
       return;
     }
     setMatchGains(result.gains);
-    setMessage(`${selectedFindings.length} skill${selectedFindings.length === 1 ? "" : "s"} confirmed.`);
+    const confirmedCount = selectedFindings.filter(({ finding }) =>
+      getSourceFindingIds(finding).some((findingId) => result.confirmedFindingIds.includes(findingId)),
+    ).length;
+    setMessage(`${confirmedCount} skill${confirmedCount === 1 ? "" : "s"} confirmed.`);
     router.refresh();
+  }
+
+  function confirmSelectedFindings() {
+    const selectedFindings = findings.flatMap((finding) => {
+      const qualificationId = findingChoices[finding.id];
+      return qualificationId ? [{ finding, qualificationId }] : [];
+    });
+    void confirmFindings(selectedFindings);
+  }
+
+  function confirmAllRecognizedFindings() {
+    const recognizedFindings = findings.flatMap((finding) => {
+      const bestCandidate = finding.candidates.reduce<typeof finding.candidates[number] | undefined>(
+        (best, candidate) => !best || candidate.rank < best.rank ? candidate : best,
+        undefined,
+      );
+      return bestCandidate ? [{ finding, qualificationId: bestCandidate.qualification_id }] : [];
+    });
+
+    setFindingChoices((current) => ({
+      ...current,
+      ...Object.fromEntries(recognizedFindings.map(({ finding, qualificationId }) => [finding.id, qualificationId])),
+    }));
+    void confirmFindings(recognizedFindings);
   }
 
   async function rejectFinding(finding: ApplicantExtractionFindingView) {
@@ -213,6 +235,7 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
 
   const knownIds = new Set(qualifications.map((item) => item.qualification_id));
   const selectedFindingCount = findings.filter((finding) => Boolean(findingChoices[finding.id])).length;
+  const recognizedFindingCount = findings.filter((finding) => finding.candidates.length > 0).length;
   return (
     <section id="skills-review" className="scroll-mt-6 rounded-lg border border-border bg-surface p-5" aria-labelledby="qualification-review-heading">
       <h2 id="qualification-review-heading" className="text-xl font-semibold tracking-tight text-foreground">{findings.length > 0 ? "Check the skills we found" : qualifications.length > 0 ? "Your confirmed skills" : "Add your skills"}</h2>
@@ -222,10 +245,18 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
         <div><h3 id="pending-findings-heading" className="text-sm font-semibold text-foreground">{findings.length} suggestions to review</h3><p className="mt-1 text-sm leading-6 text-muted">Choose the skill that best describes your experience, or dismiss it if it does not apply.</p></div>
         {findings.map((finding) => <PendingFindingCard key={finding.id} finding={finding} availableQualifications={availableQualifications} selectedQualificationId={findingChoices[finding.id] ?? ""} onSelect={(qualificationId) => setFindingChoices((current) => ({ ...current, [finding.id]: qualificationId }))} onReject={() => { void rejectFinding(finding); }} />)}
         <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-lg border border-accent/30 bg-surface p-4 shadow-lg sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-semibold text-foreground">{selectedFindingCount === 0 ? "Select the skills that describe you" : `${selectedFindingCount} skill${selectedFindingCount === 1 ? "" : "s"} ready to confirm`}</p>
-          <button type="button" disabled={selectedFindingCount === 0 || isConfirming} onClick={() => { void confirmSelectedFindings(); }} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">
-            {isConfirming ? "Saving your skills…" : `Confirm selected${selectedFindingCount > 0 ? ` (${selectedFindingCount})` : ""}`}
-          </button>
+          <div>
+            <p className="text-sm font-semibold text-foreground">{selectedFindingCount === 0 ? "Select the skills that describe you" : `${selectedFindingCount} skill${selectedFindingCount === 1 ? "" : "s"} ready to confirm`}</p>
+            {recognizedFindingCount > 0 ? <p className="mt-1 text-xs leading-5 text-muted">Confirm all uses the top suggested skill for each recognized term. Review a suggestion first if you want a different match.</p> : null}
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button type="button" disabled={recognizedFindingCount === 0 || isConfirming} onClick={confirmAllRecognizedFindings} className="inline-flex min-h-11 items-center justify-center rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50">
+              {isConfirming ? "Saving your skills…" : `Confirm all recognized${recognizedFindingCount > 0 ? ` (${recognizedFindingCount})` : ""}`}
+            </button>
+            <button type="button" disabled={selectedFindingCount === 0 || isConfirming} onClick={confirmSelectedFindings} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">
+              {isConfirming ? "Saving your skills…" : `Confirm selected${selectedFindingCount > 0 ? ` (${selectedFindingCount})` : ""}`}
+            </button>
+          </div>
         </div>
       </section> : null}
 
