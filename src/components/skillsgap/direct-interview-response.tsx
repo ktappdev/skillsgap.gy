@@ -10,28 +10,38 @@ type DirectInterviewResponseProps = {
   initialStatus: "invited" | "accepted";
 };
 
+type ResponseStatus = DirectInterviewResponseProps["initialStatus"] | "declined";
+
 export function DirectInterviewResponse({ invitationId, initialStatus }: DirectInterviewResponseProps) {
   const router = useRouter();
-  const [status, setStatus] = useState(initialStatus);
+  const [status, setStatus] = useState<ResponseStatus>(initialStatus);
   const [saving, setSaving] = useState(false);
+  // Success and failure are separate states: a decline that saved is a status
+  // update, not an alert. Rendering both from one string is what painted a
+  // successful "you declined" in danger red.
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function respond(nextStatus: "accepted" | "declined") {
     if (saving) return;
     if (nextStatus === "declined" && !window.confirm("Decline this interview invitation?")) return;
     setSaving(true);
     setMessage(null);
+    setError(null);
     try {
       const result = await respondToDirectInterview(invitationId, nextStatus);
       if (result.error) {
-        setMessage(result.error);
+        setError(result.error);
         return;
       }
-      if (nextStatus === "accepted") setStatus("accepted");
+      setStatus(nextStatus);
       setMessage(result.message ?? "Your response was saved.");
       router.refresh();
-    } catch {
-      setMessage("We could not save your response. Check your connection and try again.");
+    } catch (thrown) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[pdbg] direct-interview-response.tsx: saving the response failed", thrown);
+      }
+      setError("We could not save your response. Check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -47,6 +57,16 @@ export function DirectInterviewResponse({ invitationId, initialStatus }: DirectI
     );
   }
 
+  if (status === "declined") {
+    return (
+      <div className="mt-4 rounded-md border border-border bg-surface-muted px-4 py-3 text-sm" role="status">
+        <p className="font-semibold text-foreground">You declined this interview invitation.</p>
+        <p className="mt-1 leading-6 text-muted">The company will not expect a reply for this role. Your profile stays as it is, and you can still apply to other positions.</p>
+        {message ? <p className="mt-2 text-muted" aria-live="polite">{message}</p> : null}
+      </div>
+    );
+  }
+
   return (
     <div className="mt-4">
       <p className="text-sm font-semibold text-foreground">Would you like to continue the conversation?</p>
@@ -58,7 +78,7 @@ export function DirectInterviewResponse({ invitationId, initialStatus }: DirectI
           Not interested
         </button>
       </div>
-      {message ? <p className="mt-3 text-sm text-danger" role="alert">{message}</p> : null}
+      {error ? <p className="mt-3 text-sm text-danger" role="alert">{error}</p> : null}
     </div>
   );
 }

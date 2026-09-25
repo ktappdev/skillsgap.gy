@@ -1,5 +1,8 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { ToastProvider } from "@/components/ui/toast";
 
 import { CvUpload } from "./cv-upload";
 
@@ -18,16 +21,47 @@ vi.mock("@/lib/supabase/client", () => ({
 
 afterEach(cleanup);
 
+// The clear-pathway button inside this panel announces its success through the
+// shared toast region from the root layout, so an isolated render needs it too.
+function renderUpload(props: ComponentProps<typeof CvUpload>) {
+  return render(
+    <ToastProvider>
+      <CvUpload {...props} />
+    </ToastProvider>,
+  );
+}
+
+function withToasts(props: ComponentProps<typeof CvUpload>) {
+  return (
+    <ToastProvider>
+      <CvUpload {...props} />
+    </ToastProvider>
+  );
+}
+
 describe("CvUpload", () => {
   it("makes the first upload action obvious", () => {
-    render(<CvUpload userId="applicant-1" hasUploadedCv={false} resumeStatus={null} processingStatus={null} processingError={null} />);
+    renderUpload({ userId: "applicant-1", hasUploadedCv: false, resumeStatus: null, processingStatus: null, processingError: null });
 
     expect(screen.getByRole("heading", { name: "Upload your current CV" })).not.toBeNull();
     expect(screen.getByRole("button", { name: /Choose your PDF CV/i })).not.toBeNull();
   });
 
+  it("discloses the external AI vision service and the review gate before any file is chosen", () => {
+    renderUpload({ userId: "applicant-1", hasUploadedCv: false, resumeStatus: null, processingStatus: null, processingError: null });
+
+    const description = screen.getByText(/Upload one PDF\./).textContent ?? "";
+    expect(description).toContain("external AI vision service");
+    expect(description).toContain("stay private");
+    expect(description).toContain("nothing is confirmed until you review it");
+
+    const picker = screen.getByRole("button", { name: /Choose your PDF CV/i }).textContent ?? "";
+    expect(picker).toContain("external AI vision service");
+    expect(picker).toContain("nothing is confirmed without your review");
+  });
+
   it("shows one waiting state without competing upload actions", () => {
-    render(<CvUpload userId="applicant-1" hasUploadedCv resumeStatus="processing" processingStatus="processing" processingError={null} />);
+    renderUpload({ userId: "applicant-1", hasUploadedCv: true, resumeStatus: "processing", processingStatus: "processing", processingError: null });
 
     expect(screen.getByRole("heading", { name: "We’re reading your CV" })).not.toBeNull();
     expect(screen.getByText("No action needed right now.")).not.toBeNull();
@@ -35,26 +69,26 @@ describe("CvUpload", () => {
   });
 
   it("points a completed upload directly to skill review", () => {
-    render(<CvUpload userId="applicant-1" hasUploadedCv resumeStatus="processed" processingStatus="completed" processingError={null} />);
+    renderUpload({ userId: "applicant-1", hasUploadedCv: true, resumeStatus: "processed", processingStatus: "completed", processingError: null });
 
     const reviewLink = screen.getByRole<HTMLAnchorElement>("link", { name: /Review the skills we found/i });
     expect(reviewLink.getAttribute("href")).toBe("#skills-review");
   });
   it("distinguishes the queue from an active scan and updates when scanning finishes", () => {
     const props = { userId: "applicant-1", hasUploadedCv: true, processingError: null };
-    const { rerender } = render(<CvUpload {...props} resumeStatus="uploaded" processingStatus="queued" />);
+    const { rerender } = renderUpload({ ...props, resumeStatus: "uploaded", processingStatus: "queued" });
     expect(screen.getByRole("heading", { name: "Your CV is waiting to be scanned" })).not.toBeNull();
 
-    rerender(<CvUpload {...props} resumeStatus="processing" processingStatus="processing" />);
+    rerender(withToasts({ ...props, resumeStatus: "processing", processingStatus: "processing" }));
     expect(screen.getByRole("heading", { name: "We’re reading your CV" })).not.toBeNull();
 
-    rerender(<CvUpload {...props} resumeStatus="processed" processingStatus="completed" />);
+    rerender(withToasts({ ...props, resumeStatus: "processed", processingStatus: "completed" }));
     expect(screen.getByRole("link", { name: /Review the skills we found/i })).not.toBeNull();
     expect(screen.queryByText("No action needed right now.")).toBeNull();
   });
 
   it("shows recovery when a job fails even if the resume still says processing", () => {
-    render(<CvUpload userId="applicant-1" hasUploadedCv resumeStatus="processing" processingStatus="failed" processingError="Please upload an unlocked PDF." />);
+    renderUpload({ userId: "applicant-1", hasUploadedCv: true, resumeStatus: "processing", processingStatus: "failed", processingError: "Please upload an unlocked PDF." });
     expect(screen.getByRole("alert").textContent).toContain("Please upload an unlocked PDF.");
     expect(screen.getByRole("button", { name: "Remove CV and try again" })).not.toBeNull();
     expect(screen.queryByText("No action needed right now.")).toBeNull();

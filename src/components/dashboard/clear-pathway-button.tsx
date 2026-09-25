@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { useToast } from "@/components/ui/toast";
 import { clearApplicantPathway } from "@/lib/skillsgap/actions";
 
 type ClearPathwayButtonProps = {
@@ -13,23 +14,40 @@ type ClearPathwayButtonProps = {
 
 export function ClearPathwayButton({ label = "Clear all data", confirmMessage, onCleared }: ClearPathwayButtonProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   function clearPathway() {
     if (!window.confirm(confirmMessage ?? "Clear your uploaded CV and all pathway data? This cannot be undone. Your account will stay active.")) return;
 
     setError(null);
-    setMessage(null);
     startTransition(async () => {
-      const result = await clearApplicantPathway();
-      if (result.error) {
-        setError(result.error);
-        return;
+      try {
+        const result = await clearApplicantPathway();
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+
+        // Success removes the CV, so the parent stops rendering this button —
+        // and any message inside it — before it could be read. The confirmation
+        // goes to the toast region in the root layout, which outlives this
+        // subtree. Failure keeps this button mounted, so it stays inline below
+        // next to the control the user needs to retry.
+        toast("Your CV and pathway data were cleared.", {
+          tone: "success",
+          description: "Your account stays active. Upload a CV to start a new pathway at any time.",
+        });
+
+        await onCleared?.();
+        router.refresh();
+      } catch (thrown) {
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[pdbg] clear-pathway-button.tsx: clearing the pathway failed", thrown);
+        }
+        setError("We could not clear your pathway. Please try again.");
       }
-      await onCleared?.();
-      router.refresh();
     });
   }
 
@@ -44,9 +62,6 @@ export function ClearPathwayButton({ label = "Clear all data", confirmMessage, o
       >
         {isPending ? "Clearing…" : label}
       </button>
-      <p className="max-w-xs text-left text-xs leading-5 text-muted sm:text-right" role="status" aria-live="polite">
-        {message}
-      </p>
       {error ? <p className="max-w-xs text-left text-xs leading-5 text-danger sm:text-right" role="alert">{error}</p> : null}
     </div>
   );

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ClearPathwayButton } from "@/components/dashboard/clear-pathway-button";
+import { Spinner } from "@/components/ui/spinner";
 import { queueResumeProcessing } from "@/lib/skillsgap/actions";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/supabase/database.types";
@@ -162,11 +163,12 @@ export function CvUpload({ userId, hasUploadedCv, resumeStatus, processingStatus
         className="mt-5 flex min-h-24 w-full flex-col items-center justify-center rounded-md border border-dashed border-accent bg-teal-50/50 px-4 text-center transition hover:bg-teal-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <span className="text-base font-semibold text-accent">{fileName ?? "Choose your PDF CV"}</span>
-        <span className="mt-1 text-sm text-muted">PDF only · Maximum 15 MB · Private to your account</span>
+        <span className="mt-1 text-sm text-muted">PDF only · Maximum 15 MB · Stored privately in your account</span>
+        <span className="mt-1 text-xs text-muted">An external AI vision service reads your CV and suggests your skills. Suggestions stay private, and nothing is confirmed without your review.</span>
       </button> : null}
 
       {status === "uploading" || (status === "queued" || status === "waiting") ? <div className="mt-5 flex items-start gap-3 rounded-md bg-teal-50 p-4" role="status" aria-live="polite">
-        <span className={`mt-0.5 size-5 shrink-0 rounded-full border-2 ${status === "waiting" ? "border-accent bg-accent/10" : "animate-spin border-accent/25 border-t-accent motion-reduce:animate-none"}`} aria-hidden="true" />
+        <Spinner state={status === "waiting" ? "queued" : "running"} className="mt-0.5" />
         <div><p className="font-semibold text-foreground">{status === "uploading" ? "Keep this page open while the upload finishes." : status === "waiting" ? "Your CV is queued securely." : "No action needed right now."}</p><p className="mt-1 text-sm leading-6 text-muted">{status === "uploading" ? "Reading starts automatically after the file is received." : status === "waiting" ? "We’ll start reading automatically when the processing service is available. You can leave and come back later." : "We’re finding your skills and work history. This page updates automatically."}</p></div>
       </div> : null}
 
@@ -215,7 +217,7 @@ function getStatusDescription(status: UploadStatus) {
   if (status === "queued") return "We’re finding your skills and work history. When reading finishes, your next step is to confirm what we found.";
   if (status === "ready") return "Reading is complete. Review the suggested skills below before they shape your job matches.";
   if (status === "error") return "Follow the message below to retry. Your account and existing private information remain safe.";
-  return "Upload one PDF. We’ll read it, then ask you to confirm the skills we found.";
+  return "Upload one PDF. An external AI vision service reads it and suggests your skills. Suggestions stay private, and nothing is confirmed until you review it.";
 }
 
 function getServerUploadStatus(
