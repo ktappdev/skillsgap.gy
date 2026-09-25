@@ -82,6 +82,7 @@ func TestLoadConfigRejectsInvalidTaxonomyLimit(t *testing.T) {
 func TestLoadConfigTreatsSkillPreviewSecretAsOptional(t *testing.T) {
 	setRequiredConfig(t)
 	t.Setenv("SKILL_PREVIEW_SECRET", "")
+	t.Setenv("CSEC_SLIP_PROCESSOR_SECRET", "")
 
 	value, err := loadConfig()
 	if err != nil {
@@ -89,6 +90,15 @@ func TestLoadConfigTreatsSkillPreviewSecretAsOptional(t *testing.T) {
 	}
 	if value.skillPreviewSecret != "" {
 		t.Fatalf("skill preview secret = %q, want empty", value.skillPreviewSecret)
+	}
+
+	t.Setenv("CSEC_SLIP_PROCESSOR_SECRET", "  shared-secret  ")
+	value, err = loadConfig()
+	if err != nil {
+		t.Fatalf("load config with shared secret: %v", err)
+	}
+	if value.skillPreviewSecret != "shared-secret" {
+		t.Fatalf("skill preview secret = %q, want CSEC shared secret", value.skillPreviewSecret)
 	}
 
 	t.Setenv("SKILL_PREVIEW_SECRET", "  preview-secret  ")

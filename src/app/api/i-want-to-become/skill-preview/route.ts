@@ -25,8 +25,10 @@ const visitorCookieMaxAgeSeconds = 60 * 60 * 24 * 365;
  * stay on the server.
  */
 export async function POST(request: Request) {
-  const processorUrl = process.env.SKILL_PREVIEW_PROCESSOR_URL?.trim();
-  const processorSecret = process.env.SKILL_PREVIEW_PROCESSOR_SECRET;
+  const processorUrl = process.env.SKILL_PREVIEW_PROCESSOR_URL?.trim()
+    || process.env.CSEC_SLIP_PROCESSOR_URL?.trim();
+  const processorSecret = process.env.SKILL_PREVIEW_PROCESSOR_SECRET?.trim()
+    || process.env.CSEC_SLIP_PROCESSOR_SECRET?.trim();
   if (!processorUrl || !processorSecret) {
     return NextResponse.json({ message: unavailableMessage }, { status: 503 });
   }

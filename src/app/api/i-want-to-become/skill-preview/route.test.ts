@@ -65,6 +65,8 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => processorFindings }));
   vi.stubEnv("SKILL_PREVIEW_PROCESSOR_URL", processorUrl);
   vi.stubEnv("SKILL_PREVIEW_PROCESSOR_SECRET", processorSecret);
+  vi.stubEnv("CSEC_SLIP_PROCESSOR_URL", "");
+  vi.stubEnv("CSEC_SLIP_PROCESSOR_SECRET", "");
   mocks.rpc.mockResolvedValue(allowedClaim);
   mocks.getTrainingPathways.mockResolvedValue(new Map());
   mocks.createAdminClient.mockReturnValue({
@@ -83,6 +85,20 @@ describe("anonymous skill preview route", () => {
     await expect(response.json()).resolves.toEqual({ message: "Skill preview is not available right now." });
     expect(fetch).not.toHaveBeenCalled();
     expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("reuses the CSEC processor URL and secret when dedicated preview settings are absent", async () => {
+    vi.stubEnv("SKILL_PREVIEW_PROCESSOR_URL", "");
+    vi.stubEnv("SKILL_PREVIEW_PROCESSOR_SECRET", "");
+    vi.stubEnv("CSEC_SLIP_PROCESSOR_URL", "https://shared-processor.example");
+    vi.stubEnv("CSEC_SLIP_PROCESSOR_SECRET", "shared-processor-secret");
+
+    const response = await POST(post({ text: description }));
+
+    expect(response.status).toBe(200);
+    expect(fetch).toHaveBeenCalledWith(new URL("/public/skill-preview", "https://shared-processor.example"), expect.objectContaining({
+      headers: { "X-Skill-Preview-Secret": "shared-processor-secret", "Content-Type": "application/json" },
+    }));
   });
 
   it("rejects text that is too short, too long, or not text at all", async () => {

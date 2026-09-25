@@ -35,6 +35,11 @@ func loadConfig() (config, error) {
 	if err != nil {
 		return config{}, err
 	}
+	csecSlipSecret := strings.TrimSpace(os.Getenv("CSEC_SLIP_PROCESSOR_SECRET"))
+	skillPreviewSecret := strings.TrimSpace(os.Getenv("SKILL_PREVIEW_SECRET"))
+	if skillPreviewSecret == "" {
+		skillPreviewSecret = csecSlipSecret
+	}
 	value := config{
 		port:               envOrDefault("PORT", "8080"),
 		webhookSecret:      strings.TrimSpace(os.Getenv("WEBHOOK_SECRET")),
@@ -48,8 +53,8 @@ func loadConfig() (config, error) {
 		taxonomyEntryLimit: taxonomyEntryLimit,
 		scratchDirectory:   envOrDefault("PROCESSOR_SCRATCH_DIR", "/ephemeral/skillsgap-processor"),
 		pollInterval:       20 * time.Second,
-		csecSlipSecret:     strings.TrimSpace(os.Getenv("CSEC_SLIP_PROCESSOR_SECRET")),
-		skillPreviewSecret: strings.TrimSpace(os.Getenv("SKILL_PREVIEW_SECRET")),
+		csecSlipSecret:     csecSlipSecret,
+		skillPreviewSecret: skillPreviewSecret,
 	}
 	if value.webhookSecret == "" {
 		return config{}, errors.New("WEBHOOK_SECRET must be set")
