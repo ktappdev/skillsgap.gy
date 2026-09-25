@@ -5,6 +5,8 @@ import type { Database, Json, Tables } from "@/lib/supabase/database.types";
 
 type Client = SupabaseClient<Database>;
 
+const resumeCompletionMatchRefreshWindowMs = 30_000;
+
 export type ApplicantProgress = {
   pathwayPlan: Tables<"applicant_pathway_plans"> | null;
   latestResume: Tables<"resumes"> | null;
@@ -40,7 +42,29 @@ export async function getApplicantProgress(client: Client, applicantId: string):
     client.from("applicant_experience").select("*").eq("applicant_id", applicantId).order("created_at", { ascending: false }),
   ]);
 
-  const currentMatches = matchesResult.data ?? [];
+  let currentMatches = matchesResult.data ?? [];
+  const resumeCompletedAt = jobResult.data?.completed_at;
+  const resumeCompletedAtMs = resumeCompletedAt ? Date.parse(resumeCompletedAt) : Number.NaN;
+  const resumeJustCompleted = jobResult.data?.status === "completed"
+    && Number.isFinite(resumeCompletedAtMs)
+    && Date.now() - resumeCompletedAtMs <= resumeCompletionMatchRefreshWindowMs;
+
+  // The job and matches are read concurrently above. If the scan commits
+  // between those reads, this request can see a completed job but the old match
+  // list. Re-read matches briefly after completion so the terminal status and
+  // its transactionally-written matches are reflected in the same page render.
+  if (resumeJustCompleted) {
+    const { data: refreshedMatches } = await client
+      .from("job_matches")
+      .select("*")
+      .eq("applicant_id", applicantId)
+      .eq("status", "current")
+      .order("score", { ascending: false })
+      .order("calculated_at", { ascending: false })
+      .order("id", { ascending: true });
+
+    if (refreshedMatches) currentMatches = refreshedMatches;
+  }
   const unmappedTerms = [...new Set([
     ...getUnmappedTerms(jobResult.data?.result_summary),
     ...getUnmappedTerms(descriptionResult.data?.result_summary),
