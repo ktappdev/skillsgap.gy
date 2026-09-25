@@ -20,12 +20,18 @@ type service struct {
 	store             jobStore
 	pipeline          resumePipeline
 	slipReader        csecSlipReader
+	skillPreview      skillPreviewExtractor
 	jobs              chan string
 	stopPoll          context.CancelFunc
 	workers           sync.WaitGroup
 	slipSlots         chan struct{}
 	slipRateLimit     csecSlipTokenBucket
 	slipSemaphoreWait time.Duration
+	// The skill-preview route keeps its own limiter state so a burst on one
+	// public route cannot starve the other.
+	skillPreviewSlots         chan struct{}
+	skillPreviewRateLimit     skillPreviewTokenBucket
+	skillPreviewSemaphoreWait time.Duration
 }
 
 func newService(config config, store jobStore, pipeline resumePipeline) *service {
@@ -34,10 +40,15 @@ func newService(config config, store jobStore, pipeline resumePipeline) *service
 		store:             store,
 		pipeline:          pipeline,
 		slipReader:        newLLMClient(config),
+		skillPreview:      newLLMClient(config),
 		jobs:              make(chan string, 20),
 		slipSlots:         make(chan struct{}, maxConcurrentCSECSlips),
 		slipRateLimit:     newCSECSlipTokenBucket(),
 		slipSemaphoreWait: csecSlipSemaphoreWait,
+
+		skillPreviewSlots:         make(chan struct{}, maxConcurrentSkillPreviews),
+		skillPreviewRateLimit:     newSkillPreviewTokenBucket(),
+		skillPreviewSemaphoreWait: skillPreviewSemaphoreWait,
 	}
 }
 
@@ -63,6 +74,13 @@ func (service *service) routes() http.Handler {
 	if service.config.csecSlipSecret != "" {
 		handler := service.limitCSECSlipRequests(http.HandlerFunc(service.csecResultSlip))
 		mux.Handle("POST /public/csec-result-slip", service.requireCSECSlipSecret(handler))
+	}
+	// The mount is conditional because an unset secret would leave the route
+	// guarded by an empty shared secret. An empty secret and an empty header
+	// compare equal in subtle.ConstantTimeCompare.
+	if service.config.skillPreviewSecret != "" {
+		handler := service.limitSkillPreviewRequests(http.HandlerFunc(service.skillPreviewHandler))
+		mux.Handle("POST /public/skill-preview", service.requireSkillPreviewSecret(handler))
 	}
 	return requestLogger(mux)
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { CareerExplorer } from "@/components/i-want-to-become/career-explorer";
 import { PathwaySaveHandoff } from "@/components/i-want-to-become/pathway-save-handoff";
+import { SkillPreviewForm } from "@/components/i-want-to-become/skill-preview-form";
 import { PublicContentHeader } from "@/components/shareable/public-content-header";
 import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 import { resolveUserHome } from "@/lib/auth/queries";
@@ -49,6 +50,8 @@ export default async function IWantToBecomePage({ searchParams }: IWantToBecomeP
             </a>
           </div>
         </section>
+
+        <SkillPreviewForm />
 
         <div className="mt-10">
           {isSavingPathway

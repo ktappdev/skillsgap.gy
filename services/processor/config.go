@@ -22,6 +22,9 @@ type config struct {
 	scratchDirectory   string
 	pollInterval       time.Duration
 	csecSlipSecret     string
+	// skillPreviewSecret is not startup-required: an empty value leaves the
+	// public skill-preview route unmounted instead of failing startup.
+	skillPreviewSecret string
 }
 
 func loadConfig() (config, error) {
@@ -46,6 +49,7 @@ func loadConfig() (config, error) {
 		scratchDirectory:   envOrDefault("PROCESSOR_SCRATCH_DIR", "/ephemeral/skillsgap-processor"),
 		pollInterval:       20 * time.Second,
 		csecSlipSecret:     strings.TrimSpace(os.Getenv("CSEC_SLIP_PROCESSOR_SECRET")),
+		skillPreviewSecret: strings.TrimSpace(os.Getenv("SKILL_PREVIEW_SECRET")),
 	}
 	if value.webhookSecret == "" {
 		return config{}, errors.New("WEBHOOK_SECRET must be set")

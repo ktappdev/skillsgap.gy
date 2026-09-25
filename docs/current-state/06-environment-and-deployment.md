@@ -14,6 +14,8 @@ Defined/required by `src/lib/env.ts` and `.env.example`:
 | `DEMO_COMPANY_ID`, `DEMO_PROVIDER_ID` | Server-only | Demo seed identity references |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Server-only | Scripts/admin client/processor integration |
 | `CSEC_SLIP_PROCESSOR_URL`, `CSEC_SLIP_PROCESSOR_SECRET` | Server-only | Optional result-slip proxy to the Go service |
+| `SKILL_PREVIEW_PROCESSOR_URL`, `SKILL_PREVIEW_PROCESSOR_SECRET` | Server-only | Optional anonymous skill-preview proxy to the Go service |
+| `SKILL_PREVIEW_GLOBAL_DAILY_LIMIT` | Server-only | Daily ceiling on anonymous previews across all visitors; default `200` |
 
 ## Processor variables
 
@@ -31,6 +33,9 @@ Defined by `services/processor/config.go` and its README:
 | `PROCESSOR_SCRATCH_DIR` | Temporary PDF/render directory; default `/ephemeral/skillsgap-processor` |
 | `OCR_URL`, `OCR_SERVICE_SECRET` | Dormant rollback path settings |
 | `CSEC_SLIP_PROCESSOR_SECRET` | Optional public slip endpoint secret |
+| `SKILL_PREVIEW_SECRET` | Optional public skill-preview endpoint secret; the route is unmounted when unset |
+
+`SKILL_PREVIEW_PROCESSOR_SECRET` (web app) and `SKILL_PREVIEW_SECRET` (processor) are the same shared secret configured in two places: the Next.js server sends it as `X-Skill-Preview-Secret`, and the processor compares it before reading any text. Both sides must be set for the anonymous preview to work, and the web app's copy must live in Vercel Preview and Production alongside `SKILL_PREVIEW_PROCESSOR_URL`; the processor's copy belongs in its own environment. The CSEC slip pair follows the same two-place rule.
 
 ## Deployment assumptions recorded in the repo
 
@@ -47,4 +52,5 @@ These are repository instructions and runbook assumptions; they are not evidence
 - The web build can pass without the Go/model service because it does not call the processor during build.
 - Public career routes can use static fallback data.
 - Public result-slip automatic reading returns unavailable when its two env vars are absent; manual entry remains usable.
+- The anonymous skill preview returns unavailable when `SKILL_PREVIEW_PROCESSOR_URL` and `SKILL_PREVIEW_PROCESSOR_SECRET` are absent, or when the processor has no `SKILL_PREVIEW_SECRET` (its route answers 404).
 - CV processing queues work but cannot complete until a processor is available.

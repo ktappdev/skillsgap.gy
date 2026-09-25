@@ -38,7 +38,7 @@ describe("processor webhook migration check", () => {
     const result = runChecker();
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("20260924203000_guard_processor_webhook_dispatch.sql");
+    expect(result.stdout).toContain("20260925011723_add_skill_preview_quota.sql");
   });
 
   it("fails when the winning definition omits recalculate_matches", () => {

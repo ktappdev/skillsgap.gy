@@ -257,9 +257,9 @@ async function getAvailableQualifications(client: Client): Promise<Tables<"quali
   return data ?? [];
 }
 
-type TrainingPathway = { id: string; label: string; description: string | null; duration: string | null; url: string | null };
+export type TrainingPathway = { id: string; label: string; description: string | null; duration: string | null; url: string | null };
 
-async function getTrainingPathways(client: Client, qualificationIds: string[]): Promise<Map<string, TrainingPathway>> {
+export async function getTrainingPathways(client: Client, qualificationIds: string[]): Promise<Map<string, TrainingPathway>> {
   if (qualificationIds.length === 0) return new Map();
 
   const { data: outcomes } = await client

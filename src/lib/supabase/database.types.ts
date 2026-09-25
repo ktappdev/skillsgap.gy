@@ -137,6 +137,7 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       clear_applicant_pathway: { Args: { target_applicant_id: string }; Returns: string[] };
+      consume_skill_preview: { Args: { p_visitor_id: string; p_ip_hash: string; p_per_visitor_limit: number; p_window_seconds: number; p_daily_limit: number; p_in_flight_ttl_seconds: number }; Returns: Json };
       create_pathway_plan_handoff: { Args: { target_payload: Json; target_token_hash: string }; Returns: boolean };
       bind_pathway_plan_handoff: { Args: { target_email: string; target_token_hash: string }; Returns: boolean };
       claim_pathway_plan_handoff: { Args: { target_token_hash: string }; Returns: Json };

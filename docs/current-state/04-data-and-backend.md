@@ -22,6 +22,7 @@ Primary sources: `src/lib/supabase/database.types.ts`, `supabase/migrations/`, `
 - `get_consented_candidate_profile`, `get_consented_resume_path`, and `get_consented_candidate_resume_path` enforce privacy boundaries.
 - `get_public_occupations` and `get_public_occupation_pathway` expose curated public career data.
 - `accept_company_recruiter_invitation` handles hashed invitation acceptance.
+- `consume_skill_preview` atomically claims one anonymous-preview slot for a visitor and for the day, returning the remaining allowance or a denial reason; the private counter tables it owns are readable only through it.
 
 ## RLS and authorization model
 

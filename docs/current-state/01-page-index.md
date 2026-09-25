@@ -68,6 +68,7 @@ The detailed one-to-one page files live in [`02-pages/`](./02-pages/). Area over
 | `GET /api/i-want-to-become/occupations` | Returns validated public occupations from Supabase RPC, falling back to the static catalogue. |
 | `GET /api/i-want-to-become/occupations/[slug]` | Returns a validated live occupation pathway, or a static fallback. |
 | `POST /api/i-want-to-become/slip` | Validates/rate-limits a result-slip image and optionally proxies it to the configured processor. |
+| `POST /api/i-want-to-become/skill-preview` | Validates and quota-limits an anonymous skill description, then returns matched roles, gaps, and training without a score. |
 
 ## Global states
 

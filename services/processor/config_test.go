@@ -79,6 +79,28 @@ func TestLoadConfigRejectsInvalidTaxonomyLimit(t *testing.T) {
 	}
 }
 
+func TestLoadConfigTreatsSkillPreviewSecretAsOptional(t *testing.T) {
+	setRequiredConfig(t)
+	t.Setenv("SKILL_PREVIEW_SECRET", "")
+
+	value, err := loadConfig()
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if value.skillPreviewSecret != "" {
+		t.Fatalf("skill preview secret = %q, want empty", value.skillPreviewSecret)
+	}
+
+	t.Setenv("SKILL_PREVIEW_SECRET", "  preview-secret  ")
+	value, err = loadConfig()
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if value.skillPreviewSecret != "preview-secret" {
+		t.Fatalf("skill preview secret = %q, want the trimmed value", value.skillPreviewSecret)
+	}
+}
+
 func TestLoadConfigRequiresEndpointAndModel(t *testing.T) {
 	tests := []struct {
 		name    string
