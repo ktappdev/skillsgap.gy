@@ -42,6 +42,24 @@ from (
 join public.qualifications qualification on qualification.slug = alias_data.slug
 on conflict (normalized_alias) do nothing;
 
+insert into public.training_providers (
+  id, name, location, contact_url, description, is_verified
+)
+values (
+  '20000000-0000-0000-0000-000000000003',
+  'Board of Industrial Training',
+  'Georgetown, Guyana',
+  'https://srms.bit.gov.gy/',
+  'Curated provider pointer. Confirm the current intake, entry requirements, cost, and credential directly with the provider.',
+  true
+)
+on conflict (id) do update set
+  name = excluded.name,
+  location = excluded.location,
+  contact_url = excluded.contact_url,
+  description = excluded.description,
+  is_verified = excluded.is_verified;
+
 insert into public.training_programs (
   id, provider_id, name, description, duration_text, enrollment_url, is_active
 )
@@ -67,11 +85,37 @@ from public.qualifications qualification
 where qualification.slug = 'manual-handling-and-lifting'
 on conflict do nothing;
 
+insert into public.companies (id, name, description, status, reviewed_at)
+values (
+  '10000000-0000-0000-0000-000000000003',
+  'Essequibo Logistics Partners',
+  'Curated demo company for the SkillsGap.gy hackathon.',
+  'approved',
+  timezone('utc', now())
+)
+on conflict (id) do update set
+  name = excluded.name,
+  description = excluded.description,
+  status = excluded.status,
+  reviewed_at = excluded.reviewed_at;
+
 insert into public.job_roles (
   id, company_id, title, description, location, employment_type, status,
   eligibility_threshold, published_at
 )
-values (
+values
+(
+  '40000000-0000-0000-0000-000000000006',
+  '10000000-0000-0000-0000-000000000003',
+  'Heavy Equipment Operator Trainee',
+  'Curated demo equipment pathway.',
+  'Guyana',
+  'Full time',
+  'draft',
+  70,
+  null
+),
+(
   '40000000-0000-0000-0000-000000000007',
   '10000000-0000-0000-0000-000000000003',
   'Materials Handler / Porter',

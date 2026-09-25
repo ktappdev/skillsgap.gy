@@ -13,11 +13,14 @@ values
   ('10000000-0000-0000-0000-000000000008', 'Guyana Digital Infrastructure Services', 'Curated demo company for software, data, cloud, server, network, cybersecurity, and IoT pathways. Not a live employer listing.', 'approved', timezone('utc', now()))
 on conflict (id) do update set
   name = excluded.name,
-  description = excluded.description,
-  status = excluded.status,
-  reviewed_at = excluded.reviewed_at;
+  description = excluded.description;
 
 insert into public.qualifications (slug, name, category, description)
+select seed_qualification.slug,
+       seed_qualification.name,
+       seed_qualification.category::public.requirement_kind,
+       seed_qualification.description
+from (
 values
   ('bosiet', 'BOSIET', 'certification', 'Basic Offshore Safety Induction and Emergency Training.'),
   ('hydraulic-maintenance', 'Hydraulic Maintenance', 'technical_skill', 'Diagnoses and maintains hydraulic systems.'),
@@ -38,7 +41,6 @@ values
   ('scaffolding', 'Scaffolding', 'technical_skill', 'Erects and inspects basic scaffolding.'),
   ('warehouse-operations', 'Warehouse Operations', 'technical_skill', 'Handles inventory, dispatch, and receiving.'),
   ('defensive-driving', 'Defensive Driving', 'certification', 'Applies defensive driving practice.'),
-  ('local-content-registration', 'Local Content Registration', 'compliance', 'Required local-content registration where applicable.'),
   ('mechanical-maintenance', 'Mechanical Maintenance', 'technical_skill', 'Performs planned and corrective mechanical maintenance.'),
   ('instrumentation-basics', 'Instrumentation Basics', 'technical_skill', 'Understands basic industrial instrumentation.'),
   ('software-development', 'Software Development', 'technical_skill', 'Designs, builds, tests, and maintains software applications.'),
@@ -51,11 +53,28 @@ values
   ('data-analysis', 'Data Analysis', 'technical_skill', 'Cleans, analyses, visualises, and communicates insights from data.'),
   ('api-development-and-integration', 'API Development and Integration', 'technical_skill', 'Builds and integrates reliable application programming interfaces.'),
   ('version-control', 'Version Control', 'technical_skill', 'Uses source-control workflows to collaborate safely on software changes.')
-on conflict (slug) do update set
-  name = excluded.name,
-  category = excluded.category,
-  description = excluded.description,
-  is_active = true;
+) as seed_qualification(slug, name, category, description)
+where not exists (
+  select 1
+  from public.qualifications existing
+  where private.normalize_qualification_term(existing.name) in (
+      private.normalize_qualification_term(seed_qualification.slug),
+      private.normalize_qualification_term(seed_qualification.name)
+    )
+    or private.normalize_qualification_term(existing.slug) in (
+      private.normalize_qualification_term(seed_qualification.slug),
+      private.normalize_qualification_term(seed_qualification.name)
+    )
+)
+and not exists (
+  select 1
+  from public.qualification_aliases existing_alias
+  where private.normalize_qualification_term(existing_alias.alias) in (
+    private.normalize_qualification_term(seed_qualification.slug),
+    private.normalize_qualification_term(seed_qualification.name)
+  )
+)
+on conflict (slug) do nothing;
 
 insert into public.qualification_aliases (qualification_id, alias)
 select qualification.id, alias_data.alias
@@ -151,6 +170,20 @@ from (
     ('version-control', 'Source Control')
 ) as alias_data(slug, alias)
 join public.qualifications qualification on qualification.slug = alias_data.slug
+where not exists (
+  select 1
+  from public.qualification_aliases existing_alias
+  where private.normalize_qualification_term(existing_alias.alias) =
+    private.normalize_qualification_term(alias_data.alias)
+)
+and not exists (
+  select 1
+  from public.qualifications existing
+  where private.normalize_qualification_term(existing.name) =
+      private.normalize_qualification_term(alias_data.alias)
+    or private.normalize_qualification_term(existing.slug) =
+      private.normalize_qualification_term(alias_data.alias)
+)
 on conflict (normalized_alias) do nothing;
 
 -- University of Guyana programme catalogue and course details checked 2026-09-06:
@@ -789,6 +822,11 @@ on conflict (occupation_id, action_type) do update set
 -- value already exists). Same rows, same aliases, idempotent on re-run.
 
 insert into public.qualifications (slug, name, category, description)
+select seed_qualification.slug,
+       seed_qualification.name,
+       seed_qualification.category::public.requirement_kind,
+       seed_qualification.description
+from (
 values
   ('bsc-computer-science', 'Bachelor of Science in Computer Science', 'education', 'University of Guyana degree covering programming, algorithms, databases, and software engineering.'),
   ('bsc-information-technology', 'Bachelor of Science in Information Technology', 'education', 'University of Guyana degree in information systems, networks, and IT service delivery.'),
@@ -833,11 +871,28 @@ values
   ('cvq-welding', 'CVQ Welding', 'education', 'Caribbean Vocational Qualification certifying welding competency; verify the level and unit.'),
   ('cape-associate-degree', 'CAPE Associate Degree', 'education', 'CXC Caribbean Advanced Proficiency Examination Associate Degree awarded for a prescribed cluster of units.'),
   ('cape-diploma', 'CAPE Diploma', 'education', 'CXC Caribbean Advanced Proficiency Examination Diploma awarded for completion of at least six units including Caribbean Studies.')
-on conflict (slug) do update set
-  name = excluded.name,
-  category = excluded.category,
-  description = excluded.description,
-  is_active = true;
+) as seed_qualification(slug, name, category, description)
+where not exists (
+  select 1
+  from public.qualifications existing
+  where private.normalize_qualification_term(existing.name) in (
+      private.normalize_qualification_term(seed_qualification.slug),
+      private.normalize_qualification_term(seed_qualification.name)
+    )
+    or private.normalize_qualification_term(existing.slug) in (
+      private.normalize_qualification_term(seed_qualification.slug),
+      private.normalize_qualification_term(seed_qualification.name)
+    )
+)
+and not exists (
+  select 1
+  from public.qualification_aliases existing_alias
+  where private.normalize_qualification_term(existing_alias.alias) in (
+    private.normalize_qualification_term(seed_qualification.slug),
+    private.normalize_qualification_term(seed_qualification.name)
+  )
+)
+on conflict (slug) do nothing;
 
 insert into public.qualification_aliases (qualification_id, alias)
 select qualification.id, alias_data.alias
@@ -927,6 +982,20 @@ from (
     ('cape-diploma', 'CXC CAPE Diploma')
 ) as alias_data(slug, alias)
 join public.qualifications qualification on qualification.slug = alias_data.slug
+where not exists (
+  select 1
+  from public.qualification_aliases existing_alias
+  where private.normalize_qualification_term(existing_alias.alias) =
+    private.normalize_qualification_term(alias_data.alias)
+)
+and not exists (
+  select 1
+  from public.qualifications existing
+  where private.normalize_qualification_term(existing.name) =
+      private.normalize_qualification_term(alias_data.alias)
+    or private.normalize_qualification_term(existing.slug) =
+      private.normalize_qualification_term(alias_data.alias)
+)
 on conflict (normalized_alias) do nothing;
 -- Curated Guyana energy-sector providers, courses, career profiles, and local-content routes.
 -- Source pages were checked on 2026-09-23. Seeded roles are illustrative profiles,
@@ -951,6 +1020,11 @@ on conflict (normalized_alias) do nothing;
 -- https://registry.uog.edu.gy/srms/departments/8/programmes/990/details
 
 insert into public.qualifications (slug, name, category, description)
+select seed_qualification.slug,
+       seed_qualification.name,
+       seed_qualification.category::public.requirement_kind,
+       seed_qualification.description
+from (
 values
   ('oil-and-gas-industry-fundamentals', 'Oil and Gas Industry Fundamentals', 'technical_skill', 'Foundational understanding of Guyana''s oil and gas value chain, operating context, and Gas-to-Energy project.'),
   ('subsea-robotics-basics', 'Subsea Robotics and ROV Simulator Basics', 'technical_skill', 'Introductory familiarity with subsea robotics and remotely operated vehicle simulation; confirm the provider''s current course and award details.'),
@@ -963,11 +1037,28 @@ values
   ('cvq-level-3-occupational-safety-and-health', 'CVQ Level 3 in Occupational Safety and Health', 'education', 'The New Amsterdam Technical Institute OSH Centre of Excellence is reported to host this CVQ route; confirm the current award and intake with the institute.'),
   ('asc-petroleum-engineering', 'Associate of Science in Petroleum Engineering', 'education', 'University of Guyana associate programme in petroleum engineering.'),
   ('msc-oil-and-gas-renewable-energy', 'Master of Science in Oil and Gas and Renewable Energy', 'education', 'University of Guyana postgraduate programme combining oil and gas, environmental management, and renewable energy.')
-on conflict (slug) do update set
-  name = excluded.name,
-  category = excluded.category,
-  description = excluded.description,
-  is_active = true;
+) as seed_qualification(slug, name, category, description)
+where not exists (
+  select 1
+  from public.qualifications existing
+  where private.normalize_qualification_term(existing.name) in (
+      private.normalize_qualification_term(seed_qualification.slug),
+      private.normalize_qualification_term(seed_qualification.name)
+    )
+    or private.normalize_qualification_term(existing.slug) in (
+      private.normalize_qualification_term(seed_qualification.slug),
+      private.normalize_qualification_term(seed_qualification.name)
+    )
+)
+and not exists (
+  select 1
+  from public.qualification_aliases existing_alias
+  where private.normalize_qualification_term(existing_alias.alias) in (
+    private.normalize_qualification_term(seed_qualification.slug),
+    private.normalize_qualification_term(seed_qualification.name)
+  )
+)
+on conflict (slug) do nothing;
 
 insert into public.qualification_aliases (qualification_id, alias)
 select qualification.id, alias_data.alias
@@ -999,6 +1090,20 @@ from (
     ('msc-oil-and-gas-renewable-energy', 'MSc Oil and Gas and Renewable Energy')
 ) as alias_data(slug, alias)
 join public.qualifications qualification on qualification.slug = alias_data.slug
+where not exists (
+  select 1
+  from public.qualification_aliases existing_alias
+  where private.normalize_qualification_term(existing_alias.alias) =
+    private.normalize_qualification_term(alias_data.alias)
+)
+and not exists (
+  select 1
+  from public.qualifications existing
+  where private.normalize_qualification_term(existing.name) =
+      private.normalize_qualification_term(alias_data.alias)
+    or private.normalize_qualification_term(existing.slug) =
+      private.normalize_qualification_term(alias_data.alias)
+)
 on conflict (normalized_alias) do nothing;
 
 insert into public.training_providers (
