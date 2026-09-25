@@ -18,7 +18,9 @@ export async function createClient() {
             cookieStore.set(name, value, options);
           });
         } catch {
-          // Server Components cannot write cookies; the root proxy handles refreshes.
+          // Server Component cookie writes are not persisted, so a token rotation that happens
+          // while rendering is dropped here. Rotated tokens persist via server actions and
+          // route handlers, which can set response cookies.
         }
       },
     },
