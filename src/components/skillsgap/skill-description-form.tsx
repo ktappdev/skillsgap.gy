@@ -34,8 +34,14 @@ export function SkillDescriptionForm({ status, errorMessage, retryText }: SkillD
         return;
       }
       setText("");
+      // The queued status only arrives with the refreshed server data, so this
+      // covers the gap between the click and that re-render.
+      setMessage("Sent for reading. Suggestions appear below for your review.");
       router.refresh();
-    } catch {
+    } catch (thrown) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[pdbg] skill-description-form.tsx: sending the description failed", thrown);
+      }
       setMessage("We could not send your description. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -47,7 +53,7 @@ export function SkillDescriptionForm({ status, errorMessage, retryText }: SkillD
   return (
     <section id="describe-skills" className="scroll-mt-6 rounded-lg border border-border bg-surface p-5" aria-labelledby="describe-skills-heading">
       <h2 id="describe-skills-heading" className="text-xl font-semibold tracking-tight text-foreground">Describe your work in your own words</h2>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">Write what you actually do — for example, “I operate boats in the interior and I fix diesel engines.” We map it to the skills employers ask for, and you confirm what is right.</p>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">Write what you actually do — for example, “I operate boats in the interior and I fix diesel engines.” We send your description to an external AI reading service that suggests matching skills. You approve every suggestion before it counts, and only confirmed skills affect your matches.</p>
 
       {isProcessing ? (
         <div className="mt-4 rounded-md border border-accent/30 bg-surface-muted p-4" role="status">

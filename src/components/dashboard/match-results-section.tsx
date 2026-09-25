@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { useMatchRecalculation } from "@/components/dashboard/match-recalculation-context";
 import { MatchCard } from "@/components/skillsgap/match-card";
 import { StatusPill } from "@/components/skillsgap/milestone-path";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import type { Match } from "@/lib/skillsgap-demo";
 
 // A recalculation waits 0-20s for the processor to claim the job, spends ~0.3s
@@ -38,6 +40,14 @@ export function MatchResultsSection({ matches, roleLabel, isRecalculating, recal
   // Only the timer-driven bound makes this a "still running" report; a real
   // failure message keeps the failure wording.
   const errorTitle = stale && !optimisticError && !recalculationError ? staleRecalculationTitle : undefined;
+  // The rule label is owned by `dashboard/page.tsx`: it reads "Top N of M roles"
+  // only when the real list was capped to the three highest scores, and it reads
+  // "Demo pathways" for the static demo fallback, which is a fixed three-card
+  // sample rather than a capped slice of a longer list. Keying the cap note on
+  // the cap wording keeps the note and the pill in agreement, and fails closed:
+  // if that label is ever reworded, the note is dropped instead of claiming a cap
+  // the shown list may not have.
+  const listIsCapped = roleLabel.startsWith("Top ");
 
   // The ranked list is never unmounted while a recalculation is in flight. The
   // recalculation runs as one transaction (marks matches `stale`, upserts them
@@ -63,6 +73,15 @@ export function MatchResultsSection({ matches, roleLabel, isRecalculating, recal
       </div>
       <p className="mt-3 text-sm leading-6 text-muted">These routes are ranked from your confirmed profile. You do not need to know the job title first.</p>
 
+      {matches.length > 0 ? (
+        <>
+          <p className="mt-3 text-sm leading-6 text-muted">Your match is the share of a role&apos;s requirements you have confirmed, weighted by how much each requirement counts. It is calculated per role, so percentages are not comparable between roles.</p>
+          {listIsCapped ? (
+            <p className="mt-2 text-sm leading-6 text-muted">This list shows your {matches.length} highest-scoring {matches.length === 1 ? "role" : "roles"}. You may match more roles than are shown here.</p>
+          ) : null}
+        </>
+      ) : null}
+
       {updating && matches.length === 0 ? <MatchLoadingState /> : error && matches.length === 0 ? <MatchErrorState message={error} title={errorTitle} /> : matches.length > 0 ? (
         <>
           {error ? <MatchErrorState message={error} title={errorTitle} /> : null}
@@ -81,7 +100,7 @@ export function MatchResultsSection({ matches, roleLabel, isRecalculating, recal
 function UpdatingPill() {
   return (
     <span role="status" className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-teal-50/50 px-2.5 py-1 text-xs font-semibold text-accent">
-      <span className="size-3 shrink-0 animate-spin rounded-full border-2 border-accent/25 border-t-accent motion-reduce:animate-none" aria-hidden="true" />
+      <Spinner size="sm" />
       Updating matches
     </span>
   );
@@ -114,15 +133,15 @@ function MatchLoadingState() {
   return (
     <div className="mt-5 rounded-lg border border-accent/30 bg-teal-50/50 p-5" role="status" aria-busy="true">
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 size-5 shrink-0 animate-spin rounded-full border-2 border-accent/25 border-t-accent motion-reduce:animate-none" aria-hidden="true" />
+        <Spinner className="mt-0.5" />
         <div>
           <h3 className="font-semibold text-foreground">Updating your matches</h3>
           <p className="mt-1 text-sm leading-6 text-muted">We&apos;re confirming your selected skills and comparing them with current roles. This section will update automatically.</p>
         </div>
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2" aria-hidden="true">
-        <div className="h-28 animate-pulse rounded-lg bg-white/80 motion-reduce:animate-none" />
-        <div className="h-28 animate-pulse rounded-lg bg-white/80 motion-reduce:animate-none" />
+        <Skeleton kind="panel" tone="raised" className="h-28" />
+        <Skeleton kind="panel" tone="raised" className="h-28" />
       </div>
     </div>
   );

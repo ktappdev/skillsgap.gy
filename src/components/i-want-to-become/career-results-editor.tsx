@@ -44,6 +44,7 @@ export function CareerResultsEditor({ results, photoName, photoPreview, photoSta
           </div>
           <input ref={fileInput} id="result-slip-upload" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) onFileSelected(file); event.currentTarget.value = ""; }} />
           <button type="button" onClick={() => fileInput.current?.click()} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-md border border-accent bg-surface px-4 text-sm font-semibold text-accent transition hover:bg-surface">Take or upload a slip (optional)</button>
+          <p className="mt-3 text-sm leading-6 text-muted">We send the slip image to an external AI vision service that suggests your subjects and grades. You approve every suggestion before it counts.</p>
           {photoName ? <p className="mt-3 text-xs font-medium text-muted" role="status">{photoState === "reading" ? "Reading " : "Added "}{photoName}</p> : null}
         </div>
         <div className="rounded-lg border border-border bg-surface p-4 text-sm leading-6 text-muted">

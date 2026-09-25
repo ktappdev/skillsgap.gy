@@ -26,11 +26,11 @@ const match: Match = {
 
 const roleLabel = "Top 1 of 4 roles";
 
-function renderSection({ matches, isRecalculating = false, startedAt = null }: { matches: Match[]; isRecalculating?: boolean; startedAt?: string | null }) {
+function renderSection({ matches, isRecalculating = false, startedAt = null, label = roleLabel }: { matches: Match[]; isRecalculating?: boolean; startedAt?: string | null; label?: string }) {
   return render(
     <MatchResultsSection
       matches={matches}
-      roleLabel={roleLabel}
+      roleLabel={label}
       isRecalculating={isRecalculating}
       recalculationStartedAt={startedAt}
       recalculationError={null}
@@ -127,6 +127,34 @@ describe("MatchResultsSection", () => {
     expect(screen.queryByText("Updating matches")).toBeNull();
     expect(screen.getByRole("alert").textContent).toContain("Your matches are still updating.");
     expect(screen.getByText(match.title)).not.toBeNull();
+  });
+
+  it("explains that a score is per-role weighted coverage, not a comparable global score", () => {
+    renderSection({ matches: [match] });
+
+    expect(screen.getByText(/the share of a role's requirements you have confirmed, weighted by how much each requirement counts/)).not.toBeNull();
+    expect(screen.getByText(/calculated per role, so percentages are not comparable between roles/)).not.toBeNull();
+  });
+
+  it("names the cap when the role label reports a capped real list", () => {
+    renderSection({ matches: [match] });
+
+    expect(screen.getByText(/This list shows your 1 highest-scoring role\. You may match more roles than are shown here\./)).not.toBeNull();
+  });
+
+  it("keeps the cap note off the demo fallback, whose label never claims a cap", () => {
+    renderSection({ matches: [match], label: "Demo pathways" });
+
+    expect(screen.queryByText(/highest-scoring/)).toBeNull();
+    // The fallback's scores are still per-role coverage, so that help stays.
+    expect(screen.getByText(/not comparable between roles/)).not.toBeNull();
+  });
+
+  it("hides both notes when there is no ranked list to explain", () => {
+    renderSection({ matches: [] });
+
+    expect(screen.queryByText(/not comparable between roles/)).toBeNull();
+    expect(screen.queryByText(/highest-scoring/)).toBeNull();
   });
 
   it("explains when a completed recalculation has no matches", () => {

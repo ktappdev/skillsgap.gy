@@ -10,7 +10,7 @@ function candidateKey(applicantId: string, roleId: string) {
 }
 
 export default async function CandidatesPage() {
-  const { supabase, companyId } = await requireApprovedCompanyMember();
+  const { supabase, companyId } = await requireApprovedCompanyMember("/company/candidates");
   const { data: roles } = await supabase.from("job_roles").select("*").eq("company_id", companyId).eq("status", "active");
   const roleRows = roles ?? [];
   const roleIds = roleRows.map((role) => role.id);
@@ -59,7 +59,9 @@ export default async function CandidatesPage() {
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-semibold tracking-tight">Matched candidates</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Identity is hidden until an applicant shares their profile or confirms a fair-based interview.</p>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">The match score shows weighted requirement coverage for the role: each requirement counts by its weight, and an unmet mandatory requirement keeps the candidate below the invitation gate.</p>
       <div className="mt-6"><ManagementNav area="company" /></div>
+      <p className="mt-6 max-w-2xl text-sm leading-6 text-muted">Applied = this person told you they are interested. Their name, contact details, and CV stay private until they share their profile for this role.</p>
       {matchRows.length === 0 ? (
         <section className="mt-6 rounded-lg border border-border bg-surface p-6">
           <h2 className="text-xl font-semibold">No matches yet</h2>

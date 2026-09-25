@@ -38,16 +38,18 @@ export function DemoLoginButtons({ next }: DemoLoginButtonsProps) {
         <input type="hidden" name="next" value={next} />
         <div className="grid gap-2 sm:grid-cols-2">
           {demoRoles.map((role) => (
-            <button
+            <SubmitButton
               key={role.id}
-              type="submit"
               name="role"
               value={role.id}
-              className="flex min-h-11 flex-col items-start gap-0.5 rounded-md border border-dashed border-border bg-surface px-3.5 py-2 text-left text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent"
+              pendingLabel="Signing in…"
+              className="min-h-11 w-full rounded-md border border-dashed border-border bg-surface px-3.5 py-2 text-left text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-60"
             >
-              <span>{role.label}</span>
-              <span className="font-normal text-xs text-muted">{role.hint}</span>
-            </button>
+              <span className="flex w-full flex-col items-start gap-0.5">
+                <span>{role.label}</span>
+                <span className="font-normal text-xs text-muted">{role.hint}</span>
+              </span>
+            </SubmitButton>
           ))}
         </div>
       </form>

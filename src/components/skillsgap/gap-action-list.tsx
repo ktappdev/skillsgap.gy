@@ -54,19 +54,26 @@ export function GapActionList({ gaps, isDemo = false }: { gaps: Match["gaps"]; i
   const [firstGap, ...otherGaps] = gaps;
   if (!firstGap) return null;
 
+  // The list is sorted by mandatory-first only (`src/lib/skillsgap/queries.ts`),
+  // and the "Start here" marker is just index 0 of that sort — it is not a
+  // severity, cost, or time-to-close ranking, and no such data exists on a gap.
+  // Say what the order actually is.
   return (
-    <div className="mt-6 border-y border-border">
-      <GapAction gap={firstGap} isDemo={isDemo} isFirst />
-      {otherGaps.length > 0 ? (
-        <details className="border-t border-border py-4">
-          <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-accent">
-            {otherGaps.length} more {otherGaps.length === 1 ? "requirement" : "requirements"}
-          </summary>
-          <div className="mt-4">
-            {otherGaps.map((gap) => <GapAction key={gap.id ?? `${gap.name}-${gap.type}`} gap={gap} isDemo={isDemo} />)}
-          </div>
-        </details>
-      ) : null}
-    </div>
+    <>
+      <p className="mt-6 text-sm leading-6 text-muted">Required items are listed before preferred ones.</p>
+      <div className="mt-2 border-y border-border">
+        <GapAction gap={firstGap} isDemo={isDemo} isFirst />
+        {otherGaps.length > 0 ? (
+          <details className="border-t border-border py-4">
+            <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-accent">
+              {otherGaps.length} more {otherGaps.length === 1 ? "requirement" : "requirements"}
+            </summary>
+            <div className="mt-4">
+              {otherGaps.map((gap) => <GapAction key={gap.id ?? `${gap.name}-${gap.type}`} gap={gap} isDemo={isDemo} />)}
+            </div>
+          </details>
+        ) : null}
+      </div>
+    </>
   );
 }

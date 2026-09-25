@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MatchRecalculationProvider, useMatchRecalculation } from "@/components/dashboard/match-recalculation-context";
-import { addApplicantQualification, confirmExtractionFindings } from "@/lib/skillsgap/actions";
+import { addApplicantQualification, confirmExtractionFindings, updateApplicantQualificationYears } from "@/lib/skillsgap/actions";
 
 import { QualificationReview } from "./qualification-review";
 
@@ -67,6 +67,24 @@ const finding = {
   created_at: now,
   updated_at: now,
   candidates: [{ finding_id: "finding-1", qualification_id: qualification.id, rank: 1, created_at: now, qualificationName: qualification.name, category: qualification.category }],
+};
+
+const confirmedQualification = {
+  id: "applicant-qualification-1",
+  applicant_id: "applicant-1",
+  qualification_id: qualification.id,
+  qualificationName: qualification.name,
+  resume_id: "resume-1",
+  years_experience: null,
+  source: "applicant_confirmed" as const,
+  review_status: "confirmed" as const,
+  original_term: "Safety procedures",
+  evidence: null,
+  evidence_page: null,
+  evidence_method: null,
+  confidence: null,
+  created_at: now,
+  updated_at: now,
 };
 
 describe("QualificationReview", () => {
@@ -229,6 +247,33 @@ describe("QualificationReview", () => {
 
     expect(screen.getByRole<HTMLInputElement>("radio", { name: /Industrial Safety/i }).checked).toBe(true);
     expect(screen.getByText("1 skill ready to confirm")).not.toBeNull();
+  });
+
+  it("keeps every card busy while two actions run at the same time", async () => {
+    const release: Array<() => void> = [];
+    vi.mocked(updateApplicantQualificationYears).mockImplementation(
+      () => new Promise((resolve) => { release.push(() => resolve({})); }),
+    );
+    const firstQualification = { ...confirmedQualification, id: "applicant-qualification-1" };
+    const secondQualification = { ...confirmedQualification, id: "applicant-qualification-2" };
+
+    render(
+      <QualificationReview applicantId="applicant-1" hasResume resumeScanFailed={false} initialFindings={[]} initialQualifications={[firstQualification, secondQualification]} availableQualifications={[qualification]} unmappedTerms={[]} />,
+    );
+
+    const [firstSave, secondSave] = screen.getAllByRole("button", { name: "Save years" });
+    fireEvent.click(firstSave);
+    fireEvent.click(secondSave);
+
+    // The old single-slot pending key let the second click overwrite the first,
+    // which left the first card editable while its request was still running.
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Saving…" })).toHaveLength(2));
+
+    release[0]();
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Saving…" })).toHaveLength(1));
+
+    release[1]();
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Save years" })).toHaveLength(2));
   });
 
   it("clears the recalculation state when only a partial confirmation fails", async () => {

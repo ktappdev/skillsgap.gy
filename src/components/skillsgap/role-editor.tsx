@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ShareButton } from "@/components/shareable/share-button";
 import { QualificationSearch } from "@/components/skillsgap/qualification-search";
 import { RoleDetailsForm } from "@/components/skillsgap/role-details-form";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { addJobRequirement, createJobRole, removeJobRequirement, saveQualificationRequest, setJobRoleStatus, updateJobRequirement, withdrawQualificationRequest, type QualificationRequestInput, type QualificationSearchEntry } from "@/lib/skillsgap/actions";
 import { DEFAULT_ELIGIBILITY_THRESHOLD } from "@/lib/skillsgap/constants";
 import { employmentTypes, type JobRoleDetailsInput } from "@/lib/skillsgap/job-role";
@@ -32,6 +33,17 @@ const requirementKinds: Array<{ value: RequirementKind; label: string }> = [
 
 const inputClass = "mt-2 min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm font-normal text-foreground outline-none focus:border-accent";
 
+const weightHelpText = "Weight 1–5 sets how much this requirement counts toward the match score; 5 counts most.";
+
+/** A pending `window.confirm` replacement: the consequence shown before the action runs. */
+type ConfirmationRequest = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  busyLabel: string;
+  run: () => Promise<void>;
+};
+
 export function RoleEditor({ companyName, initialRoles, initialRequirements, initialQualificationRequests, qualifications, occupations }: RoleEditorProps) {
   const [roles, setRoles] = useState(initialRoles);
   const [requirements, setRequirements] = useState(initialRequirements);
@@ -44,6 +56,7 @@ export function RoleEditor({ companyName, initialRoles, initialRequirements, ini
   const [occupationId, setOccupationId] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [savingAction, setSavingAction] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
 
   async function createRole() {
     if (savingAction) return;
@@ -101,8 +114,19 @@ export function RoleEditor({ companyName, initialRoles, initialRequirements, ini
     return result.request;
   }
 
+  function requestRemoveQualificationRequest(request: Tables<"qualification_requests">) {
+    if (savingAction) return;
+    setConfirmation({
+      title: "Remove this qualification request?",
+      description: `${request.proposed_name} will no longer be sent for administrator review. The role keeps its current requirements.`,
+      confirmLabel: "Remove request",
+      busyLabel: "Removing…",
+      run: () => removeQualificationRequest(request),
+    });
+  }
+
   async function removeQualificationRequest(request: Tables<"qualification_requests">) {
-    if (savingAction || !window.confirm(`Remove the request for ${request.proposed_name}?`)) return;
+    if (savingAction) return;
     setSavingAction(`remove-request:${request.id}`);
     setMessage(null);
     try {
@@ -167,7 +191,7 @@ export function RoleEditor({ companyName, initialRoles, initialRequirements, ini
           <label className="text-sm font-semibold text-foreground" htmlFor="new-role-title">Role title<input id="new-role-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={160} placeholder="e.g. Trainee Offshore Technician" className={inputClass} /></label>
           <label className="text-sm font-semibold text-foreground" htmlFor="new-role-location">Location<input id="new-role-location" value={location} onChange={(event) => setLocation(event.target.value)} maxLength={160} placeholder="Guyana or worksite" className={inputClass} /></label>
           <label className="text-sm font-semibold text-foreground" htmlFor="new-role-employment">Employment type <span className="font-normal text-muted">(optional)</span><input id="new-role-employment" list="new-role-employment-types" value={employmentType} onChange={(event) => setEmploymentType(event.target.value)} maxLength={80} placeholder="Full-time, contract…" className={inputClass} /><datalist id="new-role-employment-types">{employmentTypes.map((type) => <option key={type} value={type} />)}</datalist></label>
-          <label className="text-sm font-semibold text-foreground" htmlFor="new-role-threshold">Interview threshold %<input id="new-role-threshold" type="number" min={1} max={100} value={threshold} onChange={(event) => setThreshold(event.target.value === "" ? "" : Number(event.target.value))} className={inputClass} /><span className="mt-1 block text-xs font-normal text-muted">Defaults to {DEFAULT_ELIGIBILITY_THRESHOLD}%.</span></label>
+          <label className="text-sm font-semibold text-foreground" htmlFor="new-role-threshold">Interview threshold %<input id="new-role-threshold" type="number" min={1} max={100} value={threshold} onChange={(event) => setThreshold(event.target.value === "" ? "" : Number(event.target.value))} className={inputClass} /><span className="mt-1 block text-xs font-normal text-muted">Defaults to {DEFAULT_ELIGIBILITY_THRESHOLD}%. Applicants can apply once they reach this percentage and meet every required item.</span></label>
           <label className="text-sm font-semibold text-foreground sm:col-span-2" htmlFor="new-role-occupation">Career catalogue mapping <span className="font-normal text-muted">(optional)</span><select id="new-role-occupation" value={occupationId} onChange={(event) => setOccupationId(event.target.value)} className={inputClass}><option value="">No occupation mapping</option>{occupations.map((occupation) => <option key={occupation.id} value={occupation.id}>{occupation.title} · {occupation.role_family}</option>)}</select></label>
           <label className="text-sm font-semibold text-foreground sm:col-span-2" htmlFor="new-role-description">Role description<textarea id="new-role-description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={5000} rows={5} placeholder="Describe the work, responsibilities, worksite context, and what success looks like." className={`${inputClass} py-2`} /></label>
         </div>
@@ -189,7 +213,7 @@ export function RoleEditor({ companyName, initialRoles, initialRequirements, ini
               <div className="flex flex-wrap items-center gap-2">
                 {role.status === "active" ? <ShareButton url={`/opportunities/${role.id}`} title={role.title} text={buildPositionShareText({ title: role.title, company: companyName, location: role.location })} label="Share position" variant="light" /> : null}
                 {role.status === "active" ? <button type="button" disabled={savingAction !== null} onClick={() => { void changeRoleStatus(role, "draft"); }} className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60">{savingAction === `status:${role.id}` ? "Updating…" : "Unpublish"}</button> : role.status === "archived" ? <button type="button" disabled={savingAction !== null} onClick={() => { void changeRoleStatus(role, "draft"); }} className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60">Restore draft</button> : <button type="button" disabled={savingAction !== null || roleRequirements.length === 0 || roleRequests.some((request) => request.status === "pending")} onClick={() => { void changeRoleStatus(role, "active"); }} className="min-h-11 rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">{savingAction === `status:${role.id}` ? "Updating…" : "Publish role"}</button>}
-                {role.status !== "archived" ? <button type="button" disabled={savingAction !== null} onClick={() => { if (window.confirm("Archive this role and remove it from public opportunities?")) void changeRoleStatus(role, "archived"); }} className="min-h-11 rounded-md border border-border px-4 text-sm font-semibold text-danger hover:border-danger disabled:cursor-wait disabled:opacity-60">Archive</button> : null}
+                {role.status !== "archived" ? <button type="button" disabled={savingAction !== null} onClick={() => setConfirmation({ title: "Archive this role?", description: `${role.title} is removed from public opportunities and stops appearing in new matches. Existing data is kept and you can restore it as a draft.`, confirmLabel: "Archive role", busyLabel: "Archiving…", run: () => changeRoleStatus(role, "archived") })} className="min-h-11 rounded-md border border-border px-4 text-sm font-semibold text-danger hover:border-danger disabled:cursor-wait disabled:opacity-60">Archive</button> : null}
               </div>
             </div>
 
@@ -200,10 +224,23 @@ export function RoleEditor({ companyName, initialRoles, initialRequirements, ini
               {roleRequirements.length === 0 ? <li className="py-3 text-sm text-muted">No requirements yet. Add at least one before publishing.</li> : null}
             </ul>
             <RoleRequirementComposer roleId={role.id} roleStatus={role.status} excludedQualificationIds={roleRequirements.map((requirement) => requirement.qualification_id)} busy={savingAction !== null} onAdd={addRequirement} onRequestSave={saveMissingQualification} onMessage={setMessage} />
-            <QualificationRequestList roleStatus={role.status} requests={roleRequests} qualifications={qualifications} busy={savingAction !== null} onRemove={removeQualificationRequest} onRevise={saveMissingQualification} onMessage={setMessage} />
+            <QualificationRequestList roleStatus={role.status} requests={roleRequests} qualifications={qualifications} busy={savingAction !== null} onRemove={requestRemoveQualificationRequest} onRevise={saveMissingQualification} onMessage={setMessage} />
           </article>
         );
       })}
+      <ConfirmDialog
+        open={confirmation !== null}
+        title={confirmation?.title ?? ""}
+        description={confirmation?.description}
+        confirmLabel={confirmation?.confirmLabel}
+        busyLabel={confirmation?.busyLabel}
+        destructive
+        onConfirm={async () => {
+          await confirmation?.run();
+          setConfirmation(null);
+        }}
+        onCancel={() => setConfirmation(null)}
+      />
     </section>
   );
 }
@@ -235,6 +272,7 @@ function RoleRequirementComposer({ roleId, roleStatus, excludedQualificationIds,
         <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-foreground"><input type="checkbox" checked={mandatory} onChange={(event) => setMandatory(event.target.checked)} className="size-4 accent-accent" />Mandatory</label>
         <button type="button" disabled={busy || !selected} onClick={() => { if (selected) void onAdd(roleId, selected.id, kind, weight, mandatory, minimumYears === "" ? null : minimumYears).then((saved) => { if (saved) setSelected(null); }); }} className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface disabled:cursor-wait disabled:opacity-60">{busy ? "Saving…" : "Add requirement"}</button>
       </div>
+      <p className="text-xs leading-5 text-muted">{weightHelpText}</p>
       <div>
         {roleStatus === "draft" ? <button type="button" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)} className="min-h-10 font-semibold text-accent underline underline-offset-2">Request a missing qualification</button> : <p className="text-sm text-muted">Move this role back to draft before requesting a missing qualification.</p>}
         {requestOpen ? <QualificationRequestForm roleId={roleId} onSave={onRequestSave} onCancel={() => setRequestOpen(false)} onSaved={() => setRequestOpen(false)} onMessage={onMessage} /> : null}
@@ -292,6 +330,7 @@ function QualificationRequestForm({ roleId, request, onSave, onCancel, onSaved, 
         <label className="text-sm font-semibold text-foreground" htmlFor={`request-years-${roleId}-${request?.id ?? "new"}`}>Minimum years<input id={`request-years-${roleId}-${request?.id ?? "new"}`} type="number" min={0} max={60} value={minimumYears} onChange={(event) => setMinimumYears(event.target.value === "" ? "" : Number(event.target.value))} className={inputClass} /></label>
         <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-foreground sm:col-span-2"><input type="checkbox" checked={mandatory} onChange={(event) => setMandatory(event.target.checked)} className="size-4 accent-accent" />Mandatory requirement</label>
       </div>
+      <p className="mt-3 text-xs leading-5 text-muted">{weightHelpText}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         <button type="button" disabled={saving} onClick={() => { void submit(); }} className="min-h-11 rounded-md bg-accent px-4 text-sm font-semibold text-white disabled:opacity-60">{saving ? "Saving…" : request ? "Resubmit for review" : "Send request"}</button>
         <button type="button" disabled={saving} onClick={onCancel} className="min-h-11 rounded-md border border-border px-4 text-sm font-semibold text-muted">Cancel</button>
@@ -305,7 +344,7 @@ function QualificationRequestList({ roleStatus, requests, qualifications, busy, 
   requests: Tables<"qualification_requests">[];
   qualifications: Tables<"qualifications">[];
   busy: boolean;
-  onRemove: (request: Tables<"qualification_requests">) => Promise<void>;
+  onRemove: (request: Tables<"qualification_requests">) => void;
   onRevise: (input: QualificationRequestInput) => Promise<Tables<"qualification_requests"> | null>;
   onMessage: (message: string) => void;
 }) {
@@ -320,7 +359,7 @@ function QualificationRequestListItem({ roleStatus, request, resolvedName, busy,
   request: Tables<"qualification_requests">;
   resolvedName: string | null;
   busy: boolean;
-  onRemove: (request: Tables<"qualification_requests">) => Promise<void>;
+  onRemove: (request: Tables<"qualification_requests">) => void;
   onRevise: (input: QualificationRequestInput) => Promise<Tables<"qualification_requests"> | null>;
   onMessage: (message: string) => void;
 }) {
@@ -333,7 +372,7 @@ function QualificationRequestListItem({ roleStatus, request, resolvedName, busy,
       {request.status === "declined" && request.review_reason ? <p className="mt-1 text-danger">Reason: {request.review_reason}</p> : null}
       {request.status === "approved" && resolvedName ? <p className="mt-1 text-muted">Added as {resolvedName}.</p> : null}
     </div>
-    <div className="flex gap-2">{request.status === "declined" || request.status === "withdrawn" ? <button type="button" disabled={busy || roleStatus !== "draft"} onClick={() => setEditing((current) => !current)} className="min-h-9 px-2 font-semibold text-accent underline underline-offset-2 disabled:opacity-50">{editing ? "Close revision" : "Revise"}</button> : null}{request.status !== "approved" && request.status !== "withdrawn" ? <button type="button" disabled={busy || roleStatus !== "draft"} onClick={() => { void onRemove(request); }} className="min-h-9 px-2 font-semibold text-danger underline underline-offset-2 disabled:opacity-50">Remove</button> : null}</div></div>
+    <div className="flex gap-2">{request.status === "declined" || request.status === "withdrawn" ? <button type="button" disabled={busy || roleStatus !== "draft"} onClick={() => setEditing((current) => !current)} className="min-h-9 px-2 font-semibold text-accent underline underline-offset-2 disabled:opacity-50">{editing ? "Close revision" : "Revise"}</button> : null}{request.status !== "approved" && request.status !== "withdrawn" ? <button type="button" disabled={busy || roleStatus !== "draft"} onClick={() => onRemove(request)} className="min-h-9 px-2 font-semibold text-danger underline underline-offset-2 disabled:opacity-50">Remove</button> : null}</div></div>
     {editing ? <QualificationRequestForm roleId={request.job_role_id} request={request} onSave={onRevise} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} onMessage={onMessage} /> : null}
   </li>;
 }
@@ -345,6 +384,7 @@ function RequirementRow({ requirement, qualifications, busy, onUpdated, onRemove
   const [mandatory, setMandatory] = useState(requirement.mandatory);
   const [minimumYears, setMinimumYears] = useState(requirement.minimum_years ?? 0);
   const [saving, setSaving] = useState(false);
+  const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
   const name = qualifications.find((qualification) => qualification.id === requirement.qualification_id)?.name ?? "Qualification";
 
   async function save() {
@@ -366,8 +406,19 @@ function RequirementRow({ requirement, qualifications, busy, onUpdated, onRemove
     }
   }
 
+  function requestRemove() {
+    if (saving) return;
+    setConfirmation({
+      title: "Remove this requirement?",
+      description: `${name} stops counting toward this role's match score. Applicants who already match this requirement keep the skill on their profile.`,
+      confirmLabel: "Remove requirement",
+      busyLabel: "Removing…",
+      run: remove,
+    });
+  }
+
   async function remove() {
-    if (saving || !window.confirm(`Remove ${name} from this role?`)) return;
+    if (saving) return;
     setSaving(true);
     try {
       const result = await removeJobRequirement(requirement.id, requirement.job_role_id);
@@ -386,7 +437,20 @@ function RequirementRow({ requirement, qualifications, busy, onUpdated, onRemove
 
   return (
     <li className="py-3 text-sm">
-      {!editing ? <div className="flex flex-wrap items-center justify-between gap-3"><div><span className="font-medium text-foreground">{name}</span><span className="text-muted"> · {requirement.kind.replaceAll("_", " ")} · weight {requirement.weight}{requirement.mandatory ? " · mandatory" : ""}{requirement.minimum_years ? ` · ${requirement.minimum_years}+ years` : ""}</span></div><div className="flex gap-2"><button type="button" disabled={busy} onClick={() => setEditing(true)} className="min-h-11 px-3 font-semibold text-accent underline-offset-4 hover:underline disabled:opacity-50">Edit</button><button type="button" disabled={busy} onClick={() => { void remove(); }} className="min-h-11 px-3 font-semibold text-danger underline-offset-4 hover:underline disabled:opacity-50">Remove</button></div></div> : <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem_7rem_7rem_auto] sm:items-end"><p className="font-medium text-foreground">{name}</p><label className="font-semibold">Type<select value={kind} onChange={(event) => setKind(event.target.value as RequirementKind)} className={inputClass}>{requirementKinds.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label className="font-semibold">Weight<input type="number" min={1} max={5} value={weight} onChange={(event) => setWeight(Number(event.target.value))} className={inputClass} /></label><label className="font-semibold">Years<input type="number" min={0} max={60} value={minimumYears} onChange={(event) => setMinimumYears(Number(event.target.value))} className={inputClass} /></label><label className="flex min-h-11 items-center gap-2 font-semibold"><input type="checkbox" checked={mandatory} onChange={(event) => setMandatory(event.target.checked)} className="size-4 accent-accent" />Mandatory</label><div className="flex gap-2 sm:col-span-5"><button type="button" disabled={saving} onClick={() => { void save(); }} className="min-h-11 rounded-md bg-accent px-4 font-semibold text-white disabled:opacity-50">{saving ? "Saving…" : "Save requirement"}</button><button type="button" disabled={saving} onClick={() => setEditing(false)} className="min-h-11 rounded-md border border-border px-4 font-semibold text-muted disabled:opacity-50">Cancel</button></div></div>}
+      {!editing ? <div className="flex flex-wrap items-center justify-between gap-3"><div><span className="font-medium text-foreground">{name}</span><span className="text-muted"> · {requirement.kind.replaceAll("_", " ")} · weight {requirement.weight}{requirement.mandatory ? " · mandatory" : ""}{requirement.minimum_years ? ` · ${requirement.minimum_years}+ years` : ""}</span></div><div className="flex gap-2"><button type="button" disabled={busy || saving} onClick={() => setEditing(true)} className="min-h-11 px-3 font-semibold text-accent underline-offset-4 hover:underline disabled:opacity-50">Edit</button><button type="button" disabled={busy || saving} aria-busy={saving} onClick={requestRemove} className="min-h-11 px-3 font-semibold text-danger underline-offset-4 hover:underline disabled:opacity-50">{saving ? "Removing…" : "Remove"}</button></div></div> : <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem_7rem_7rem_auto] sm:items-end"><p className="font-medium text-foreground">{name}</p><label className="font-semibold">Type<select value={kind} onChange={(event) => setKind(event.target.value as RequirementKind)} className={inputClass}>{requirementKinds.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label className="font-semibold">Weight<input type="number" min={1} max={5} value={weight} onChange={(event) => setWeight(Number(event.target.value))} className={inputClass} /></label><label className="font-semibold">Years<input type="number" min={0} max={60} value={minimumYears} onChange={(event) => setMinimumYears(Number(event.target.value))} className={inputClass} /></label><label className="flex min-h-11 items-center gap-2 font-semibold"><input type="checkbox" checked={mandatory} onChange={(event) => setMandatory(event.target.checked)} className="size-4 accent-accent" />Mandatory</label><div className="flex gap-2 sm:col-span-5"><button type="button" disabled={saving} onClick={() => { void save(); }} className="min-h-11 rounded-md bg-accent px-4 font-semibold text-white disabled:opacity-50">{saving ? "Saving…" : "Save requirement"}</button><button type="button" disabled={saving} onClick={() => setEditing(false)} className="min-h-11 rounded-md border border-border px-4 font-semibold text-muted disabled:opacity-50">Cancel</button></div></div>}
+      <ConfirmDialog
+        open={confirmation !== null}
+        title={confirmation?.title ?? ""}
+        description={confirmation?.description}
+        confirmLabel={confirmation?.confirmLabel}
+        busyLabel={confirmation?.busyLabel}
+        destructive
+        onConfirm={async () => {
+          await confirmation?.run();
+          setConfirmation(null);
+        }}
+        onCancel={() => setConfirmation(null)}
+      />
     </li>
   );
 }

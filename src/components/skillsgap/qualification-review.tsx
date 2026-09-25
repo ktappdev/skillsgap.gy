@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { ConfirmedQualificationCard, PendingFindingCard } from "./qualification-review-cards";
+import { ConfirmedQualificationCard, PendingFindingCard, type QualificationAction } from "./qualification-review-cards";
 
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useMatchRecalculation } from "@/components/dashboard/match-recalculation-context";
 import {
   addApplicantQualification,
@@ -28,6 +29,29 @@ type Props = {
   unmappedTerms: string[];
 };
 
+/** The removal request stays visible until the server confirms the skill is gone. */
+type RemovalRequest = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  busyLabel: string;
+  run: () => Promise<void>;
+};
+
+/**
+ * Reads the pending keys (`action:itemId`) back as the action for one card, so a
+ * card only ever shows busy for the action it started. Several actions can be in
+ * flight at once, so this scans the whole collection instead of one slot.
+ */
+function pendingActionFor(pendingKeys: ReadonlySet<string>, itemId: string): QualificationAction | null {
+  for (const key of pendingKeys) {
+    const separator = key.indexOf(":");
+    if (separator < 0 || key.slice(separator + 1) !== itemId) continue;
+    return key.slice(0, separator) as QualificationAction;
+  }
+  return null;
+}
+
 export function QualificationReview({ applicantId, hasResume, resumeScanFailed, initialFindings, initialQualifications, availableQualifications, unmappedTerms }: Props) {
   const router = useRouter();
   const matchRecalculation = useMatchRecalculation();
@@ -42,6 +66,23 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
   const [isConfirming, setIsConfirming] = useState(false);
   const [isAddingQualification, setIsAddingQualification] = useState(false);
   const [matchGains, setMatchGains] = useState<MatchScoreGain[]>([]);
+  const [pendingKeys, setPendingKeys] = useState<ReadonlySet<string>>(() => new Set<string>());
+  const [removalRequest, setRemovalRequest] = useState<RemovalRequest | null>(null);
+
+  // Several actions can be in flight at once, so each action only adds and clears
+  // the key it owns instead of wiping whichever action started last.
+  function addPending(key: string) {
+    setPendingKeys((current) => (current.has(key) ? current : new Set(current).add(key)));
+  }
+
+  function clearPending(key: string) {
+    setPendingKeys((current) => {
+      if (!current.has(key)) return current;
+      const next = new Set(current);
+      next.delete(key);
+      return next;
+    });
+  }
 
   useEffect(() => {
     const arrivedFindings = initialFindings.filter((finding) => !receivedFindingIds.current.has(finding.id));
@@ -157,6 +198,8 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
   }
 
   async function rejectFinding(finding: ApplicantExtractionFindingView) {
+    const key = `dismiss:${finding.id}`;
+    addPending(key);
     try {
       const result = await rejectExtractionFindings(getSourceFindingIds(finding));
       setFindings((current) => current.flatMap((item) => {
@@ -167,11 +210,15 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
       router.refresh();
     } catch {
       setMessage("We couldn’t dismiss that suggestion. Please try again.");
+    } finally {
+      clearPending(key);
     }
   }
 
   async function saveYears(item: ApplicantQualificationView) {
+    const key = `years:${item.id}`;
     const value = years[item.id] ?? "";
+    addPending(key);
     try {
       const result = await updateApplicantQualificationYears(item.qualification_id, value);
       if (result.error) return setMessage(result.error);
@@ -179,12 +226,16 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
       setMessage("Experience updated. This strength can now improve your role matches.");
     } catch {
       setMessage("We couldn’t update the experience value. Please try again.");
+    } finally {
+      clearPending(key);
     }
   }
 
   async function correct(item: ApplicantQualificationView) {
+    const key = `correct:${item.id}`;
     const corrected = availableQualifications.find((qualification) => qualification.id === corrections[item.id]);
     if (!corrected) return setMessage("Choose the correct transferable skill.");
+    addPending(key);
     try {
       const result = await correctApplicantQualification(item.qualification_id, corrected.id);
       if (result.error) return setMessage(result.error);
@@ -192,6 +243,8 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
       setMessage("Skill corrected. Your role matches are being recalculated.");
     } catch {
       setMessage("We couldn’t correct that skill. Please try again.");
+    } finally {
+      clearPending(key);
     }
   }
 
@@ -221,15 +274,31 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
     }
   }
 
-  async function remove(item: ApplicantQualificationView) {
-    if (!window.confirm(`Remove ${item.qualificationName} from your confirmed skills?`)) return;
+  function requestRemove(item: ApplicantQualificationView) {
+    setRemovalRequest({
+      title: "Remove this confirmed skill?",
+      description: `${item.qualificationName} will stop counting toward your role matches, including any training suggestions it unlocked. You can add it again at any time.`,
+      confirmLabel: "Remove skill",
+      busyLabel: "Removing…",
+      run: () => removeQualification(item),
+    });
+  }
+
+  async function removeQualification(item: ApplicantQualificationView) {
+    const key = `remove:${item.id}`;
+    addPending(key);
     try {
       const result = await removeApplicantQualification(item.qualification_id);
       if (result.error) return setMessage(result.error);
       setQualifications((current) => current.filter((candidate) => candidate.id !== item.id));
       setMessage("Skill removed. It will not affect your role matches.");
+      // The database trigger and the realtime channel usually recalculate first;
+      // this covers the case where the channel is unavailable.
+      router.refresh();
     } catch {
       setMessage("We couldn’t remove that skill. Please try again.");
+    } finally {
+      clearPending(key);
     }
   }
 
@@ -243,7 +312,7 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
 
       {findings.length > 0 ? <section className="mt-5 space-y-4" aria-labelledby="pending-findings-heading">
         <div><h3 id="pending-findings-heading" className="text-sm font-semibold text-foreground">{findings.length} suggestions to review</h3><p className="mt-1 text-sm leading-6 text-muted">Choose the skill that best describes your experience, or dismiss it if it does not apply.</p></div>
-        {findings.map((finding) => <PendingFindingCard key={finding.id} finding={finding} availableQualifications={availableQualifications} selectedQualificationId={findingChoices[finding.id] ?? ""} onSelect={(qualificationId) => setFindingChoices((current) => ({ ...current, [finding.id]: qualificationId }))} onReject={() => { void rejectFinding(finding); }} />)}
+        {findings.map((finding) => <PendingFindingCard key={finding.id} finding={finding} availableQualifications={availableQualifications} selectedQualificationId={findingChoices[finding.id] ?? ""} pending={pendingActionFor(pendingKeys, finding.id)} onSelect={(qualificationId) => setFindingChoices((current) => ({ ...current, [finding.id]: qualificationId }))} onReject={() => { void rejectFinding(finding); }} />)}
         <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-lg border border-accent/30 bg-surface p-4 shadow-lg sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-foreground">{selectedFindingCount === 0 ? "Select the skills that describe you" : `${selectedFindingCount} skill${selectedFindingCount === 1 ? "" : "s"} ready to confirm`}</p>
@@ -265,7 +334,7 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
         <ul className="mt-2 space-y-1" role="list">{matchGains.map((gain) => <li key={gain.roleId} className="text-sm font-semibold text-emerald-800">+{gain.points}% to {gain.roleTitle}</li>)}</ul>
       </section> : null}
 
-      {qualifications.length > 0 ? <details className="mt-6"><summary className="cursor-pointer py-2 text-sm font-semibold text-foreground">Confirmed skills ({qualifications.length}) · View or edit</summary><ul className="mt-3 space-y-4" role="list">{qualifications.map((item) => <ConfirmedQualificationCard key={item.id} item={item} years={years[item.id] ?? ""} correction={corrections[item.id] ?? ""} availableQualifications={availableQualifications} onYearsChange={(value) => setYears((current) => ({ ...current, [item.id]: value }))} onCorrectionChange={(value) => setCorrections((current) => ({ ...current, [item.id]: value }))} onSaveYears={() => { void saveYears(item); }} onCorrect={() => { void correct(item); }} onRemove={() => { void remove(item); }} />)}</ul></details> : <p className="mt-3 rounded-lg border border-dashed border-border p-4 text-sm text-muted">{findings.length > 0 ? "No skills confirmed yet. Choose a suggestion above or add a skill below." : "No skills confirmed yet. Add a skill to start comparing your experience with active roles."}</p>}
+      {qualifications.length > 0 ? <details className="mt-6"><summary className="cursor-pointer py-2 text-sm font-semibold text-foreground">Confirmed skills ({qualifications.length}) · View or edit</summary><ul className="mt-3 space-y-4" role="list">{qualifications.map((item) => <ConfirmedQualificationCard key={item.id} item={item} years={years[item.id] ?? ""} correction={corrections[item.id] ?? ""} availableQualifications={availableQualifications} pending={pendingActionFor(pendingKeys, item.id)} onYearsChange={(value) => setYears((current) => ({ ...current, [item.id]: value }))} onCorrectionChange={(value) => setCorrections((current) => ({ ...current, [item.id]: value }))} onSaveYears={() => { void saveYears(item); }} onCorrect={() => { void correct(item); }} onRemove={() => requestRemove(item)} />)}</ul></details> : <p className="mt-3 rounded-lg border border-dashed border-border p-4 text-sm text-muted">{findings.length > 0 ? "No skills confirmed yet. Choose a suggestion above or add a skill below." : "No skills confirmed yet. Add a skill to start comparing your experience with active roles."}</p>}
 
       {unmappedTerms.length > 0 ? <div className="mt-3 rounded-lg border border-border bg-surface-muted p-4"><h3 className="text-sm font-semibold text-foreground">Kept private for your review</h3><p className="mt-1 text-sm leading-6 text-muted">These terms didn&apos;t match an approved skill, so they don&apos;t affect your matches. Add a matching skill below if one applies.</p><ul className="mt-2 flex flex-wrap gap-2" role="list">{unmappedTerms.map((term) => <li key={term} className="border border-amber-200 bg-white px-2.5 py-1 text-xs text-foreground">{term}</li>)}</ul></div> : null}
 
@@ -285,6 +354,20 @@ export function QualificationReview({ applicantId, hasResume, resumeScanFailed, 
       </details>
       {qualifications.length > 0 ? <a href="#matches-area" className="mt-5 inline-flex min-h-11 items-center font-semibold text-accent">View job matches ↓</a> : null}
       {message ? <p className="mt-3 text-sm text-muted" role="status">{message}</p> : null}
+      <ConfirmDialog
+        open={removalRequest !== null}
+        title={removalRequest?.title ?? ""}
+        description={removalRequest?.description}
+        confirmLabel={removalRequest?.confirmLabel}
+        busyLabel={removalRequest?.busyLabel}
+        cancelLabel="Keep skill"
+        destructive
+        onConfirm={async () => {
+          await removalRequest?.run();
+          setRemovalRequest(null);
+        }}
+        onCancel={() => setRemovalRequest(null)}
+      />
     </section>
   );
 }

@@ -9,12 +9,55 @@ import { ShareButton } from "@/components/shareable/share-button";
 import { buildPositionShareText } from "@/lib/share/messages";
 import { isDemoApplicantMetadata } from "@/lib/auth/demo";
 import { requireApplicant } from "@/lib/auth/queries";
-import { getDemoMatch } from "@/lib/skillsgap-demo";
+import { getDemoMatch, type Match } from "@/lib/skillsgap-demo";
 import { getApplicantMatch } from "@/lib/skillsgap/queries";
+
+/**
+ * The requirements section has three honest states. A match with no gaps can
+ * still be ineligible — a role that publishes no weighted requirements scores 0
+ * while every (vacuous) requirement is met — so the "meets every requirement"
+ * claim is gated on `match.eligible`, which is interview eligibility: every
+ * mandatory requirement *and* the score threshold.
+ */
+function RequirementsSection({ match }: { match: Match }) {
+  if (match.gaps.length === 0 && match.eligible) {
+    return (
+      <section className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-5 sm:p-6" role="status">
+        <h2 className="text-2xl font-semibold tracking-tight text-emerald-900">You meet every published requirement for this role.</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-800">Your score of {match.score}% meets the {match.threshold}% interview threshold and every mandatory requirement.</p>
+        <Link href="/interviews" className="mt-3 inline-flex min-h-11 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-strong">
+          View your interviews <span className="ml-1" aria-hidden="true">→</span>
+        </Link>
+      </section>
+    );
+  }
+
+  if (match.gaps.length === 0) {
+    return (
+      <section className="mt-6 rounded-lg border border-border bg-surface p-5 sm:p-6" role="status">
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">No published requirements to close</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">This role has no requirements published yet, so there is nothing to close. Your score of {match.score}% is still below the {match.threshold}% interview threshold.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mt-6 rounded-lg border border-border bg-surface p-5 sm:p-6" aria-labelledby="gaps-heading">
+      <h2 id="gaps-heading" className="text-2xl font-semibold tracking-tight text-foreground">
+        {match.gaps.length} {match.gaps.length === 1 ? "requirement" : "requirements"} left
+      </h2>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">Required items must be met for interview eligibility. Preferred items strengthen your match and can guide your next step.</p>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+        Start with the first one. Open the provider, confirm details, save it to your plan.
+      </p>
+      <GapActionList gaps={match.gaps} isDemo={match.isDemo} />
+    </section>
+  );
+}
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ matchId: string }> }) {
   const { matchId } = await params;
-  const { supabase, user } = await requireApplicant();
+  const { supabase, user } = await requireApplicant(`/matches/${matchId}`);
   const liveMatch = await getApplicantMatch(supabase, user.id, matchId);
   const match = liveMatch ?? getDemoMatch(matchId, isDemoApplicantMetadata(user.user_metadata));
   if (!match) notFound();
@@ -27,7 +70,17 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ ma
   const hasResume = Boolean(resumeResult?.data);
   const hasContactEmail = Boolean(profileResult?.data?.contact_email?.trim());
 
-  const eligibilityProgress = Math.min(Math.round((match.score / match.threshold) * 100), 100);
+  // Progress toward the score threshold only — never a readiness claim. Interview
+  // eligibility also needs every mandatory requirement, which only `match.eligible`
+  // reports, so this bar can reach 100% while required items are still unmet.
+  const thresholdProgress = match.threshold > 0 ? Math.min(Math.round((match.score / match.threshold) * 100), 100) : 0;
+  const pointsToThreshold = Math.max(match.threshold - match.score, 0);
+  const unmetMandatoryCount = match.gaps.filter((gap) => gap.mandatory).length;
+  const eligibilitySummary = match.eligible
+    ? "Score and mandatory requirements met."
+    : pointsToThreshold > 0
+      ? `${pointsToThreshold} ${pointsToThreshold === 1 ? "point" : "points"} to the interview threshold.`
+      : "Score met; review mandatory requirements.";
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
@@ -71,9 +124,9 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ ma
       <section className="mt-6 grid gap-6 md:grid-cols-2">
         <div className="rounded-lg border border-border bg-surface p-5">
           <h2 className="text-xl font-semibold tracking-tight text-foreground">Interview eligibility</h2>
-          <p className="mt-1 text-sm text-muted">{eligibilityProgress}% there</p>
-          <div className="mt-3 h-3 overflow-hidden rounded-full bg-surface-muted"><div className="h-full bg-accent" style={{ width: `${eligibilityProgress}%` }} /></div>
-          <p className="mt-3 text-sm leading-6 text-muted">Target: {match.threshold}% plus every mandatory requirement.</p>
+          <p className={`mt-1 text-sm font-semibold ${match.eligible ? "text-emerald-800" : "text-muted"}`}>{eligibilitySummary}</p>
+          <div className="mt-3 h-3 overflow-hidden rounded-full bg-surface-muted"><div className="h-full bg-accent" style={{ width: `${thresholdProgress}%` }} /></div>
+          <p className="mt-3 text-sm leading-6 text-muted">Score {match.score}% against the {match.threshold}% interview threshold.{unmetMandatoryCount > 0 ? ` ${unmetMandatoryCount} required ${unmetMandatoryCount === 1 ? "item is" : "items are"} still unmet.` : " Every mandatory requirement is met."}</p>
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-5">
@@ -90,15 +143,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ ma
         </div>
       </section>
 
-      <section className="mt-6 rounded-lg border border-border bg-surface p-5 sm:p-6" aria-labelledby="gaps-heading">
-        <h2 id="gaps-heading" className="text-2xl font-semibold tracking-tight text-foreground">
-          {match.gaps.length} {match.gaps.length === 1 ? "requirement" : "requirements"} left
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-          Start with the first one. Open the provider, confirm details, save it to your plan.
-        </p>
-        <GapActionList gaps={match.gaps} isDemo={match.isDemo} />
-      </section>
+      <RequirementsSection match={match} />
     </div>
   );
 }

@@ -61,7 +61,11 @@ export function SlotManager({ initialFairs, initialSlots }: { initialFairs: Tabl
       const result = await openJobFair(fair.id, next);
       if (result.error) { setMessage(result.error); return; }
       setFairs((current) => current.map((item) => item.id === fair.id ? { ...item, status: next } : item));
-    } catch {
+      setMessage(next === "open" ? "Fair opened for booking." : "Fair closed to new bookings.");
+    } catch (thrown) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[pdbg] slot-manager.tsx: updating the job fair failed", thrown);
+      }
       setMessage("We could not update that job fair. Check your connection and try again.");
     } finally {
       setSavingAction(null);

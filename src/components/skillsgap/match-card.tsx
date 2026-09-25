@@ -8,6 +8,11 @@ import type { Match } from "@/lib/skillsgap-demo";
 import { StatusPill } from "./milestone-path";
 
 export function MatchCard({ match }: { match: Match }) {
+  // `isDemo` marks a curated seed role, so the card would otherwise read like a
+  // live vacancy. The full explanation lives on the opportunity page
+  // (`opportunities/[roleId]/page.tsx`, the demo notice beneath the title); this
+  // keeps its key clause visible on the card itself rather than behind a hover,
+  // because a judge scanning the list never opens a tooltip.
   const remaining = Math.max(match.threshold - match.score, 0);
   const hasConfirmedStrengths = match.strengths.length > 0;
 
@@ -15,7 +20,7 @@ export function MatchCard({ match }: { match: Match }) {
     <article className="rounded-lg border border-border bg-surface p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-muted">{match.company}{match.isDemo ? " · Demo" : ""}</p>
+          <p className="text-sm text-muted">{match.company}{match.isDemo ? " · Demo, not a live vacancy" : ""}</p>
           <h3 className="mt-2 text-lg font-semibold tracking-tight text-foreground">{match.title}</h3>
         </div>
         <StatusPill tone={match.eligible ? "success" : "accent"}>{match.score}% match</StatusPill>
