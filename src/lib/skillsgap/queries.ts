@@ -90,7 +90,16 @@ export async function getApplicantProgress(client: Client, applicantId: string):
   const requirementById = new Map(requirements.map((requirement) => [requirement.id, requirement]));
   const applicantQualificationResult = await client.from("applicant_qualifications").select("qualification_id,years_experience").eq("applicant_id", applicantId).eq("review_status", "confirmed");
   const applicantQualificationYears = new Map((applicantQualificationResult.data ?? []).map((item) => [item.qualification_id, item.years_experience ?? 0]));
+  // `private.requirement_is_satisfied` joins the active taxonomy, so a confirmed
+  // skill stops counting the moment an administrator deactivates it. This
+  // predicate has to agree, or a projection adds weight that no recalculation
+  // would ever award.
+  const activeQualificationResult = qualificationIds.length > 0
+    ? await client.from("qualifications").select("id").in("id", qualificationIds).eq("is_active", true)
+    : { data: [] };
+  const activeQualificationIds = new Set((activeQualificationResult.data ?? []).map((qualification) => qualification.id));
   const requirementIsSatisfied = (requirement: Tables<"job_requirements">) => {
+    if (!activeQualificationIds.has(requirement.qualification_id)) return false;
     const years = applicantQualificationYears.get(requirement.qualification_id);
     return years !== undefined && (requirement.minimum_years === null || years >= requirement.minimum_years);
   };
@@ -129,7 +138,10 @@ export async function getApplicantProgress(client: Client, applicantId: string):
           trainingDescription: trainingByQualification.get(requirement.qualification_id)?.description ?? null,
           trainingDuration: trainingByQualification.get(requirement.qualification_id)?.duration ?? null,
           trainingUrl: trainingByQualification.get(requirement.qualification_id)?.url ?? null,
-          projectedScore: totalRoleWeight === 0 ? row.score : Math.round(((satisfiedRoleWeight + requirement.weight) * 100) / totalRoleWeight),
+          // Clamped independently of the predicate: a stale gap row can still add
+          // the weight of an already-satisfied requirement, and no projection may
+          // exceed the ceiling a recalculation can produce.
+          projectedScore: Math.min(100, totalRoleWeight === 0 ? row.score : Math.round(((satisfiedRoleWeight + requirement.weight) * 100) / totalRoleWeight)),
           status: gap.status,
         }];
       }).sort((first, second) => Number(second.mandatory) - Number(first.mandatory));
