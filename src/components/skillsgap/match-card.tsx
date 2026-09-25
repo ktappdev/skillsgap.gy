@@ -31,9 +31,9 @@ export function MatchCard({ match }: { match: Match }) {
       </div>
       <p className="mt-3 text-sm leading-6 text-muted">
         {match.eligible
-          ? "Meets the match threshold and all required qualifications."
+          ? `Meets the ${match.threshold}% interview threshold. All mandatory requirements are met.`
           : remaining > 0
-            ? `${remaining}% to the interview threshold.`
+            ? `${remaining} points to the ${match.threshold}% interview threshold.`
             : "Match threshold met; required qualifications remain."}
       </p>
 
@@ -56,7 +56,7 @@ export function MatchCard({ match }: { match: Match }) {
       {match.gaps.length > 0 ? (
         <section className="mt-3 border-t border-border pt-3" aria-label="Training for requirements to verify">
           <p className="text-sm font-medium text-foreground">
-            {match.gaps.length} {match.gaps.length === 1 ? "requirement" : "requirements"} to verify
+            {match.gaps.length} {match.gaps.length === 1 ? "requirement" : "requirements"} to work toward
           </p>
           <ul className="mt-2 space-y-2" role="list">
             {match.gaps.map((gap) => (

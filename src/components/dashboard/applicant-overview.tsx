@@ -212,7 +212,7 @@ function OverviewMatch({ match, featured = false }: { match: Match; featured?: b
         <div className="h-full bg-accent" style={{ width: `${match.score}%` }} />
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm leading-6 text-muted">{match.eligible ? "Score and mandatory requirements met." : remaining > 0 ? `${remaining} points to the interview threshold.` : "Score met; review mandatory requirements."}</p>
+        <p className="text-sm leading-6 text-muted">{match.eligible ? `Meets the ${match.threshold}% interview threshold. All mandatory requirements are met.` : remaining > 0 ? `${remaining} points to the ${match.threshold}% interview threshold.` : "Score met; review mandatory requirements."}</p>
         <div className="flex flex-wrap items-center gap-3">
           {match.gaps[0] ? <TrainingProvidersLink qualification={match.gaps[0].name} /> : null}
           <Link href={`/matches/${match.id}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-accent underline-offset-4 hover:underline">View route <span aria-hidden="true" className="ml-2">→</span></Link>
