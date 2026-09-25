@@ -57,6 +57,13 @@ node --env-file=.env.local scripts/check-demo-readiness.mjs
 - Keep features aligned with the product loop: skills → opportunities → gaps → training. Use those domain nouns in code where appropriate.
 - For UI work, follow the existing visual system and accessibility conventions rather than introducing a second design language.
 
+## App shell, proxy, and route guards
+
+- **Proxy placement:** the App Router lives at `src/app` in this repository, so Next 16's request Proxy must be created at `src/proxy.ts`. Next resolves `proxy.ts` from the project root *or* from `src/` at the same level as `app`; a root `proxy.ts` is not enumerated by this project's production build, so a gate placed there silently never runs. Only one proxy file is supported — keep route-specific logic in modules and import them into `src/proxy.ts`.
+- **Per-page guards are the `(app)` auth authority:** every `src/app/(app)/**/page.tsx` must call a server guard from `src/lib/auth/queries.ts` — `requireUser`, `requireApplicant`, `requirePlatformAdmin`, `requireApprovedCompanyMember`, `requireApprovedCompanyOwner`, or `requireTrainingProvider` — and must pass a root-relative destination literal as its first argument, for example `requireApplicant("/interviews")`. `src/lib/auth/app-page-guards.test.ts` is the regression gate: a page without a guard, or a guard without a destination, fails it.
+- **Do not reintroduce an `(app)` layout redirect.** A Server Component layout cannot read the current URL, so it cannot know the destination; a redirect fired there would pre-empt the page guard and collapse every deep link to the account home. The layout redirect alternative is rejected and should not be re-added, not even as a TODO. If it is ever revisited, the redirect must sit *above* the `<Suspense>` boundary, because a redirect thrown inside a suspended component cannot prevent the page from rendering.
+- **Keep the `(app)` shell synchronous:** `src/app/(app)/layout.tsx` stays a non-async component, and the session read (`async getAppShell()`) lives inside `<AppHeader />` wrapped in `<Suspense fallback={<AppHeaderSkeleton />}>`. That is what lets each segment's `loading.tsx` — the console skeletons — paint on cold navigation; an `async` layout blocks until the session resolves and suppresses every `(app)` fallback. `AppHeaderSkeleton`'s placeholder count (6 desktop / 3 mobile) is inherently approximate and accepted: a Suspense fallback cannot know the session, so it cannot know the account space's nav length.
+
 ## Workflow
 
 - Do not automatically start servers, deploy migrations, or install dependencies unless explicitly requested. Read-only checks and proportionate builds are appropriate after implementation changes.
