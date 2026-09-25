@@ -3,11 +3,16 @@ import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CareerExplorerForm } from "./career-explorer-form";
+import { careerInterests } from "@/lib/i-want-to-become/interests";
 
 afterEach(cleanup);
 
 function CareerExplorerFormHarness({ onBrowseAll, onStepChange }: { onBrowseAll: () => void; onStepChange: (step: 1 | 2 | 3) => void }) {
-  const [interests, setInterests] = useState("");
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+
+  function toggleInterest(interest: string) {
+    setSelectedInterests((current) => current.includes(interest) ? current.filter((item) => item !== interest) : [...current, interest]);
+  }
 
   return <CareerExplorerForm
     step={1}
@@ -15,10 +20,9 @@ function CareerExplorerFormHarness({ onBrowseAll, onStepChange }: { onBrowseAll:
     occupations={[]}
     positions={[]}
     suggestions={[]}
-    interestCatalogue={[]}
+    interestCatalogue={careerInterests}
     browsingAll={false}
-    interests={interests}
-    selectedInterests={[]}
+    selectedInterests={selectedInterests}
     results={[]}
     photoName={null}
     photoPreview={null}
@@ -30,8 +34,7 @@ function CareerExplorerFormHarness({ onBrowseAll, onStepChange }: { onBrowseAll:
     onSuggestedCareerChange={vi.fn()}
     onBrowseAll={onBrowseAll}
     onBrowseSuggestions={vi.fn()}
-    onInterestsChange={setInterests}
-    onToggleInterest={vi.fn()}
+    onToggleInterest={toggleInterest}
     onFileSelected={vi.fn()}
     onUpdateResult={vi.fn()}
     onRemoveResult={vi.fn()}
@@ -43,17 +46,20 @@ function CareerExplorerFormHarness({ onBrowseAll, onStepChange }: { onBrowseAll:
 }
 
 describe("CareerExplorerForm", () => {
-  it("lets a private note continue to browsing all paths without treating it as a suggestion", () => {
+  it("offers interest suggestions and keeps browsing all paths available without a note", () => {
     const onBrowseAll = vi.fn();
     const onStepChange = vi.fn();
 
     render(<CareerExplorerFormHarness onBrowseAll={onBrowseAll} onStepChange={onStepChange} />);
 
-    const note = screen.getByLabelText(/A short private note/i);
-    fireEvent.change(note, { target: { value: "I want a stable job close to home." } });
-    fireEvent.click(screen.getByRole("button", { name: /Browse career paths/i }));
+    expect(screen.queryByLabelText(/private note/i)).toBeNull();
+    expect(screen.getByRole("button", { name: /Choose an interest/i }).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Repairing machinery" }));
+    fireEvent.click(screen.getByRole("button", { name: /Suggest career paths/i }));
 
+    expect(onStepChange).toHaveBeenCalledWith(2);
+    expect(onBrowseAll).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /Browse all paths without suggestions/i }));
     expect(onBrowseAll).toHaveBeenCalledOnce();
-    expect(onStepChange).not.toHaveBeenCalled();
   });
 });

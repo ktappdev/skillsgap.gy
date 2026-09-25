@@ -6,7 +6,7 @@ import { CareerPathwayPicker } from "@/components/i-want-to-become/career-pathwa
 import { CareerInterestPicker } from "@/components/i-want-to-become/career-interest-picker";
 import { CareerSuggestions } from "@/components/i-want-to-become/career-suggestions";
 import { CareerResultsEditor } from "@/components/i-want-to-become/career-results-editor";
-import { interestNoteMaxLength, type ExplorerStep, type PhotoState } from "@/components/i-want-to-become/explorer-types";
+import type { ExplorerStep, PhotoState } from "@/components/i-want-to-become/explorer-types";
 import type { CsecResult } from "@/lib/i-want-to-become/catalog";
 import type { PublicOccupation } from "@/lib/i-want-to-become/occupations";
 import type { CareerInterest, InterestSuggestion, RelatedPosition } from "@/lib/i-want-to-become/interests";
@@ -19,7 +19,6 @@ type CareerExplorerFormProps = {
   suggestions: InterestSuggestion[];
   interestCatalogue: CareerInterest[];
   browsingAll: boolean;
-  interests: string;
   selectedInterests: string[];
   results: CsecResult[];
   photoName: string | null;
@@ -32,7 +31,6 @@ type CareerExplorerFormProps = {
   onSuggestedCareerChange: (careerId: string) => void;
   onBrowseAll: () => void;
   onBrowseSuggestions: () => void;
-  onInterestsChange: (interests: string) => void;
   onToggleInterest: (interest: string) => void;
   onFileSelected: (file: File) => void;
   onUpdateResult: (index: number, field: keyof CsecResult, value: string) => void;
@@ -43,14 +41,14 @@ type CareerExplorerFormProps = {
   onShowResults: () => void;
 };
 
-export function CareerExplorerForm({ step, careerId, occupations, positions, suggestions, interestCatalogue, browsingAll, interests, selectedInterests, results, photoName, photoPreview, photoState, photoError, resultsReviewed, planLoading, onCareerChange, onSuggestedCareerChange, onBrowseAll, onBrowseSuggestions, onInterestsChange, onToggleInterest, onFileSelected, onUpdateResult, onRemoveResult, onAddResult, onResultsReviewedChange, onStepChange, onShowResults }: CareerExplorerFormProps) {
+export function CareerExplorerForm({ step, careerId, occupations, positions, suggestions, interestCatalogue, browsingAll, selectedInterests, results, photoName, photoPreview, photoState, photoError, resultsReviewed, planLoading, onCareerChange, onSuggestedCareerChange, onBrowseAll, onBrowseSuggestions, onToggleInterest, onFileSelected, onUpdateResult, onRemoveResult, onAddResult, onResultsReviewedChange, onStepChange, onShowResults }: CareerExplorerFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const previousStepRef = useRef(step);
-  const canContinue = step === 1 ? selectedInterests.length > 0 || interests.trim().length > 0 : step === 2 ? careerId.length > 0 : true;
+  const canContinue = step === 1 ? selectedInterests.length > 0 : step === 2 ? careerId.length > 0 : true;
   const hasResultEntries = results.some((result) => result.subject.trim().length > 0 || result.grade.trim().length > 0);
   const continueLabel = step === 1
-    ? selectedInterests.length > 0 ? "Suggest career paths" : interests.trim() ? "Browse career paths" : "Choose an interest"
+    ? selectedInterests.length > 0 ? "Suggest career paths" : "Choose an interest"
     : "Continue";
 
   useLayoutEffect(() => {
@@ -64,10 +62,6 @@ export function CareerExplorerForm({ step, careerId, occupations, positions, sug
     event.preventDefault();
     if (step === 3) {
       if ((!hasResultEntries || resultsReviewed) && !planLoading) onShowResults();
-      return;
-    }
-    if (step === 1 && selectedInterests.length === 0 && interests.trim()) {
-      onBrowseAll();
       return;
     }
     if (canContinue) onStepChange(step === 1 ? 2 : 3);
@@ -84,7 +78,7 @@ export function CareerExplorerForm({ step, careerId, occupations, positions, sug
       <div className="flex flex-col justify-between gap-4 border-b border-border pb-6 sm:flex-row sm:items-start"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{stepCopy.eyebrow}</p><h2 ref={headingRef} id="explorer-step-title" tabIndex={-1} className="mt-3 max-w-2xl text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{stepCopy.title}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{stepCopy.description}</p></div><span className="inline-flex w-fit items-center rounded-full bg-surface-muted px-3 py-1.5 text-xs font-bold text-accent">No account needed</span></div>
 
       <div className="mt-7">
-        {step === 1 ? <fieldset><legend className="text-base font-semibold text-foreground">What kinds of work interest you?</legend><CareerInterestPicker interests={interestCatalogue} selectedInterests={selectedInterests} onToggle={onToggleInterest} /><label htmlFor="interests" className="mt-6 block text-sm font-semibold text-foreground">A short private note <span className="font-normal text-muted">(optional)</span></label><textarea id="interests" value={interests} onChange={(event) => onInterestsChange(event.target.value)} rows={3} maxLength={interestNoteMaxLength} className="mt-2 w-full border border-border bg-white p-3 text-sm leading-6 text-foreground outline-none transition placeholder:text-muted focus:border-accent" placeholder="What matters to you in a future job?" /><p className="mt-2 text-xs text-muted">{interests.length}/{interestNoteMaxLength} · Kept with your draft. A note alone takes you to all paths; choose an interest for tailored suggestions.</p></fieldset> : null}
+        {step === 1 ? <fieldset><legend className="text-base font-semibold text-foreground">What kinds of work interest you?</legend><CareerInterestPicker interests={interestCatalogue} selectedInterests={selectedInterests} onToggle={onToggleInterest} /></fieldset> : null}
 
         {step === 2 ? <div>{browsingAll ? <><button type="button" onClick={onBrowseSuggestions} className="mb-3 min-h-11 text-sm font-semibold text-accent underline-offset-4 hover:underline">← Back to my suggestions</button><CareerPathwayPicker occupations={occupations} selectedId={careerId} onSelect={onCareerChange} /></> : <CareerSuggestions suggestions={suggestions} positions={positions} selectedId={careerId} onSelect={onSuggestedCareerChange} onBrowseAll={onBrowseAll} />}</div> : null}
 
