@@ -8,9 +8,12 @@ import { useCareerExplorer } from "@/components/i-want-to-become/use-career-expl
 import { Skeleton } from "@/components/ui/skeleton";
 import { occupationCatalog, type PublicOccupation } from "@/lib/i-want-to-become/occupations";
 import type { PathwaySaveViewer } from "@/lib/i-want-to-become/pathway-plan";
+import { suggestOccupations } from "@/lib/i-want-to-become/interests";
+import type { RelatedPosition } from "@/lib/i-want-to-become/interests";
 
 type CareerExplorerProps = {
   initialOccupations?: PublicOccupation[];
+  positions?: RelatedPosition[];
   initialCareerId?: string;
   autoOpenPathway?: boolean;
   viewer?: PathwaySaveViewer;
@@ -20,9 +23,10 @@ function PlanError({ onEdit }: { onEdit: () => void }) {
   return <section className="rounded-lg border border-border bg-surface p-6 sm:p-8" aria-labelledby="plan-error-title"><p className="text-xs font-bold uppercase tracking-[0.18em] text-danger">Pathway unavailable</p><h2 id="plan-error-title" className="mt-3 text-2xl font-semibold tracking-tight text-foreground">We could not load that route right now.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted">Your direction and starting point are still here. Try again in a moment or edit your starting point to choose another route.</p><button type="button" onClick={onEdit} className="mt-6 inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Back to my starting point</button></section>;
 }
 
-export function CareerExplorer({ initialOccupations = occupationCatalog, initialCareerId, autoOpenPathway = false, viewer = "anonymous" }: CareerExplorerProps) {
+export function CareerExplorer({ initialOccupations = occupationCatalog, positions = [], initialCareerId, autoOpenPathway = false, viewer = "anonymous" }: CareerExplorerProps) {
   const explorer = useCareerExplorer(initialOccupations, initialCareerId, autoOpenPathway);
-  const { careerId, interests, selectedInterests, results, photoName, photoPreview, photoState, photoError, resultsReviewed, step, showPlan, occupations, occupationPlan, planSource, planLoading, planError, draftReady, draftRestored, guidedPathway, completedResults, selectedTitle, selectedDetail, updateResult, toggleInterest, selectCareer, readSlip, showResults, editStartingPoint, resetDraft, canVisitStep, setResults, setResultsReviewed, setStep } = explorer;
+  const { careerId, interests, selectedInterests, browsingAll, results, photoName, photoPreview, photoState, photoError, resultsReviewed, step, showPlan, occupations, interestCatalogue, occupationPlan, planSource, planLoading, planError, draftReady, draftRestored, guidedPathway, completedResults, selectedTitle, selectedDetail, updateResult, toggleInterest, selectCareer, browseAllPaths, browseSuggestedPaths, readSlip, showResults, editStartingPoint, resetDraft, canVisitStep, setResults, setResultsReviewed, setStep } = explorer;
+  const suggestions = suggestOccupations(occupations, selectedInterests, 3, interestCatalogue);
 
   function removeResult(index: number) {
     setResults((current) => current.length > 1 ? current.filter((_, itemIndex) => itemIndex !== index) : current);
@@ -48,9 +52,9 @@ export function CareerExplorer({ initialOccupations = occupationCatalog, initial
 
   return <div id="career-explorer" className="scroll-mt-6">
     {draftRestored ? <div className="mb-4 flex flex-col gap-3 border border-accent/30 bg-teal-50/50 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-foreground">Your pathway draft is back.</p><p className="mt-1 text-sm text-muted">Your route and entries are back in this tab. Continue at step {step}.{step === 3 && completedResults.length > 0 ? " Review your CSEC/CXC entries again before building." : ""}</p></div><button type="button" onClick={resetDraft} className="w-fit text-sm font-semibold text-accent underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Start over</button></div> : null}
-    <ExplorerProgress activeStep={step} hasCareer={Boolean(careerId)} hasStartingPoint={step >= 3 || showPlan} hasPlan={showPlan} canVisitStep={canVisitStep} onStepSelect={selectStep} />
+    <ExplorerProgress activeStep={step} hasCareer={selectedInterests.length > 0 || browsingAll || Boolean(careerId)} hasStartingPoint={Boolean(careerId)} hasPlan={showPlan} canVisitStep={canVisitStep} onStepSelect={selectStep} />
     <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-      <CareerExplorerForm step={step} careerId={careerId} occupations={occupations} interests={interests} selectedInterests={selectedInterests} results={results} photoName={photoName} photoPreview={photoPreview} photoState={photoState} photoError={photoError} resultsReviewed={resultsReviewed} planLoading={planLoading} onCareerChange={selectCareer} onInterestsChange={explorer.setInterests} onToggleInterest={toggleInterest} onFileSelected={(file) => { void readSlip(file); }} onUpdateResult={updateResult} onRemoveResult={removeResult} onAddResult={addResult} onResultsReviewedChange={setResultsReviewed} onStepChange={setStep} onShowResults={() => { void showResults(); }} />
+      <CareerExplorerForm step={step} careerId={careerId} occupations={occupations} positions={positions} suggestions={suggestions} interestCatalogue={interestCatalogue} browsingAll={browsingAll} interests={interests} selectedInterests={selectedInterests} results={results} photoName={photoName} photoPreview={photoPreview} photoState={photoState} photoError={photoError} resultsReviewed={resultsReviewed} planLoading={planLoading} onCareerChange={selectCareer} onSuggestedCareerChange={(slug) => { selectCareer(slug); setStep(3); }} onBrowseAll={browseAllPaths} onBrowseSuggestions={browseSuggestedPaths} onInterestsChange={explorer.setInterests} onToggleInterest={toggleInterest} onFileSelected={(file) => { void readSlip(file); }} onUpdateResult={updateResult} onRemoveResult={removeResult} onAddResult={addResult} onResultsReviewedChange={setResultsReviewed} onStepChange={setStep} onShowResults={() => { void showResults(); }} />
       <ExplorerSummary activeStep={step} selectedTitle={selectedTitle} selectedDetail={selectedDetail} selectedInterests={selectedInterests} resultCount={completedResults.length} canVisitStep={canVisitStep} onStepSelect={selectStep} />
     </div>
   </div>;

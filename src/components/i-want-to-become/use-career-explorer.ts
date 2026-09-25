@@ -2,18 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ExplorerDraft, ExplorerStep, PhotoState, PlanSource } from "@/components/i-want-to-become/explorer-types";
 import { findCareerPathway, isValidCsecResult, type CsecResult } from "@/lib/i-want-to-become/catalog";
-import { getStaticOccupationPathway, isPublicOccupation, isPublicOccupationPathway, occupationCatalog, type PublicOccupation, type PublicOccupationPathway } from "@/lib/i-want-to-become/occupations";
+import { getStaticCareerCatalogue, getStaticOccupationPathway, isPublicOccupationPathway, occupationCatalog, parsePublicCareerCatalogue, type PublicOccupation, type PublicOccupationPathway } from "@/lib/i-want-to-become/occupations";
+import { normalizeCareerInterest, toggleCareerInterestSelection } from "@/lib/i-want-to-become/interests";
 
 const draftStorageKey = "skillsgap:i-want-to-become:draft";
 const initialResults = (): CsecResult[] => [{ subject: "", grade: "" }];
 const maxResultSlipSize = 8 * 1024 * 1024;
 const acceptedResultSlipTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-
-function parseOccupationResponse(value: unknown): PublicOccupation[] | null {
-  if (typeof value !== "object" || value === null) return null;
-  const occupations = (value as { occupations?: unknown }).occupations;
-  return Array.isArray(occupations) && occupations.every(isPublicOccupation) ? occupations : null;
-}
 
 function parsePathwayResponse(value: unknown): { pathway: PublicOccupationPathway; source: "live" | "fallback" } | null {
   if (typeof value !== "object" || value === null) return null;
@@ -44,7 +39,8 @@ function parseDraft(value: string | null): ExplorerDraft | null {
     if (typeof draft.careerId !== "string" || typeof draft.interests !== "string" || !Array.isArray(draft.selectedInterests) || !draft.selectedInterests.every((item) => typeof item === "string") || !Array.isArray(draft.results)) return null;
     const results = draft.results.filter((result): result is CsecResult => typeof result === "object" && result !== null && typeof (result as { subject?: unknown }).subject === "string" && typeof (result as { grade?: unknown }).grade === "string");
     const step = draft.step === 2 || draft.step === 3 ? draft.step : 1;
-    return { careerId: draft.careerId, interests: draft.interests, selectedInterests: draft.selectedInterests, results, step, showPlan: draft.showPlan === true };
+    const selectedInterests = [...new Set(draft.selectedInterests.map(normalizeCareerInterest))].slice(0, 5);
+    return { careerId: draft.careerId, interests: draft.interests, selectedInterests, browsingAll: draft.browsingAll === true || Boolean(draft.careerId), results, step, showPlan: draft.showPlan === true };
   } catch {
     return null;
   }
@@ -66,6 +62,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
   const [careerId, setCareerId] = useState(initialCareerId ?? "");
   const [interests, setInterests] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [browsingAll, setBrowsingAll] = useState(Boolean(initialCareerId));
   const [results, setResults] = useState<CsecResult[]>(initialResults);
   const [photoName, setPhotoName] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -75,6 +72,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
   const [step, setStep] = useState<ExplorerStep>(initialShowPlan ? 3 : 1);
   const [showPlan, setShowPlan] = useState(initialShowPlan);
   const [occupations, setOccupations] = useState(initialOccupations);
+  const [interestCatalogue, setInterestCatalogue] = useState(getStaticCareerCatalogue().interests);
   const [occupationPlan, setOccupationPlan] = useState<PublicOccupationPathway | null>(initialOccupationPlan);
   const [planSource, setPlanSource] = useState<PlanSource>("fallback");
   const [planLoading, setPlanLoading] = useState(false);
@@ -102,6 +100,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
         setCareerId(draft.careerId);
         setInterests(draft.interests);
         setSelectedInterests(draft.selectedInterests);
+        setBrowsingAll(draft.browsingAll === true || Boolean(draft.careerId));
         setResults(draft.results.length > 0 ? draft.results : initialResults());
         setStep(restoredShowPlan ? 3 : draft.step);
         setShowPlan(restoredShowPlan);
@@ -120,12 +119,12 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
   useEffect(() => {
     if (!draftReady) return;
     if (hasDraftProgress) {
-      const draft: ExplorerDraft = { careerId, interests, selectedInterests, results, step, showPlan };
+      const draft: ExplorerDraft = { careerId, interests, selectedInterests, browsingAll, results, step, showPlan };
       window.sessionStorage.setItem(draftStorageKey, JSON.stringify(draft));
     } else {
       window.sessionStorage.removeItem(draftStorageKey);
     }
-  }, [careerId, interests, selectedInterests, results, step, showPlan, draftReady, hasDraftProgress]);
+  }, [careerId, interests, selectedInterests, browsingAll, results, step, showPlan, draftReady, hasDraftProgress]);
 
   useEffect(() => () => {
     if (photoPreview) URL.revokeObjectURL(photoPreview);
@@ -140,9 +139,12 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     const controller = new AbortController();
     let mounted = true;
     void fetch("/api/i-want-to-become/occupations", { signal: controller.signal })
-      .then(async (response) => response.ok ? parseOccupationResponse(await response.json() as unknown) : null)
-      .then((fetchedOccupations) => {
-        if (mounted && fetchedOccupations && fetchedOccupations.length > 0) setOccupations(fetchedOccupations);
+      .then(async (response) => response.ok ? parsePublicCareerCatalogue(await response.json() as unknown) : null)
+      .then((catalogue) => {
+        if (mounted && catalogue && catalogue.occupations.length > 0) {
+          setOccupations(catalogue.occupations);
+          setInterestCatalogue(catalogue.interests);
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -157,7 +159,16 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
   }
 
   function toggleInterest(interest: string) {
-    setSelectedInterests((current) => current.includes(interest) ? current.filter((item) => item !== interest) : [...current, interest]);
+    setSelectedInterests((current) => toggleCareerInterestSelection(current, interest));
+  }
+
+  function browseAllPaths() {
+    setBrowsingAll(true);
+    setStep(2);
+  }
+
+  function browseSuggestedPaths() {
+    setBrowsingAll(false);
   }
 
   function selectCareer(nextCareerId: string) {
@@ -290,6 +301,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     planRequest.current?.abort();
     slipRequest.current?.abort();
     setCareerId("");
+    setBrowsingAll(false);
     setInterests("");
     setSelectedInterests([]);
     setResults(initialResults());
@@ -309,15 +321,15 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
 
   function canVisitStep(targetStep: ExplorerStep) {
     if (targetStep === 1) return true;
-    if (!careerId) return false;
-    if (targetStep === 2) return true;
-    return step >= 2 || showPlan;
+    if (targetStep === 2) return selectedInterests.length > 0 || browsingAll || Boolean(careerId) || showPlan;
+    return Boolean(careerId) && (step >= 2 || showPlan);
   }
 
   return {
     careerId,
     interests,
     selectedInterests,
+    browsingAll,
     results,
     photoName,
     photoPreview,
@@ -327,6 +339,7 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     step,
     showPlan,
     occupations,
+    interestCatalogue,
     occupationPlan,
     planSource,
     planLoading,
@@ -340,6 +353,8 @@ export function useCareerExplorer(initialOccupations: PublicOccupation[] = occup
     selectedDetail,
     updateResult,
     toggleInterest,
+    browseAllPaths,
+    browseSuggestedPaths,
     selectCareer,
     readSlip,
     showResults,

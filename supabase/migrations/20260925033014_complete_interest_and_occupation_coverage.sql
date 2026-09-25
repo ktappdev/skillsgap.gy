@@ -130,6 +130,18 @@ $$;
 revoke all on function public.get_public_occupations() from public, anon, authenticated;
 grant execute on function public.get_public_occupations() to anon, authenticated;
 
+create function public.get_public_career_interests()
+returns table (slug text, label text, group_name text, display_order smallint)
+language sql stable security definer set search_path = public, pg_temp
+as $$
+  select interest.slug, interest.label, interest.group_name, interest.display_order
+  from public.career_interests interest
+  where interest.is_active
+  order by interest.display_order;
+$$;
+revoke all on function public.get_public_career_interests() from public, anon, authenticated;
+grant execute on function public.get_public_career_interests() to anon, authenticated;
+
 -- Keep older saved plans and browser drafts readable after interests become slugs.
 update public.applicant_pathway_plans plan
 set selected_interests = array(

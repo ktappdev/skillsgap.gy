@@ -8,6 +8,7 @@ export type ExplorerDraft = {
   careerId: string;
   interests: string;
   selectedInterests: string[];
+  browsingAll?: boolean;
   results: CsecResult[];
   step: ExplorerStep;
   showPlan: boolean;

@@ -12,6 +12,13 @@ export type CareerInterest = {
   order: number;
 };
 
+export type PublicCareerInterestRpcRow = {
+  slug: string;
+  label: string;
+  group_name: CareerInterestGroup;
+  display_order: number;
+};
+
 export const careerInterests: CareerInterest[] = [
   { slug: "machinery-repair", label: "Repairing machinery", group: "Hands-on", order: 1 },
   { slug: "electrical-work", label: "Electrical work", group: "Hands-on", order: 2 },
@@ -38,6 +45,30 @@ export const careerInterests: CareerInterest[] = [
   { slug: "customer-service-sales", label: "Customer service and sales", group: "Business and service", order: 23 },
   { slug: "cooking-food-service", label: "Cooking and food service", group: "Business and service", order: 24 },
 ];
+
+export function isPublicCareerInterestRpcRow(value: unknown): value is PublicCareerInterestRpcRow {
+  if (typeof value !== "object" || value === null) return false;
+  const row = value as Record<string, unknown>;
+  return typeof row.slug === "string"
+    && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(row.slug)
+    && typeof row.label === "string"
+    && ["Hands-on", "Field and care", "Technical and digital", "Business and service"].includes(String(row.group_name))
+    && typeof row.display_order === "number";
+}
+
+export function normalizePublicCareerInterest(value: PublicCareerInterestRpcRow): CareerInterest {
+  return { slug: value.slug, label: value.label, group: value.group_name, order: value.display_order };
+}
+
+export function isCareerInterest(value: unknown): value is CareerInterest {
+  if (typeof value !== "object" || value === null) return false;
+  const interest = value as Record<string, unknown>;
+  return typeof interest.slug === "string"
+    && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(interest.slug)
+    && typeof interest.label === "string"
+    && ["Hands-on", "Field and care", "Technical and digital", "Business and service"].includes(String(interest.group))
+    && typeof interest.order === "number";
+}
 
 export type InterestMapping = {
   interestSlug: string;
@@ -92,9 +123,9 @@ export function normalizeCareerInterest(value: string): string {
   return legacyInterestSlugs[value] ?? value;
 }
 
-export function labelCareerInterest(value: string): string {
+export function labelCareerInterest(value: string, catalogue = careerInterests): string {
   const normalized = normalizeCareerInterest(value);
-  return careerInterests.find((interest) => interest.slug === normalized)?.label ?? value;
+  return catalogue.find((interest) => interest.slug === normalized)?.label ?? value;
 }
 
 export function toggleCareerInterestSelection(current: string[], interestSlug: string): string[] {
@@ -126,6 +157,7 @@ export function suggestOccupations(
   occupations: PublicOccupation[],
   selectedInterests: string[],
   limit = 3,
+  catalogue = careerInterests,
 ): InterestSuggestion[] {
   const selected = [...new Set(selectedInterests.map(normalizeCareerInterest))].slice(0, 5);
   if (selected.length === 0) return [];
@@ -140,7 +172,7 @@ export function suggestOccupations(
       score: matches.reduce((total, match) => total + match.relevanceWeight, 0),
       primaryMatches: matches.filter((match) => match.relevanceWeight === 3).length,
       matchedInterestSlugs,
-      explanation: matchedInterestSlugs.map(labelCareerInterest),
+      explanation: matchedInterestSlugs.map((interestSlug) => labelCareerInterest(interestSlug, catalogue)),
     }];
   }).sort((first, second) => second.score - first.score
     || second.primaryMatches - first.primaryMatches

@@ -25,6 +25,7 @@ export type PublicPositionSummary = {
   employmentType: string | null;
   publishedAt: string | null;
   isDemo: boolean;
+  occupationSlug: string | null;
   company: PublicCompany;
 };
 
@@ -79,6 +80,7 @@ function isUuid(value: string) {
 function toPositionSummary(
   role: Pick<Tables<"job_roles">, "id" | "title" | "description" | "location" | "employment_type" | "published_at" | "is_demo" | "company_id">,
   company: PublicCompany,
+  occupationSlug: string | null,
 ): PublicPositionSummary {
   return {
     id: role.id,
@@ -88,6 +90,7 @@ function toPositionSummary(
     employmentType: role.employment_type,
     publishedAt: role.published_at,
     isDemo: role.is_demo,
+    occupationSlug,
     company,
   };
 }
@@ -98,22 +101,28 @@ export const getPublicPositions = cache(async (): Promise<PublicPositionSummary[
 
   const { data: roles, error } = await admin
     .from("job_roles")
-    .select("id,title,description,location,employment_type,published_at,is_demo,company_id")
+    .select("id,title,description,location,employment_type,published_at,is_demo,company_id,occupation_id")
     .eq("status", "active")
     .order("created_at", { ascending: false });
   if (error || !roles || roles.length === 0) return [];
 
   const companyIds = [...new Set(roles.map((role) => role.company_id))];
-  const { data: companies } = await admin
+  const occupationIds = [...new Set(roles.flatMap((role) => role.occupation_id ? [role.occupation_id] : []))];
+  const [{ data: companies }, { data: occupations }] = await Promise.all([admin
     .from("companies")
     .select("id,name,description,website_url,industry,location,contact_phone")
     .in("id", companyIds)
-    .eq("status", "approved");
+    .eq("status", "approved"),
+    occupationIds.length > 0
+      ? admin.from("occupations").select("id,slug").in("id", occupationIds).eq("is_active", true)
+      : Promise.resolve({ data: [] }),
+  ]);
   const companyById = new Map((companies ?? []).map((company) => [company.id, company]));
+  const occupationSlugById = new Map((occupations ?? []).map((occupation) => [occupation.id, occupation.slug]));
 
   return roles.flatMap((role) => {
     const company = companyById.get(role.company_id);
-    return company ? [toPositionSummary(role, company)] : [];
+    return company ? [toPositionSummary(role, company, role.occupation_id ? occupationSlugById.get(role.occupation_id) ?? null : null)] : [];
   });
 });
 
@@ -123,13 +132,13 @@ export const getPublicPosition = cache(async (roleId: string): Promise<PublicPos
 
   const { data: role, error } = await admin
     .from("job_roles")
-    .select("id,title,description,location,employment_type,published_at,is_demo,company_id")
+    .select("id,title,description,location,employment_type,published_at,is_demo,company_id,occupation_id")
     .eq("id", roleId)
     .eq("status", "active")
     .maybeSingle();
   if (error || !role) return null;
 
-  const [{ data: company }, { data: requirements }] = await Promise.all([
+  const [{ data: company }, { data: requirements }, { data: occupation }] = await Promise.all([
     admin
       .from("companies")
       .select("id,name,description,website_url,industry,location,contact_phone")
@@ -140,6 +149,9 @@ export const getPublicPosition = cache(async (roleId: string): Promise<PublicPos
       .from("job_requirements")
       .select("id,qualification_id,kind,minimum_years,mandatory")
       .eq("job_role_id", role.id),
+    role.occupation_id
+      ? admin.from("occupations").select("slug").eq("id", role.occupation_id).eq("is_active", true).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   if (!company) return null;
 
@@ -164,7 +176,7 @@ export const getPublicPosition = cache(async (roleId: string): Promise<PublicPos
     .sort((first, second) => Number(second.mandatory) - Number(first.mandatory) || first.qualificationName.localeCompare(second.qualificationName));
 
   return {
-    ...toPositionSummary(role, company),
+    ...toPositionSummary(role, company, occupation?.slug ?? null),
     requirements: publicRequirements,
   };
 });

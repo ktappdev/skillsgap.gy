@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { careerPathways, findCareerPathway, isValidCsecResult, normalizeSubjectName, supportingSubjects } from "@/lib/i-want-to-become/catalog";
 import { getAllOccupationGuidance } from "@/lib/i-want-to-become/guidance";
-import { getStaticOccupationPathway, isPublicOccupation, isPublicOccupationPathway, isPublicOccupationRpcRow, normalizePublicOccupation, occupationCatalog } from "@/lib/i-want-to-become/occupations";
+import { getStaticCareerCatalogue, getStaticOccupationPathway, isPublicOccupation, isPublicOccupationPathway, isPublicOccupationRpcRow, normalizePublicOccupation, occupationCatalog, parsePublicCareerCatalogue } from "@/lib/i-want-to-become/occupations";
 
 describe("career pathway catalogue", () => {
   it("keeps every pathway identifiable", () => {
@@ -63,6 +63,24 @@ describe("career pathway catalogue", () => {
     })).toBe(false);
     expect(isPublicOccupation(occupationCatalog[0])).toBe(true);
     expect(isPublicOccupation({ ...occupationCatalog[0], roleFamily: 42 })).toBe(false);
+  });
+
+  it("parses the public interest catalogue and retains a complete static fallback", () => {
+    const fallback = getStaticCareerCatalogue();
+    expect(fallback.occupations).toHaveLength(22);
+    expect(fallback.interests).toHaveLength(24);
+
+    const live = parsePublicCareerCatalogue({
+      occupations: fallback.occupations,
+      interests: fallback.interests.map(({ slug, label, group, order }) => ({
+        slug,
+        label,
+        group_name: group,
+        display_order: order,
+      })),
+    });
+    expect(live?.interests).toEqual(fallback.interests);
+    expect(parsePublicCareerCatalogue({ occupations: fallback.occupations, interests: [{ slug: "bad", label: "Bad", group_name: "unknown", display_order: 1 }] })).toBeNull();
   });
 
   it("preserves seeded requirement categories and experience thresholds", () => {

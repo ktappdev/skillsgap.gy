@@ -26,7 +26,7 @@ type PickerOption = {
 const scopeLabels: Array<[PickerScope, string]> = [
   ["all", "All routes"],
   ["guided", "Starter routes"],
-  ["occupation", "Petroleum roles"],
+  ["occupation", "Occupation pathways"],
 ];
 
 function guidedOption(pathway: CareerPathway): PickerOption {
@@ -63,7 +63,7 @@ function PathwayOptionCard({ option, selected, onSelect }: { option: PickerOptio
     >
       <span className="flex w-full items-start justify-between gap-3">
         <span className="text-xs font-semibold text-muted">
-          {option.kind === "guided" ? "Guided starter route" : "Petroleum work family"}
+          {option.kind === "guided" ? "Guided starter route" : "Occupation pathway"}
         </span>
         <span aria-hidden="true" className={`grid size-6 shrink-0 place-items-center rounded-full border text-xs font-bold ${selected ? "border-accent bg-accent text-white" : "border-border text-transparent group-hover:border-accent"}`}>
           ✓

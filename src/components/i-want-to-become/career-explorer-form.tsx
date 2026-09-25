@@ -3,15 +3,22 @@
 import { useLayoutEffect, useRef, type FormEvent } from "react";
 
 import { CareerPathwayPicker } from "@/components/i-want-to-become/career-pathway-picker";
+import { CareerInterestPicker } from "@/components/i-want-to-become/career-interest-picker";
+import { CareerSuggestions } from "@/components/i-want-to-become/career-suggestions";
 import { CareerResultsEditor } from "@/components/i-want-to-become/career-results-editor";
 import type { ExplorerStep, PhotoState } from "@/components/i-want-to-become/explorer-types";
 import type { CsecResult } from "@/lib/i-want-to-become/catalog";
 import type { PublicOccupation } from "@/lib/i-want-to-become/occupations";
+import type { CareerInterest, InterestSuggestion, RelatedPosition } from "@/lib/i-want-to-become/interests";
 
 type CareerExplorerFormProps = {
   step: ExplorerStep;
   careerId: string;
   occupations: PublicOccupation[];
+  positions: RelatedPosition[];
+  suggestions: InterestSuggestion[];
+  interestCatalogue: CareerInterest[];
+  browsingAll: boolean;
   interests: string;
   selectedInterests: string[];
   results: CsecResult[];
@@ -22,6 +29,9 @@ type CareerExplorerFormProps = {
   resultsReviewed: boolean;
   planLoading: boolean;
   onCareerChange: (careerId: string) => void;
+  onSuggestedCareerChange: (careerId: string) => void;
+  onBrowseAll: () => void;
+  onBrowseSuggestions: () => void;
   onInterestsChange: (interests: string) => void;
   onToggleInterest: (interest: string) => void;
   onFileSelected: (file: File) => void;
@@ -33,17 +43,11 @@ type CareerExplorerFormProps = {
   onShowResults: () => void;
 };
 
-const interestOptions = ["Fixing things", "Safety", "Numbers", "Science", "Working outdoors", "Organising", "Working with people"];
-
-function InterestChoice({ interest, selected, onToggle }: { interest: string; selected: boolean; onToggle: () => void }) {
-  return <label className={`inline-flex min-h-11 cursor-pointer items-center rounded-full border px-4 text-sm font-semibold transition focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${selected ? "border-accent bg-accent text-white" : "border-border bg-surface text-foreground hover:border-accent hover:text-accent"}`}><input type="checkbox" checked={selected} onChange={onToggle} className="sr-only" />{selected ? "✓ " : ""}{interest}</label>;
-}
-
-export function CareerExplorerForm({ step, careerId, occupations, interests, selectedInterests, results, photoName, photoPreview, photoState, photoError, resultsReviewed, planLoading, onCareerChange, onInterestsChange, onToggleInterest, onFileSelected, onUpdateResult, onRemoveResult, onAddResult, onResultsReviewedChange, onStepChange, onShowResults }: CareerExplorerFormProps) {
+export function CareerExplorerForm({ step, careerId, occupations, positions, suggestions, interestCatalogue, browsingAll, interests, selectedInterests, results, photoName, photoPreview, photoState, photoError, resultsReviewed, planLoading, onCareerChange, onSuggestedCareerChange, onBrowseAll, onBrowseSuggestions, onInterestsChange, onToggleInterest, onFileSelected, onUpdateResult, onRemoveResult, onAddResult, onResultsReviewedChange, onStepChange, onShowResults }: CareerExplorerFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const previousStepRef = useRef(step);
-  const canContinue = step !== 1 || careerId.length > 0;
+  const canContinue = step === 1 ? selectedInterests.length > 0 : step === 2 ? careerId.length > 0 : true;
   const hasResultEntries = results.some((result) => result.subject.trim().length > 0 || result.grade.trim().length > 0);
 
   useLayoutEffect(() => {
@@ -63,24 +67,25 @@ export function CareerExplorerForm({ step, careerId, occupations, interests, sel
   }
 
   const stepCopy = step === 1
-    ? { eyebrow: "Step 1 of 3", title: "Choose a direction.", description: "Start with work you can picture yourself learning. You can change it before building your route." }
+    ? { eyebrow: "Step 1 of 3", title: "What sounds like you?", description: "Choose up to five kinds of work. We’ll use these choices to suggest career paths and explain why they came up." }
     : step === 2
-      ? { eyebrow: "Step 2 of 3", title: "What sounds like you?", description: "Pick a few interests, or write a note. This is reflection, not a test." }
-      : { eyebrow: "Step 3 of 3", title: "Share your starting point.", description: "Add results to guide preparation, or build a route without them." };
+      ? { eyebrow: "Step 2 of 3", title: browsingAll ? "Browse every career path." : "Paths to explore.", description: "Your interests help suggest paths to explore. They are not a test or a job-fit score." }
+      : { eyebrow: "Step 3 of 3", title: "Add CSEC/CXC results.", description: "Your results can help explain preparation for this path. They do not rank paths or count as qualifications." };
 
   return (
     <form ref={formRef} id="career-explorer-form" onSubmit={handleSubmit} className="scroll-mt-4 rounded-lg border border-border bg-surface p-5 sm:scroll-mt-6 sm:p-8" aria-labelledby="explorer-step-title">
       <div className="flex flex-col justify-between gap-4 border-b border-border pb-6 sm:flex-row sm:items-start"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{stepCopy.eyebrow}</p><h2 ref={headingRef} id="explorer-step-title" tabIndex={-1} className="mt-3 max-w-2xl text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{stepCopy.title}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{stepCopy.description}</p></div><span className="inline-flex w-fit items-center rounded-full bg-surface-muted px-3 py-1.5 text-xs font-bold text-accent">No account needed</span></div>
 
       <div className="mt-7">
-        {step === 1 ? <fieldset><legend className="text-base font-semibold text-foreground">What would you like to become?</legend><p className="mt-1 text-sm text-muted">Browse the guided starter routes or the wider petroleum work catalogue.</p><CareerPathwayPicker occupations={occupations} selectedId={careerId} onSelect={onCareerChange} /></fieldset> : null}
+        {step === 1 ? <fieldset><legend className="text-base font-semibold text-foreground">What kinds of work interest you?</legend><CareerInterestPicker interests={interestCatalogue} selectedInterests={selectedInterests} onToggle={onToggleInterest} /><label htmlFor="interests" className="mt-6 block text-sm font-semibold text-foreground">A note about what matters to you <span className="font-normal text-muted">(optional)</span></label><textarea id="interests" value={interests} onChange={(event) => onInterestsChange(event.target.value)} rows={3} maxLength={600} className="mt-2 w-full border border-border bg-white p-3 text-sm leading-6 text-foreground outline-none transition placeholder:text-muted focus:border-accent" placeholder="Add context for your own planning. This note stays private and is not used to rank paths." /><p className="mt-2 text-xs text-muted">{interests.length}/600 · Your note is private and does not affect suggestions.</p></fieldset> : null}
 
-        {step === 2 ? <fieldset><legend className="text-base font-semibold text-foreground">What sounds like you?</legend><p className="mt-1 text-sm text-muted">Select any that feel true. There are no wrong answers.</p><div className="mt-4 flex flex-wrap gap-2">{interestOptions.map((interest) => <InterestChoice key={interest} interest={interest} selected={selectedInterests.includes(interest)} onToggle={() => onToggleInterest(interest)} />)}</div><label htmlFor="interests" className="mt-6 block text-sm font-semibold text-foreground">Interests or strengths <span className="font-normal text-muted">(optional)</span></label><textarea id="interests" value={interests} onChange={(event) => onInterestsChange(event.target.value)} rows={5} maxLength={600} className="mt-2 w-full border border-border bg-white p-3 text-sm leading-6 text-foreground outline-none transition placeholder:text-muted focus:border-accent" placeholder="For example: I enjoy fixing things, science, safety, organising stock, or working outdoors." /><div className="mt-2 flex justify-between gap-3 text-xs text-muted"><span>This helps you reflect on your direction. It does not change eligibility.</span><span>{interests.length}/600</span></div></fieldset> : null}
+        {step === 2 ? <div>{browsingAll ? <><button type="button" onClick={onBrowseSuggestions} className="mb-3 min-h-11 text-sm font-semibold text-accent underline-offset-4 hover:underline">← Back to my suggestions</button><CareerPathwayPicker occupations={occupations} selectedId={careerId} onSelect={onCareerChange} /></> : <CareerSuggestions suggestions={suggestions} positions={positions} selectedId={careerId} onSelect={onSuggestedCareerChange} onBrowseAll={onBrowseAll} />}</div> : null}
+
 
         {step === 3 ? <CareerResultsEditor results={results} photoName={photoName} photoPreview={photoPreview} photoState={photoState} photoError={photoError} resultsReviewed={resultsReviewed} onFileSelected={onFileSelected} onUpdateResult={onUpdateResult} onRemoveResult={onRemoveResult} onAddResult={onAddResult} onResultsReviewedChange={onResultsReviewedChange} /> : null}
       </div>
 
-      <div className="mt-6 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"><button type="button" onClick={() => onStepChange(step === 1 ? 1 : step === 2 ? 1 : 2)} disabled={step === 1} className="inline-flex min-h-11 w-fit items-center justify-center px-1 text-sm font-semibold text-muted underline-offset-4 transition hover:text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-0">← Back</button><div className="flex flex-col items-stretch gap-3 sm:items-end">{step === 2 ? <button type="button" onClick={() => onStepChange(3)} className="min-h-11 px-1 text-sm font-semibold text-muted underline-offset-4 hover:text-accent hover:underline">Skip strengths</button> : null}{step === 3 && hasResultEntries && !resultsReviewed ? <p id="review-required" className="text-sm text-amber-800" role="alert">Review the results above before building your route.</p> : null}{step < 3 ? <button type="submit" disabled={!canContinue} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">Continue <span aria-hidden="true" className="ml-2">→</span></button> : <button type="submit" disabled={(hasResultEntries && !resultsReviewed) || planLoading} aria-describedby={hasResultEntries && !resultsReviewed ? "review-required" : undefined} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">{planLoading ? "Building your route…" : hasResultEntries ? "Build my pathway" : "Build without results"} <span aria-hidden="true" className="ml-2">→</span></button>}</div></div>
+      <div className="mt-6 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"><button type="button" onClick={() => onStepChange(step === 1 ? 1 : step === 2 ? 1 : 2)} disabled={step === 1} className="inline-flex min-h-11 w-fit items-center justify-center px-1 text-sm font-semibold text-muted underline-offset-4 transition hover:text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-0">← Back</button><div className="flex flex-col items-stretch gap-3 sm:items-end">{step === 1 ? <button type="button" onClick={onBrowseAll} className="min-h-11 px-1 text-sm font-semibold text-muted underline-offset-4 hover:text-accent hover:underline">I already know what I want</button> : null}{step === 3 && hasResultEntries && !resultsReviewed ? <p id="review-required" className="text-sm text-amber-800" role="alert">Review the results above before building your route.</p> : null}{step < 3 ? <button type="submit" disabled={!canContinue} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">{step === 1 ? "Suggest career paths" : "Continue"} <span aria-hidden="true" className="ml-2">→</span></button> : <button type="submit" disabled={(hasResultEntries && !resultsReviewed) || planLoading} aria-describedby={hasResultEntries && !resultsReviewed ? "review-required" : undefined} className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50">{planLoading ? "Building your route…" : hasResultEntries ? "Build my pathway" : "Build without results"} <span aria-hidden="true" className="ml-2">→</span></button>}</div></div>
     </form>
   );
 }

@@ -8,6 +8,7 @@ import { PublicSiteFooter } from "@/components/shareable/public-site-footer";
 import { resolveUserHome } from "@/lib/auth/queries";
 import type { PathwaySaveViewer } from "@/lib/i-want-to-become/pathway-plan";
 import { createClient } from "@/lib/supabase/server";
+import { getPublicPositions } from "@/lib/share/public-content";
 
 export const metadata: Metadata = {
   title: "Build your career route",
@@ -20,7 +21,7 @@ type IWantToBecomePageProps = {
 };
 
 export default async function IWantToBecomePage({ searchParams }: IWantToBecomePageProps) {
-  const [params, supabase] = await Promise.all([searchParams, createClient()]);
+  const [params, supabase, positions] = await Promise.all([searchParams, createClient(), getPublicPositions()]);
   const { data } = await supabase.auth.getUser();
   const initialCareerId = typeof params.pathway === "string" ? params.pathway : undefined;
   let viewer: PathwaySaveViewer = "anonymous";
@@ -43,7 +44,7 @@ export default async function IWantToBecomePage({ searchParams }: IWantToBecomeP
               Choose a future. Leave with a route.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-              Pick a direction, tell us what you bring, and get practical next steps for Guyana&apos;s growing local-content economy.
+              Choose the kinds of work that interest you to see career paths that could suit what you enjoy. Then explore one path and get practical next steps for Guyana.
             </p>
             <a href="#career-explorer" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-strong">
               Build my route <span aria-hidden="true" className="ml-2">↓</span>
@@ -51,12 +52,14 @@ export default async function IWantToBecomePage({ searchParams }: IWantToBecomeP
           </div>
         </section>
 
-        <SkillPreviewForm />
-
         <div className="mt-10">
           {isSavingPathway
             ? <PathwaySaveHandoff viewer={viewer} token={typeof params.handoff === "string" ? params.handoff : undefined} />
-            : <CareerExplorer viewer={viewer} initialCareerId={initialCareerId} autoOpenPathway={Boolean(initialCareerId)} />}
+            : <CareerExplorer viewer={viewer} positions={positions.map(({ id, title, publishedAt, isDemo, occupationSlug }) => ({ id, title, publishedAt, isDemo, occupationSlug }))} initialCareerId={initialCareerId} autoOpenPathway={Boolean(initialCareerId)} />}
+        </div>
+
+        <div className="mt-12">
+          <SkillPreviewForm />
         </div>
 
         <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-6 text-muted">Career and training information is curated for this SkillsGap.gy demonstration. Confirm current entry requirements directly with a guidance counsellor, provider, or employer.</p>

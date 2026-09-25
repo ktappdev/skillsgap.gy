@@ -4,7 +4,7 @@ import {
   type CareerPreparationSubject,
   type OccupationPathwayAction,
 } from "@/lib/i-want-to-become/guidance";
-import { occupationInterestMappings, type InterestMapping } from "@/lib/i-want-to-become/interests";
+import { careerInterests, isCareerInterest, isPublicCareerInterestRpcRow, normalizePublicCareerInterest, occupationInterestMappings, type CareerInterest, type InterestMapping } from "@/lib/i-want-to-become/interests";
 
 export type PublicOccupationLevel = "unit" | "minor" | "sub_major" | "major";
 
@@ -220,6 +220,34 @@ export function normalizePublicOccupation(value: PublicOccupationRpcRow): Public
       ? value.career_interests.map((mapping) => ({ interestSlug: mapping.interest_slug, relevanceWeight: mapping.relevance_weight }))
       : occupationInterestMappings[value.slug] ?? [],
   };
+}
+
+export type PublicCareerCatalogue = {
+  occupations: PublicOccupation[];
+  interests: CareerInterest[];
+};
+
+export function parsePublicCareerCatalogue(value: unknown): PublicCareerCatalogue | null {
+  if (typeof value !== "object" || value === null) return null;
+  const response = value as Record<string, unknown>;
+  if (!Array.isArray(response.occupations) || !Array.isArray(response.interests)) return null;
+  const occupations = response.occupations.flatMap((row): PublicOccupation[] => {
+    if (isPublicOccupation(row)) return [row];
+    return isPublicOccupationRpcRow(row) ? [normalizePublicOccupation(row)] : [];
+  });
+  const interests = response.interests.flatMap((row): CareerInterest[] => {
+    if (isCareerInterest(row)) return [row];
+    return isPublicCareerInterestRpcRow(row) ? [normalizePublicCareerInterest(row)] : [];
+  });
+  if (occupations.length !== response.occupations.length || interests.length !== response.interests.length || interests.length === 0) return null;
+  return {
+    occupations,
+    interests: interests.sort((first, second) => first.order - second.order),
+  };
+}
+
+export function getStaticCareerCatalogue(): PublicCareerCatalogue {
+  return { occupations: occupationCatalog, interests: careerInterests };
 }
 
 export function isPublicOccupationPathwayRpcRow(value: unknown): value is PublicOccupationPathwayRpcRow {
