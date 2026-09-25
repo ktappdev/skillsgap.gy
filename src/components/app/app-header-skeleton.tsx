@@ -12,7 +12,7 @@ export function AppHeaderSkeleton() {
   return (
     <header className="border-b border-border bg-surface">
       <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Skeleton kind="line" className="h-7 w-12 sm:h-8 sm:w-14" />
+        <Skeleton kind="line" className="h-10 w-16 sm:h-11 sm:w-18" />
         <div className="hidden items-center gap-6 md:flex">
           <Skeleton kind="line" className="h-4 w-16" />
           <Skeleton kind="line" className="h-4 w-20" />

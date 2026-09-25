@@ -47,7 +47,7 @@ async function AppHeader() {
             width={1200}
             height={728}
             priority
-            className="h-7 w-auto object-contain sm:h-8"
+            className="h-10 w-auto object-contain sm:h-11"
           />
         </Link>
         <AppNavigation items={navigation} />

@@ -35,7 +35,7 @@ export async function PublicContentHeader({ appearance = "default", active, acco
           width={1200}
           height={728}
           preload
-          className={`h-7 w-auto object-contain sm:h-8 ${isOverlay ? "brightness-0 invert" : ""}`}
+          className={`h-10 w-auto object-contain sm:h-11 ${isOverlay ? "brightness-0 invert" : ""}`}
         />
       </Link>
       <div className={`hidden min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-1 lg:flex ${isOverlay ? "justify-end" : "justify-end"}`}>
