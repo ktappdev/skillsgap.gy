@@ -5,7 +5,7 @@ import { requirePlatformAdmin } from "@/lib/auth/queries";
 import { fetchAllRows } from "@/lib/supabase/pagination";
 
 export default async function QualificationsPage() {
-  const { supabase } = await requirePlatformAdmin();
+  const { supabase } = await requirePlatformAdmin("/admin/qualifications");
   const [allQualifications, allAliases, pendingRequests, { data: qualificationsWithoutTraining }] = await Promise.all([
     fetchAllRows((from, to) => supabase.from("qualifications").select("*").order("name").order("id").range(from, to)),
     fetchAllRows((from, to) => supabase.from("qualification_aliases").select("*").order("alias").order("id").range(from, to)),

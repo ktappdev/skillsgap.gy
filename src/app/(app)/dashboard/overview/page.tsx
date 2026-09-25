@@ -10,7 +10,7 @@ import { getApplicantProgress } from "@/lib/skillsgap/queries";
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function ApplicantDashboardOverviewPage() {
-  const { supabase, user } = await requireApplicant();
+  const { supabase, user } = await requireApplicant("/dashboard/overview");
   const [progress, profileResult] = await Promise.all([
     getApplicantProgress(supabase, user.id),
     supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),

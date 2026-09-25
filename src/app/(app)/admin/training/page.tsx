@@ -3,7 +3,7 @@ import { TrainingManager } from "@/components/skillsgap/training-manager";
 import { requirePlatformAdmin } from "@/lib/auth/queries";
 
 export default async function TrainingPage() {
-  const { supabase } = await requirePlatformAdmin();
+  const { supabase } = await requirePlatformAdmin("/admin/training");
   const [{ data: providers }, { data: programs }, { data: outcomes }, { data: qualifications }, { data: verificationDetails }] = await Promise.all([
     supabase.from("training_providers").select("*").order("name"),
     supabase.from("training_programs").select("*").order("name"),

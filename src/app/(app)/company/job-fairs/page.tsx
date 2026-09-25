@@ -3,7 +3,7 @@ import { SlotManager } from "@/components/skillsgap/slot-manager";
 import { requireApprovedCompanyMember } from "@/lib/auth/queries";
 
 export default async function JobFairsPage() {
-  const { supabase, companyId } = await requireApprovedCompanyMember();
+  const { supabase, companyId } = await requireApprovedCompanyMember("/company/job-fairs");
   const { data: fairs } = await supabase.from("job_fairs").select("*").eq("company_id", companyId).order("starts_at", { ascending: true });
   const fairRows = fairs ?? [];
   const { data: slots } = fairRows.length > 0 ? await supabase.from("interview_slots").select("*").in("job_fair_id", fairRows.map((fair) => fair.id)).order("starts_at") : { data: [] };

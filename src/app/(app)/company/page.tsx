@@ -5,7 +5,7 @@ import { ManagementNav } from "@/components/skillsgap/management-nav";
 import { requireApprovedCompanyMember } from "@/lib/auth/queries";
 
 export default async function CompanyPage({ searchParams }: { searchParams: Promise<{ joined?: string }> }) {
-  const { supabase, companyId, companyRole } = await requireApprovedCompanyMember();
+  const { supabase, companyId, companyRole } = await requireApprovedCompanyMember("/company");
   const joined = (await searchParams).joined === "1";
   const [{ count: roleCount }, { count: candidateCount }, { count: slotCount }, { data: company }] = await Promise.all([
     supabase.from("job_roles").select("id", { count: "exact", head: true }).eq("company_id", companyId).eq("status", "active"),

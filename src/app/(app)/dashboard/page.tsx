@@ -24,7 +24,7 @@ type DashboardPageProps = {
 };
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  const { supabase, user } = await requireApplicant();
+  const { supabase, user } = await requireApplicant("/dashboard");
   const [progress, params, profileResult] = await Promise.all([
     getApplicantProgress(supabase, user.id),
     searchParams,

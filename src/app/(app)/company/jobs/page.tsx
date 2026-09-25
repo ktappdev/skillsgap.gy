@@ -4,7 +4,7 @@ import { requireApprovedCompanyMember } from "@/lib/auth/queries";
 import { fetchAllRows } from "@/lib/supabase/pagination";
 
 export default async function CompanyJobsPage() {
-  const { supabase, companyId } = await requireApprovedCompanyMember();
+  const { supabase, companyId } = await requireApprovedCompanyMember("/company/jobs");
   const [roleRows, qualifications, { data: occupations }, { data: company }] = await Promise.all([
     fetchAllRows((from, to) => supabase.from("job_roles").select("*").eq("company_id", companyId).order("created_at", { ascending: false }).order("id").range(from, to)),
     fetchAllRows((from, to) => supabase.from("qualifications").select("*").eq("is_active", true).order("name").order("id").range(from, to)),

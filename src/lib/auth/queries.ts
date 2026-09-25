@@ -76,6 +76,7 @@ export async function requireUser(next = "/dashboard") {
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data.user) {
+    if (process.env.NODE_ENV !== "production") console.warn("[pdbg] auth/queries.ts: no session, redirecting to login", { next, reason: error?.message });
     redirect(`/login?next=${encodeURIComponent(next)}`);
   }
 
@@ -91,29 +92,29 @@ export async function redirectAuthenticatedUser(next = "") {
   }
 }
 
-export async function requireApplicant() {
-  const context = await requireUser();
+export async function requireApplicant(next = "/dashboard") {
+  const context = await requireUser(next);
   const accountHome = await resolveUserHome(context.supabase, context.user.id);
   if (accountHome !== "/dashboard") redirect(accountHome);
   return context;
 }
 
-export async function requirePlatformAdmin() {
-  const context = await requireUser();
+export async function requirePlatformAdmin(next = "/admin") {
+  const context = await requireUser(next);
   const { data: admin } = await context.supabase.from("platform_admins").select("user_id").eq("user_id", context.user.id).maybeSingle();
   if (!admin) redirect(await resolveUserHome(context.supabase, context.user.id));
   return context;
 }
 
-export async function requireApprovedCompanyMember() {
-  const context = await requireUser();
+export async function requireApprovedCompanyMember(next = "/company") {
+  const context = await requireUser(next);
   const { data: membership } = await context.supabase.from("company_members").select("company_id,role,companies!inner(status)").eq("user_id", context.user.id).eq("companies.status", "approved").limit(1).maybeSingle();
   if (!membership) redirect(await resolveUserHome(context.supabase, context.user.id));
   return { ...context, companyId: membership.company_id, companyRole: membership.role };
 }
 
-export async function requireApprovedCompanyOwner() {
-  const context = await requireApprovedCompanyMember();
+export async function requireApprovedCompanyOwner(next = "/company/team") {
+  const context = await requireApprovedCompanyMember(next);
   if (context.companyRole !== "owner") redirect("/company/team");
   return context;
 }

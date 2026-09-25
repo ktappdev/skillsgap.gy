@@ -7,7 +7,7 @@ import { getApplicantInterviews } from "@/lib/skillsgap/queries";
 import { formatGuyanaDate, formatGuyanaDateTime } from "@/lib/guyana-time";
 
 export default async function InterviewsPage() {
-  const { supabase, user } = await requireApplicant();
+  const { supabase, user } = await requireApplicant("/interviews");
   const interviews = await getApplicantInterviews(supabase, user.id);
 
   return (

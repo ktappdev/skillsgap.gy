@@ -3,7 +3,7 @@ import { ManagementNav } from "@/components/skillsgap/management-nav";
 import { requirePlatformAdmin } from "@/lib/auth/queries";
 
 export default async function CareerGuidancePage() {
-  const { supabase } = await requirePlatformAdmin();
+  const { supabase } = await requirePlatformAdmin("/admin/career-guidance");
   const [{ data: occupations }, { data: subjects }, { data: actions }, { data: trainingPrograms }] = await Promise.all([
     supabase.from("occupations").select("*").eq("is_active", true).order("role_family").order("title"),
     supabase.from("career_preparation_subjects").select("*").order("subject_name"),

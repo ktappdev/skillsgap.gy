@@ -4,7 +4,7 @@ import { ManagementNav } from "@/components/skillsgap/management-nav";
 import { requireApprovedCompanyMember } from "@/lib/auth/queries";
 
 export default async function CompanyTeamPage() {
-  const { supabase, companyId, companyRole } = await requireApprovedCompanyMember();
+  const { supabase, companyId, companyRole } = await requireApprovedCompanyMember("/company/team");
   const canManage = companyRole === "owner";
   const [{ data: members }, { data: invitations }] = await Promise.all([
     supabase.from("company_members").select("user_id,role,invited_email,created_at").eq("company_id", companyId).order("created_at"),
