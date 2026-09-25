@@ -5,6 +5,7 @@ import { GuidedPathwayPlan } from "@/components/i-want-to-become/guided-pathway-
 import { ExplorerProgress, ExplorerSummary } from "@/components/i-want-to-become/explorer-progress";
 import { OccupationPathwayReport } from "@/components/i-want-to-become/occupation-pathway-report";
 import { useCareerExplorer } from "@/components/i-want-to-become/use-career-explorer";
+import { Skeleton } from "@/components/ui/skeleton";
 import { occupationCatalog, type PublicOccupation } from "@/lib/i-want-to-become/occupations";
 import type { PathwaySaveViewer } from "@/lib/i-want-to-become/pathway-plan";
 
@@ -33,7 +34,7 @@ export function CareerExplorer({ initialOccupations = occupationCatalog, initial
     setResultsReviewed(false);
   }
 
-  if (!draftReady) return <section className="rounded-lg border border-border bg-surface p-6 sm:p-8" aria-busy="true"><div className="h-3 w-28 animate-pulse bg-surface-muted" /><div className="mt-4 h-8 max-w-md animate-pulse bg-surface-muted" /><p className="mt-4 text-sm text-muted">Restoring your starting point…</p></section>;
+  if (!draftReady) return <section className="rounded-lg border border-border bg-surface p-6 sm:p-8" role="status" aria-busy="true"><Skeleton kind="line" className="h-3 w-28" /><Skeleton kind="line" className="mt-4 h-8 max-w-md" /><p className="mt-4 text-sm text-muted">Restoring your starting point…</p></section>;
 
   if (showPlan) {
     if (guidedPathway) return <GuidedPathwayPlan pathway={guidedPathway} interests={interests} selectedInterests={selectedInterests} results={completedResults} viewer={viewer} onEdit={editStartingPoint} />;

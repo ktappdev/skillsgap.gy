@@ -1,14 +1,19 @@
+import { ConsoleSkeleton } from "@/components/app/console-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Group fallback for the (app) pages that do not ship their own skeleton —
+// today /interviews and /matches/[matchId], both max-w-4xl py-6 (the narrow
+// width) — and any (app) page added later. The group layout is synchronous and
+// suspends the session read inside <AppHeader />, so this paints on a cold
+// navigation to those routes; in-page waits report themselves from their own
+// components.
 export default function AppLoading() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8" aria-busy="true" aria-label="Loading your workspace">
-      <p className="text-sm font-semibold text-muted">Loading your workspace…</p>
-      <div className="mt-4 h-10 max-w-xl animate-pulse rounded-lg bg-surface-muted motion-reduce:animate-none" />
-      <div className="mt-3 h-5 max-w-2xl animate-pulse rounded-md bg-surface-muted motion-reduce:animate-none" />
-      <div className="mt-8 grid gap-4 lg:grid-cols-3">
-        <div className="h-40 animate-pulse rounded-lg bg-surface-muted motion-reduce:animate-none" />
-        <div className="h-40 animate-pulse rounded-lg bg-surface-muted motion-reduce:animate-none" />
-        <div className="h-40 animate-pulse rounded-lg bg-surface-muted motion-reduce:animate-none" />
+    <ConsoleSkeleton label="Loading your workspace" width="narrow">
+      <div className="mt-6 space-y-4">
+        <Skeleton kind="panel" className="h-32" />
+        <Skeleton kind="panel" className="h-32" />
       </div>
-    </div>
+    </ConsoleSkeleton>
   );
 }
