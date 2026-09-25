@@ -11,12 +11,11 @@ import {
   type SkillPreview,
   type SkillPreviewFinding,
 } from "@/lib/i-want-to-become/skill-preview";
+import { skillPreviewMaxCharacters, skillPreviewMinCharacters } from "@/lib/i-want-to-become/skill-preview-dto";
 
 const unavailableMessage = "Skill preview is not available right now.";
 const invalidTextMessage = "Describe your work in your own words to see matching skills.";
 const processorTimeoutMs = 30_000;
-const minimumTextLength = 10;
-const maximumTextLength = 2000;
 const visitorCookieMaxAgeSeconds = 60 * 60 * 24 * 365;
 
 /**
@@ -44,8 +43,8 @@ export async function POST(request: Request) {
   }
   const text = (body as { text: string }).text.trim();
   const characterCount = [...text].length;
-  if (characterCount < minimumTextLength || characterCount > maximumTextLength) {
-    return NextResponse.json({ message: "Describe your work in 10 to 2000 characters." }, { status: 400 });
+  if (characterCount < skillPreviewMinCharacters || characterCount > skillPreviewMaxCharacters) {
+    return NextResponse.json({ message: `Describe your work in ${skillPreviewMinCharacters} to ${skillPreviewMaxCharacters} characters.` }, { status: 400 });
   }
 
   const admin = getSkillPreviewAdmin();

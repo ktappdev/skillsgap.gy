@@ -102,7 +102,7 @@ describe("anonymous skill preview route", () => {
   });
 
   it("rejects text that is too short, too long, or not text at all", async () => {
-    for (const body of [{ text: "too short" }, { text: "a".repeat(2001) }, { text: 42 }, "not json"]) {
+    for (const body of [{ text: "too short" }, { text: "a".repeat(601) }, { text: 42 }, "not json"]) {
       const response = await POST(post(body));
       expect(response.status).toBe(400);
       expect((await response.json()).message).toBeTruthy();

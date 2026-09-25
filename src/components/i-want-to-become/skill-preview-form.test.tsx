@@ -70,7 +70,7 @@ describe("SkillPreviewForm", () => {
     const textarea = screen.getByLabelText(/What do you do/i) as HTMLTextAreaElement;
 
     expect(button.disabled).toBe(true);
-    expect(textarea.maxLength).toBe(2000);
+    expect(textarea.maxLength).toBe(300);
     expect(textarea.getAttribute("aria-describedby")).toBe("skill-preview-help skill-preview-count");
 
     fireEvent.change(textarea, { target: { value: "fix" } });

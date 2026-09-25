@@ -83,7 +83,7 @@ func TestSkillPreviewRejectsOutOfRangeText(t *testing.T) {
 		text string
 	}{
 		{name: "too short", text: "short"},
-		{name: "too long", text: strings.Repeat("a", 2001)},
+		{name: "too long", text: strings.Repeat("a", maxSkillPreviewCharacters+1)},
 		{name: "whitespace only", text: "          "},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -92,6 +92,15 @@ func TestSkillPreviewRejectsOutOfRangeText(t *testing.T) {
 				t.Fatalf("status = %d, want 400", recorder.Code)
 			}
 		})
+	}
+}
+
+func TestValidSkillPreviewTextAcceptsTheMaximum(t *testing.T) {
+	if !validSkillPreviewText(strings.Repeat("a", maxSkillPreviewCharacters)) {
+		t.Fatalf("%d character preview should be accepted", maxSkillPreviewCharacters)
+	}
+	if validSkillPreviewText(strings.Repeat("a", maxSkillPreviewCharacters+1)) {
+		t.Fatalf("%d character preview should be rejected", maxSkillPreviewCharacters+1)
 	}
 }
 

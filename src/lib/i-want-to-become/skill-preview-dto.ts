@@ -34,3 +34,6 @@ export type SkillPreviewClaim =
   | { status: "unavailable" };
 
 export type SkillPreviewFinding = { slugs: string[]; originalTerm: string };
+
+export const skillPreviewMinCharacters = 10;
+export const skillPreviewMaxCharacters = 300;

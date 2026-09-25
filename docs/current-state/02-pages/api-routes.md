@@ -16,7 +16,7 @@ Accepts a JPEG/PNG/WebP image up to 8 MB, applies an in-memory per-IP limit of f
 
 ## `POST /api/i-want-to-become/skill-preview`
 
-Anonymous. Accepts JSON `{ "text": "…" }` with 10–2000 characters after trimming and otherwise returns 400 `{message}`. Uses `SKILL_PREVIEW_PROCESSOR_URL` and `SKILL_PREVIEW_PROCESSOR_SECRET` when set; otherwise falls back to the CSEC slip processor URL and secret. Returns 503 `{message}` when neither pair is configured.
+Anonymous. Accepts JSON `{ "text": "…" }` with 10–300 characters after trimming and otherwise returns 400 `{message}`. Uses `SKILL_PREVIEW_PROCESSOR_URL` and `SKILL_PREVIEW_PROCESSOR_SECRET` when set; otherwise falls back to the CSEC slip processor URL and secret. Returns 503 `{message}` when neither pair is configured.
 
 The route issues the `sg_skill_preview` cookie itself (httpOnly, `SameSite=Lax`, secure in production, one year) and uses it to count previews per browser: 5 per 24 hours per visitor, plus a global daily ceiling from `SKILL_PREVIEW_GLOBAL_DAILY_LIMIT` (default 200). Both limits are enforced in one atomic `consume_skill_preview` call before the model runs, so they hold across server instances and the quota is spent even if the processor then fails; there is no refund. A visitor who clears cookies gets a new allowance only until the global daily ceiling is reached.
 

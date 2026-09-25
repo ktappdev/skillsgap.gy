@@ -10,12 +10,15 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 const (
 	maxSkillPreviewBytes          = 64 * 1024
+	maxSkillPreviewCharacters     = 300
 	maxConcurrentSkillPreviews    = 4
 	skillPreviewSemaphoreWait     = 5 * time.Second
 	skillPreviewBucketCapacity    = 5.0
@@ -114,8 +117,8 @@ func (service *service) skillPreviewHandler(writer http.ResponseWriter, request 
 		http.Error(writer, "skill preview body must contain one JSON value", http.StatusBadRequest)
 		return
 	}
-	if err := validateDescriptionText(payload.Text); err != nil {
-		http.Error(writer, "describe your work in 10 to 2000 characters", http.StatusBadRequest)
+	if !validSkillPreviewText(payload.Text) {
+		http.Error(writer, "describe your work in 10 to 300 characters", http.StatusBadRequest)
 		return
 	}
 
@@ -136,6 +139,11 @@ func (service *service) skillPreviewHandler(writer http.ResponseWriter, request 
 		return
 	}
 	writeJSON(writer, http.StatusOK, previewResponse(result))
+}
+
+func validSkillPreviewText(text string) bool {
+	count := utf8.RuneCountInString(strings.TrimSpace(text))
+	return count >= 10 && count <= maxSkillPreviewCharacters
 }
 
 // previewResponse reduces a full extraction to the two fields a preview needs.

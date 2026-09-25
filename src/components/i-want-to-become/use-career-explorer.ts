@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { ExplorerDraft, ExplorerStep, PhotoState, PlanSource } from "@/components/i-want-to-become/explorer-types";
+import { interestNoteMaxLength, type ExplorerDraft, type ExplorerStep, type PhotoState, type PlanSource } from "@/components/i-want-to-become/explorer-types";
 import { findCareerPathway, isValidCsecResult, type CsecResult } from "@/lib/i-want-to-become/catalog";
 import { getStaticCareerCatalogue, getStaticOccupationPathway, isPublicOccupationPathway, occupationCatalog, parsePublicCareerCatalogue, type PublicOccupation, type PublicOccupationPathway } from "@/lib/i-want-to-become/occupations";
 import { normalizeCareerInterest, toggleCareerInterestSelection } from "@/lib/i-want-to-become/interests";
@@ -40,7 +40,8 @@ function parseDraft(value: string | null): ExplorerDraft | null {
     const results = draft.results.filter((result): result is CsecResult => typeof result === "object" && result !== null && typeof (result as { subject?: unknown }).subject === "string" && typeof (result as { grade?: unknown }).grade === "string");
     const step = draft.step === 2 || draft.step === 3 ? draft.step : 1;
     const selectedInterests = [...new Set(draft.selectedInterests.map(normalizeCareerInterest))].slice(0, 5);
-    return { careerId: draft.careerId, interests: draft.interests, selectedInterests, browsingAll: draft.browsingAll === true || Boolean(draft.careerId), results, step, showPlan: draft.showPlan === true };
+    const interests = [...draft.interests].slice(0, interestNoteMaxLength).join("");
+    return { careerId: draft.careerId, interests, selectedInterests, browsingAll: draft.browsingAll === true || Boolean(draft.careerId), results, step, showPlan: draft.showPlan === true };
   } catch {
     return null;
   }

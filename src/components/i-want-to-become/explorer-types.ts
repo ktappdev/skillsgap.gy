@@ -4,6 +4,8 @@ export type ExplorerStep = 1 | 2 | 3;
 export type PhotoState = "idle" | "reading" | "ready" | "manual";
 export type PlanSource = "live" | "fallback";
 
+export const interestNoteMaxLength = 300;
+
 export type ExplorerDraft = {
   careerId: string;
   interests: string;

@@ -6,9 +6,8 @@ import { useState } from "react";
 import { StatusPill } from "@/components/skillsgap/milestone-path";
 import { Spinner } from "@/components/ui/spinner";
 import type { SkillPreview, SkillPreviewGap, SkillPreviewRole, SkillPreviewSkill, SkillPreviewTraining } from "@/lib/i-want-to-become/skill-preview-dto";
+import { skillPreviewMaxCharacters, skillPreviewMinCharacters } from "@/lib/i-want-to-become/skill-preview-dto";
 
-const minLength = 10;
-const maxLength = 2000;
 const previewPath = "/api/i-want-to-become/skill-preview";
 const signupPath = "/signup";
 const signupCallToAction = "Create a free account to see your full match and save your plan";
@@ -154,7 +153,7 @@ export function SkillPreviewForm() {
   const [text, setText] = useState("");
   const [state, setState] = useState<PreviewState>({ status: "idle" });
   const isSubmitting = state.status === "loading";
-  const canSubmit = text.trim().length >= minLength && !isSubmitting;
+  const canSubmit = text.trim().length >= skillPreviewMinCharacters && !isSubmitting;
 
   async function submit() {
     if (!canSubmit) return;
@@ -193,7 +192,7 @@ export function SkillPreviewForm() {
     <section id="skill-preview" className="mt-10 scroll-mt-6 rounded-lg border border-border bg-surface p-5 sm:p-8" aria-labelledby="skill-preview-heading">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Instant skill preview</p>
       <h2 id="skill-preview-heading" className="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">See which jobs your skills already fit</h2>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Describe your work the way you would tell a friend. We compare it with live opportunities in Guyana and show you the gaps and the training that closes them. No account needed — you get five free previews a day.</p>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Already have experience or certificates? Briefly describe them to see skills we recognise and how they compare with live opportunities in Guyana. This quick preview is separate from the career-path explorer above. No account needed — you get five free previews a day.</p>
 
       <label className="mt-6 block text-xs font-semibold text-muted" htmlFor="skill-preview-text">
         What do you do?
@@ -202,10 +201,10 @@ export function SkillPreviewForm() {
           value={text}
           onChange={(event) => setText(event.target.value)}
           rows={4}
-          minLength={minLength}
-          maxLength={maxLength}
+          minLength={skillPreviewMinCharacters}
+          maxLength={skillPreviewMaxCharacters}
           required
-          aria-invalid={text.trim().length > 0 && text.trim().length < minLength}
+          aria-invalid={text.trim().length > 0 && text.trim().length < skillPreviewMinCharacters}
           aria-describedby="skill-preview-help skill-preview-count"
           disabled={isSubmitting}
           placeholder="I repair diesel engines, I weld aluminium boat hulls, and I hold a CSEC certificate in Mathematics."
@@ -214,8 +213,8 @@ export function SkillPreviewForm() {
       </label>
       <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p id="skill-preview-help" className="text-xs text-muted">Write at least {minLength} characters — tools, machines, certificates, or places you have worked.</p>
-          <p id="skill-preview-count" className="mt-1 text-xs text-muted">{text.trim().length}/{maxLength} characters</p>
+          <p id="skill-preview-help" className="text-xs text-muted">A short description is enough — mention tools, machines, certificates, or places you have worked.</p>
+          <p id="skill-preview-count" className="mt-1 text-xs text-muted">{text.trim().length}/{skillPreviewMaxCharacters} characters · at least {skillPreviewMinCharacters} to preview</p>
         </div>
         <button
           type="button"
