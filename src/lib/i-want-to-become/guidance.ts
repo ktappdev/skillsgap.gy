@@ -355,6 +355,50 @@ const guidanceBySlug: Record<string, OccupationGuidance> = {
     localContentCategories: ["Environmental Services and Studies", "Medical Services", "Security Services"],
     exampleTitles: ["HSSE Specialist", "Environmental Field Assistant", "Occupational Health Assistant"],
   },
+  "cleaners-and-helpers": {
+    industryTransferSummary: "Cleaning and housekeeping can lead to facilities, accommodation, and camp services across Guyana. Safe chemical handling, dependable routines, and respectful service are useful foundations.",
+    preparationSubjects: [
+      preparationSubject("English A", "Supports understanding instructions, shift handovers, and service communication."),
+      preparationSubject("Mathematics", "Supports measuring supplies, following dilution instructions, and stock records."),
+      preparationSubject("Integrated Science", "Builds awareness of hygiene, materials, and safe chemical handling."),
+    ],
+    actions: commonWorkActions("cleaners-and-helpers", "cleaning, housekeeping, and safe chemical handling", "facilities services", officialSources.bit),
+    localContentCategories: ["Janitorial and Laundry Services", "Accommodation Services (apartments and houses)", "Catering Services"],
+    exampleTitles: ["Housekeeping Attendant", "Office Cleaner", "Camp Services Assistant"],
+  },
+  "software-and-applications-developers-and-analysts": {
+    industryTransferSummary: "Software and application skills can support digital services, business systems, and operational tools. Build a portfolio and practise explaining how your work solves a real user problem.",
+    preparationSubjects: [
+      preparationSubject("Mathematics", "Supports logic, data, and problem-solving foundations."),
+      preparationSubject("Information Technology", "Builds familiarity with digital systems and computing."),
+      preparationSubject("English A", "Supports requirements gathering, documentation, and teamwork."),
+    ],
+    actions: commonWorkActions("software-and-applications-developers-and-analysts", "software development and application analysis", "software projects", officialSources.tvet),
+    localContentCategories: ["ICT - software development and support services", "ICT - cloud services"],
+    exampleTitles: ["Software Developer", "Application Support Analyst", "Web Developer"],
+  },
+  "database-and-network-professionals": {
+    industryTransferSummary: "Database and network foundations can transfer into information systems, infrastructure, cloud support, and operational data services. Practise careful documentation and secure handling of information.",
+    preparationSubjects: [
+      preparationSubject("Mathematics", "Supports data interpretation, troubleshooting, and system planning."),
+      preparationSubject("Information Technology", "Builds foundations in systems, networks, and databases."),
+      preparationSubject("English A", "Supports technical notes, incident reports, and handovers."),
+    ],
+    actions: commonWorkActions("database-and-network-professionals", "network, database, and cloud support", "ICT infrastructure", officialSources.tvet),
+    localContentCategories: ["ICT - network installation and support services", "ICT - cloud services"],
+    exampleTitles: ["Network Administrator", "Database Assistant", "Cloud Support Technician"],
+  },
+  "information-and-communications-technicians": {
+    industryTransferSummary: "ICT technician work combines practical setup, troubleshooting, and user support. Field roles may involve devices and communications equipment at remote industrial sites.",
+    preparationSubjects: [
+      preparationSubject("Mathematics", "Supports measurements, signals, and systematic fault-finding."),
+      preparationSubject("Physics", "Helps explain electricity, electronics, and communications equipment."),
+      preparationSubject("Information Technology", "Builds foundations in devices, networks, and technical support."),
+    ],
+    actions: commonWorkActions("information-and-communications-technicians", "ICT equipment, networks, and field support", "ICT field support", officialSources.gti),
+    localContentCategories: ["ICT - network installation and support services", "ICT - telecommunications"],
+    exampleTitles: ["ICT Support Technician", "IoT Field Systems Technician", "Communications Equipment Assistant"],
+  },
 };
 
 export function getOccupationGuidance(slug: string): OccupationGuidance | null {

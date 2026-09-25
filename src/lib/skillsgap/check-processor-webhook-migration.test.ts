@@ -97,7 +97,7 @@ describe("processor webhook migration check", () => {
     expect(result.stderr).toContain("missing recalculate_matches; missing exception handler");
   });
 
-  it("fails when a later migration file sorts after the winning definition", () => {
+  it("allows unrelated migrations after the latest valid trigger definition", () => {
     const migrationsDirectory = createMigrations({
       "20260101_webhook.sql": migration("if new.kind::text = 'recalculate_matches' then return new; end if;\nexception when others then return new;"),
       "20260102_unrelated.sql": "select 1;\n",
@@ -105,7 +105,7 @@ describe("processor webhook migration check", () => {
 
     const result = runChecker(migrationsDirectory);
 
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("winning definition is not in the last-sorting migration");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("20260101_webhook.sql");
   });
 });

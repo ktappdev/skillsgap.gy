@@ -1,4 +1,5 @@
 import { isValidCsecResult, type CsecResult } from "@/lib/i-want-to-become/catalog";
+import { normalizeCareerInterest } from "@/lib/i-want-to-become/interests";
 
 export const pathwayPlanVersion = 1 as const;
 export const pathwayPlanLifetimeMs = 24 * 60 * 60 * 1000;
@@ -77,7 +78,7 @@ export function parsePathwayPlanDraft(value: unknown, options: ParsePathwayPlanO
     pathwayKind: draft.pathwayKind,
     pathwayKey: draft.pathwayKey,
     interests: draft.interests.trim(),
-    selectedInterests,
+    selectedInterests: [...new Set(selectedInterests.map(normalizeCareerInterest))].slice(0, 5),
     results,
     plannedRequirementNames,
     completedActionIds,

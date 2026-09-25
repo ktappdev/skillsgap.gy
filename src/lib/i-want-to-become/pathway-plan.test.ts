@@ -102,6 +102,19 @@ describe("pathway plan handoff", () => {
 });
 
 describe("pathway plan canonical validation", () => {
+  it("normalizes legacy interests and keeps only five", () => {
+    const parsed = createPathwayPlanDraft({
+      pathwayKind: "guided",
+      pathwayKey: "trainee-offshore-mechanical-technician",
+      interests: "",
+      selectedInterests: ["Fixing things", "Safety", "Numbers", "Science", "Working outdoors", "Organising", "Working with people"],
+      results: [],
+      plannedRequirementNames: [],
+      completedActionIds: [],
+    }, now);
+    expect(parsed.selectedInterests).toEqual(["machinery-repair", "safety", "finance", "testing-science", "outdoor-work"]);
+  });
+
   it("accepts known guided requirements and rejects unknown ones", () => {
     expect(validateGuidedPathwayPlan(guidedDraft())?.pathwayTitle).toBe("Trainee Offshore Mechanical Technician");
     expect(validateGuidedPathwayPlan({ ...guidedDraft(), plannedRequirementNames: ["Invented requirement"] })).toBeNull();

@@ -39,6 +39,7 @@ const energyProgramIds = Array.from({ length: 20 }, (_, index) => `30000000-0000
 const demoProgramIds = [...illustrativeProgramIds, ...ictProgramIds, ...energyProgramIds];
 const ictRoleIds = Array.from({ length: 5 }, (_, index) => `40000000-0000-0000-0000-${String(index + 19).padStart(12, "0")}`);
 const energyRoleIds = Array.from({ length: 5 }, (_, index) => `40000000-0000-0000-0000-${String(index + 24).padStart(12, "0")}`);
+const interestRoleIds = Array.from({ length: 7 }, (_, index) => `40000000-0000-0000-0000-${String(index + 29).padStart(12, "0")}`);
 const energyProviderIds = [
   "20000000-0000-0000-0000-000000000001",
   "20000000-0000-0000-0000-000000000004",
@@ -100,10 +101,14 @@ const [
   { data: energyProviders, error: energyProvidersError },
   { data: employmentActions, error: employmentActionsError },
   { data: registrationActions, error: registrationActionsError },
+  { data: occupations, error: occupationsError },
+  { data: activeInterests, error: interestsError },
+  { data: interestMappings, error: interestMappingsError },
+  { data: rolesWithOccupations, error: rolesWithOccupationsError },
 ] = await Promise.all([
   admin.from("job_matches").select("id,job_role_id,score,interview_eligible").eq("applicant_id", applicant.id).eq("status", "current"),
   admin.from("interview_invitations").select("id").eq("applicant_id", applicant.id).eq("status", "pending"),
-  admin.from("job_roles").select("id,title").eq("status", "active").eq("is_demo", true),
+  admin.from("job_roles").select("id,title,occupation_id").eq("status", "active").eq("is_demo", true),
   admin.from("training_programs").select("id,provider_id,name,description,duration_text,enrollment_url,intake_text,fee_amount,next_intake_date").in("id", demoProgramIds).eq("is_active", true),
   admin.from("training_providers").select("id").eq("is_verified", true),
   admin.from("qualifications").select("id,slug").in("slug", ictQualificationSlugs).eq("is_active", true),
@@ -111,14 +116,28 @@ const [
   admin.from("training_providers").select("id").in("id", energyProviderIds).eq("is_verified", true),
   admin.from("occupation_pathway_actions").select("id,occupation_id").eq("action_type", "find_work").eq("url", "https://lcregister.petroleum.gov.gy/opportunities/notices-for-individual-employment/").eq("is_active", true).eq("is_verified", true),
   admin.from("occupation_pathway_actions").select("id,occupation_id").eq("action_type", "register").eq("url", "https://localcontent.gov.gy/").eq("is_active", true).eq("is_verified", true),
+  admin.from("occupations").select("id,slug").eq("is_active", true),
+  admin.from("career_interests").select("slug").eq("is_active", true),
+  admin.from("occupation_career_interests").select("occupation_id,career_interest_slug").eq("is_active", true),
+  admin.from("job_roles").select("occupation_id").eq("status", "active").eq("is_demo", true).not("occupation_id", "is", null),
 ]);
-if (matchesError || invitationsError || demoRolesError || programsError || providersError || ictQualificationsError || energyQualificationsError || energyProvidersError || employmentActionsError || registrationActionsError) {
+if (matchesError || invitationsError || demoRolesError || programsError || providersError || ictQualificationsError || energyQualificationsError || energyProvidersError || employmentActionsError || registrationActionsError || occupationsError || interestsError || interestMappingsError || rolesWithOccupationsError) {
   throw new Error("Could not read fallback demo data.");
 }
 
 assert((demoRoles ?? []).length >= 18, "The expanded catalogue needs at least 18 active curated roles.");
 assert(ictRoleIds.every((roleId) => (demoRoles ?? []).some((role) => role.id === roleId)), "One or more ICT roles are missing from the active catalogue.");
 assert(energyRoleIds.every((roleId) => (demoRoles ?? []).some((role) => role.id === roleId)), "One or more Guyana energy role profiles are missing from the active catalogue.");
+assert(interestRoleIds.every((roleId) => (demoRoles ?? []).some((role) => role.id === roleId)), "One or more interest-coverage demo roles are missing from the active catalogue.");
+assert((occupations ?? []).length === 22, "The active career catalogue must contain all 22 occupations.");
+assert((activeInterests ?? []).length === 24, "The active career interest catalogue must contain all 24 choices.");
+const occupationIdsWithInterests = new Set((interestMappings ?? []).map((mapping) => mapping.occupation_id));
+const interestSlugsWithOccupations = new Set((interestMappings ?? []).map((mapping) => mapping.career_interest_slug));
+assert((occupations ?? []).every((occupation) => occupationIdsWithInterests.has(occupation.id)), "An active occupation has no active interest mappings.");
+assert((activeInterests ?? []).every((interest) => interestSlugsWithOccupations.has(interest.slug)), "An active interest maps to no active occupation.");
+const occupationIdsWithDemoRoles = new Set((rolesWithOccupations ?? []).map((role) => role.occupation_id));
+assert((occupations ?? []).every((occupation) => occupationIdsWithDemoRoles.has(occupation.id)), "An active occupation has no active demo role.");
+assert((demoRoles ?? []).every((role) => role.occupation_id !== null), "An active demo role has no occupation.");
 assert((ictQualifications ?? []).length === ictQualificationSlugs.length, "The ICT qualification taxonomy is incomplete.");
 assert((energyQualifications ?? []).length === energyQualificationSlugs.length, "The Guyana energy qualification taxonomy is incomplete.");
 assert((energyProviders ?? []).length === energyProviderIds.length, "One or more source-verified Guyana training providers are missing.");

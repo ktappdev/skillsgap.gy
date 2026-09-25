@@ -4,6 +4,7 @@ import {
   type CareerPreparationSubject,
   type OccupationPathwayAction,
 } from "@/lib/i-want-to-become/guidance";
+import { occupationInterestMappings, type InterestMapping } from "@/lib/i-want-to-become/interests";
 
 export type PublicOccupationLevel = "unit" | "minor" | "sub_major" | "major";
 
@@ -21,6 +22,7 @@ export type PublicOccupation = {
   localContentCategories: string[];
   exampleTitles: string[];
   industryTransferSummary: string;
+  careerInterests: InterestMapping[];
 };
 
 export type PublicOccupationPathway = PublicOccupation & {
@@ -42,6 +44,7 @@ export type PublicOccupationRpcRow = {
   local_content_categories?: string[];
   example_titles?: string[];
   industry_transfer_summary?: string;
+  career_interests?: unknown;
 };
 
 export type PublicOccupationPathwayRpcRow = PublicOccupationRpcRow & {
@@ -75,6 +78,10 @@ const occupationSeeds: OccupationSeed[] = [
   ["shop-salespersons", "Shop salespersons", "522", "minor", "Commercial support", ["downstream"]],
   ["cooks", "Cooks", "5120", "unit", "Catering and hospitality", ["upstream", "midstream", "downstream"]],
   ["environmental-and-occupational-health-professionals", "Environmental and occupational health and hygiene professionals", "2263", "unit", "HSE", ["upstream", "midstream", "downstream"]],
+  ["cleaners-and-helpers", "Cleaners and Helpers in Offices, Hotels and Other Establishments", "9112", "unit", "Facilities and hospitality support", ["access", "upstream", "midstream", "downstream"]],
+  ["software-and-applications-developers-and-analysts", "Software and Applications Developers and Analysts", "251", "minor", "Software and digital services", ["access", "upstream", "midstream", "downstream"]],
+  ["database-and-network-professionals", "Database and Network Professionals", "252", "minor", "Networks and data systems", ["access", "upstream", "midstream", "downstream"]],
+  ["information-and-communications-technicians", "Information and Communications Technicians", "35", "sub_major", "ICT field and technical support", ["access", "upstream", "midstream", "downstream"]],
 ]
 
 export const occupationCatalog: PublicOccupation[] = occupationSeeds.map(([slug, title, isco08Code, isco08Level, roleFamily, valueChainStages]) => ({
@@ -91,12 +98,19 @@ export const occupationCatalog: PublicOccupation[] = occupationSeeds.map(([slug,
   localContentCategories: getOccupationGuidance(slug)?.localContentCategories ?? [],
   exampleTitles: getOccupationGuidance(slug)?.exampleTitles ?? [],
   industryTransferSummary: getOccupationGuidance(slug)?.industryTransferSummary ?? "Explore the transferable foundations, supervised practice, and verified local routes connected to this occupation.",
+  careerInterests: occupationInterestMappings[slug] ?? [],
 }));
 
 const occupationLevels: PublicOccupationLevel[] = ["unit", "minor", "sub_major", "major"];
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isInterestMappingArray(value: unknown): value is Array<{ interest_slug: string; relevance_weight: 2 | 3 }> {
+  return Array.isArray(value) && value.every((item) => typeof item === "object" && item !== null
+    && "interest_slug" in item && typeof item.interest_slug === "string"
+    && "relevance_weight" in item && (item.relevance_weight === 2 || item.relevance_weight === 3));
 }
 
 function isHttpsUrl(value: unknown): value is string {
@@ -161,6 +175,7 @@ export function isPublicOccupationRpcRow(value: unknown): value is PublicOccupat
     && (row.source_locator === null || typeof row.source_locator === "string")
     && hasOptionalArray("local_content_categories")
     && hasOptionalArray("example_titles")
+    && (row.career_interests === undefined || isInterestMappingArray(row.career_interests))
     && (row.industry_transfer_summary === undefined || typeof row.industry_transfer_summary === "string");
 }
 
@@ -179,6 +194,10 @@ export function isPublicOccupation(value: unknown): value is PublicOccupation {
     && (occupation.sourceLocator === null || typeof occupation.sourceLocator === "string")
     && isStringArray(occupation.localContentCategories)
     && isStringArray(occupation.exampleTitles)
+    && Array.isArray(occupation.careerInterests)
+    && occupation.careerInterests.every((mapping) => typeof mapping === "object" && mapping !== null
+      && "interestSlug" in mapping && typeof mapping.interestSlug === "string"
+      && "relevanceWeight" in mapping && (mapping.relevanceWeight === 2 || mapping.relevanceWeight === 3))
     && typeof occupation.industryTransferSummary === "string";
 }
 
@@ -197,6 +216,9 @@ export function normalizePublicOccupation(value: PublicOccupationRpcRow): Public
     localContentCategories: [...(value.local_content_categories ?? [])],
     exampleTitles: [...(value.example_titles ?? [])],
     industryTransferSummary: value.industry_transfer_summary ?? getOccupationGuidance(value.slug)?.industryTransferSummary ?? "Explore the transferable foundations, supervised practice, and verified local routes connected to this occupation.",
+    careerInterests: isInterestMappingArray(value.career_interests)
+      ? value.career_interests.map((mapping) => ({ interestSlug: mapping.interest_slug, relevanceWeight: mapping.relevance_weight }))
+      : occupationInterestMappings[value.slug] ?? [],
   };
 }
 

@@ -24,7 +24,6 @@ if (!winner) {
   console.error("Webhook migration check failed: no function definition for enqueue_resume_processor_webhook was found in the migrations directory.");
   process.exitCode = 1;
 } else {
-  const lastMigration = migrationFiles.at(-1);
   const declaration = winner.definition;
   const definitionAndFollowingSql = winner.sql.slice(declaration.index);
   const bodyMatch = /\bas\s+\$([a-z0-9_]*)\$([\s\S]*?)\$\1\$/i.exec(definitionAndFollowingSql);
@@ -33,9 +32,6 @@ if (!winner) {
     .replace(/--[^\r\n]*/g, "");
   const issues = [];
 
-  if (winner.filename !== lastMigration) {
-    issues.push(`winning definition is not in the last-sorting migration (${lastMigration})`);
-  }
   if (!/\brecalculate_matches\b/i.test(bodyWithoutComments)) issues.push("missing recalculate_matches");
   if (!/\bexception\s+when\s+(?:others|sqlstate\s+'[0-9a-z]{5}'|[a-z_]\w*(?:\s+or\s+[a-z_]\w*)*)\s+then\b/i.test(bodyWithoutComments)) {
     issues.push("missing exception handler");
@@ -45,6 +41,6 @@ if (!winner) {
     console.error(`Webhook migration check failed: winning definition in ${winner.filename}: ${issues.join("; ")}.`);
     process.exitCode = 1;
   } else {
-    console.log(`Webhook migration check passed: ${winner.filename} is the last migration and its definition includes recalculate_matches and an exception handler.`);
+    console.log(`Webhook migration check passed: ${winner.filename} is the latest trigger definition and includes recalculate_matches and an exception handler.`);
   }
 }

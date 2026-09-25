@@ -20,7 +20,7 @@ describe("career pathway catalogue", () => {
   });
 
   it("keeps the reviewed occupation fallback aligned with the seeded catalogue", () => {
-    expect(occupationCatalog).toHaveLength(18);
+    expect(occupationCatalog).toHaveLength(22);
     expect(occupationCatalog.find((item) => item.slug === "ships-deck-crews")?.isco08Code).toBe("8350");
     expect(occupationCatalog.find((item) => item.slug === "environmental-and-occupational-health-professionals")?.sourceLocator).toBe("Executive summary");
     expect(normalizePublicOccupation({
@@ -34,6 +34,7 @@ describe("career pathway catalogue", () => {
       source_summary: "ILO Guyana skills study",
       source_url: "https://www.ilo.org/media/92446/download",
       source_locator: "Table 2",
+      career_interests: [{ interest_slug: "cooking-food-service", relevance_weight: 3 }],
     }).roleFamily).toBe("Catering and hospitality");
     expect(isPublicOccupationRpcRow({
       id: "1",
@@ -46,6 +47,7 @@ describe("career pathway catalogue", () => {
       source_summary: "ILO Guyana skills study",
       source_url: "https://www.ilo.org/media/92446/download",
       source_locator: "Table 2",
+      career_interests: [{ interest_slug: "cooking-food-service", relevance_weight: 3 }],
     })).toBe(true);
     expect(isPublicOccupationRpcRow({
       id: "1",
@@ -79,7 +81,7 @@ describe("career pathway catalogue", () => {
   it("gives every occupation an evidence-backed starting route", () => {
     const guidance = getAllOccupationGuidance();
 
-    expect(guidance).toHaveLength(18);
+    expect(guidance).toHaveLength(22);
     expect(guidance.every(({ guidance: item }) => item.industryTransferSummary.length > 40)).toBe(true);
     expect(guidance.every(({ guidance: item }) => item.preparationSubjects.length >= 3)).toBe(true);
     expect(guidance.every(({ guidance: item }) => item.actions.length >= 3)).toBe(true);
