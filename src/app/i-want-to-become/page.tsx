@@ -35,7 +35,7 @@ export default async function IWantToBecomePage({ searchParams }: IWantToBecomeP
   return (
     <main id="main-content" className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        <PublicContentHeader accountHome={accountHome} />
+        <PublicContentHeader active="career-route" accountHome={accountHome} />
 
         <section className="mt-8 border-b border-border py-10 sm:py-12" aria-labelledby="page-title">
           <div className="max-w-3xl">

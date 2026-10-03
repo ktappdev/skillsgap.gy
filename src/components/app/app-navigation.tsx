@@ -13,10 +13,10 @@ type AppNavigationProps = {
   mobile?: boolean;
 };
 
-const desktopLink = "inline-flex min-h-11 items-center hover:text-accent";
-const desktopActiveLink = "inline-flex min-h-11 items-center text-accent";
-const mobileLink = "inline-flex min-h-11 items-center whitespace-nowrap hover:text-accent";
-const mobileActiveLink = "inline-flex min-h-11 items-center whitespace-nowrap text-accent";
+const desktopLink = "inline-flex min-h-11 items-center border-b-2 border-transparent no-underline transition-colors duration-150 hover:border-border hover:text-accent";
+const desktopActiveLink = "inline-flex min-h-11 items-center border-b-2 border-accent font-bold text-foreground no-underline transition-colors duration-150";
+const mobileLink = "inline-flex min-h-11 items-center whitespace-nowrap border-b-2 border-transparent no-underline transition-colors duration-150 hover:border-border hover:text-accent";
+const mobileActiveLink = "inline-flex min-h-11 items-center whitespace-nowrap border-b-2 border-accent font-bold text-foreground no-underline transition-colors duration-150";
 
 function isActivePath(pathname: string, href: string) {
   return pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));

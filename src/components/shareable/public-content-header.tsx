@@ -7,12 +7,12 @@ import { MobilePublicNav } from "@/components/shareable/mobile-public-nav";
 
 type PublicContentHeaderProps = {
   appearance?: "default" | "overlay";
-  active?: "positions" | "training" | "faq";
+  active?: "positions" | "training" | "career-route" | "faq";
   accountHome?: string | null;
 };
 
-const idleLink = "min-h-11 inline-flex items-center text-foreground hover:text-accent";
-const activeLink = "min-h-11 inline-flex items-center text-accent";
+const idleLink = "min-h-11 inline-flex items-center border-b-2 border-transparent no-underline text-foreground transition-colors duration-150 hover:border-border hover:text-accent";
+const activeLink = "min-h-11 inline-flex items-center border-b-2 border-accent no-underline font-bold text-foreground transition-colors duration-150";
 
 export async function PublicContentHeader({ appearance = "default", active, accountHome }: PublicContentHeaderProps) {
   const isOverlay = appearance === "overlay";
@@ -20,11 +20,14 @@ export async function PublicContentHeader({ appearance = "default", active, acco
   const isSignedIn = resolvedAccountHome !== null;
   const accountHref = resolvedAccountHome ?? "/login";
   const accountLabel = resolvedAccountHome === "/dashboard" ? "My pathway" : isSignedIn ? "My account" : "Sign in";
-  const linkClass = isOverlay ? "min-h-11 inline-flex items-center text-white hover:underline underline-offset-4" : idleLink;
-  const signOutClass = `${linkClass} underline underline-offset-4`;
+  const linkClass = isOverlay ? "min-h-11 inline-flex items-center no-underline text-white hover:underline underline-offset-4" : idleLink;
+  const accountActionClass = isOverlay
+    ? "min-h-11 inline-flex items-center no-underline text-white hover:text-white/80"
+    : "min-h-11 inline-flex items-center no-underline text-foreground hover:text-accent";
+  const signOutClass = accountActionClass;
   const mobileSignOutClass = isOverlay
-    ? "flex min-h-11 w-full items-center justify-start rounded-md px-3 text-left text-white underline underline-offset-4 hover:bg-white/10"
-    : "flex min-h-11 w-full items-center justify-start rounded-md px-3 text-left text-foreground underline underline-offset-4 hover:bg-surface-muted";
+    ? "flex min-h-11 w-full items-center justify-start rounded-md px-3 text-left text-white no-underline hover:bg-white/10"
+    : "flex min-h-11 w-full items-center justify-start rounded-md px-3 text-left text-foreground no-underline hover:bg-surface-muted";
 
   return (
     <header className="flex items-center justify-between gap-6">
@@ -54,7 +57,13 @@ export async function PublicContentHeader({ appearance = "default", active, acco
           >
             Training
           </Link>
-          <Link href="/i-want-to-become" className={linkClass}>Build a route</Link>
+          <Link
+            href="/i-want-to-become"
+            className={active === "career-route" ? activeLink : linkClass}
+            aria-current={active === "career-route" ? "page" : undefined}
+          >
+            Build a route
+          </Link>
           <Link
             href="/faq"
             className={active === "faq" ? activeLink : linkClass}
@@ -63,7 +72,7 @@ export async function PublicContentHeader({ appearance = "default", active, acco
             FAQ
           </Link>
         </nav>
-        <Link href={accountHref} className={`${linkClass} underline underline-offset-4`}>{accountLabel}</Link>
+        <Link href={accountHref} className={accountActionClass}>{accountLabel}</Link>
         {isSignedIn ? (
           <form action={signOut}>
             <button type="submit" className={signOutClass}>Sign out</button>

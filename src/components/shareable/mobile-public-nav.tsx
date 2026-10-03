@@ -6,19 +6,21 @@ import { useEffect, useState } from "react";
 
 type MobilePublicNavProps = {
   appearance: "default" | "overlay";
-  active?: "positions" | "training" | "faq";
+  active?: "positions" | "training" | "career-route" | "faq";
   accountHref: string;
   accountLabel: string;
   showGetStarted: boolean;
   signOutControl?: ReactNode;
 };
 
-const navItems: Array<{ href: string; label: string; active?: "positions" | "training" | "faq" }> = [
+type ActivePage = NonNullable<MobilePublicNavProps["active"]>;
+
+const navItems: readonly { href: string; label: string; active: ActivePage }[] = [
   { href: "/opportunities", label: "Positions", active: "positions" },
   { href: "/training", label: "Training", active: "training" },
-  { href: "/i-want-to-become", label: "Build a route", active: undefined },
+  { href: "/i-want-to-become", label: "Build a route", active: "career-route" },
   { href: "/faq", label: "FAQ", active: "faq" },
-] as const;
+];
 
 export function MobilePublicNav({ appearance, active, accountHref, accountLabel, showGetStarted, signOutControl }: MobilePublicNavProps) {
   const [open, setOpen] = useState(false);
@@ -36,8 +38,8 @@ export function MobilePublicNav({ appearance, active, accountHref, accountLabel,
   }, [open]);
 
   const linkClass = isOverlay
-    ? "flex min-h-11 items-center rounded-md px-3 text-white hover:bg-white/10"
-    : "flex min-h-11 items-center rounded-md px-3 text-foreground hover:bg-surface-muted";
+    ? "flex min-h-11 items-center rounded-md px-3 no-underline text-white hover:bg-white/10"
+    : "flex min-h-11 items-center rounded-md px-3 no-underline text-foreground hover:bg-surface-muted";
   const activeClass = isOverlay ? "bg-white/15 font-semibold" : "bg-surface-muted font-semibold text-accent";
   const menuClass = isOverlay
     ? "border-white/25 bg-foreground/95"
@@ -75,7 +77,7 @@ export function MobilePublicNav({ appearance, active, accountHref, accountLabel,
                 {item.label}
               </Link>
             ))}
-            <Link href={accountHref} className={`${linkClass} underline underline-offset-4`} onClick={() => setOpen(false)}>
+            <Link href={accountHref} className={linkClass} onClick={() => setOpen(false)}>
               {accountLabel}
             </Link>
             {signOutControl}
