@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
+import { DemoStatusNotice } from "@/components/demo-status-notice";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { ToastProvider } from "@/components/ui/toast";
 
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <a href="#main-content" className="sr-only fixed left-4 top-4 z-50 rounded-md bg-accent px-4 py-3 text-sm font-semibold text-white focus:not-sr-only focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-accent">
           Skip to content
         </a>
+        <DemoStatusNotice />
         {/* Toasts and confirmations outlive the page subtree that triggers them:
          * clearing a pathway unmounts its own button, so its confirmation cannot
          * live inside it. Mounted once here so every route shares one surface. */}

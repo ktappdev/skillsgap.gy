@@ -58,6 +58,8 @@
 html {
   background: var(--background);
   scroll-behavior: smooth;
+  /* The notice measures its wrapped height so anchors and focus stay visible. */
+  scroll-padding-top: calc(var(--demo-notice-height, 3.5rem) + 0.75rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
