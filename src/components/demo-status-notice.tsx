@@ -24,7 +24,7 @@ export function DemoStatusNotice() {
   }, []);
 
   return (
-    <aside ref={noticeRef} aria-label="Site launch status" className="sticky top-0 z-30 bg-accent px-4 py-2 text-center text-sm leading-5 text-white">
+    <aside ref={noticeRef} aria-label="Site launch status" className="sticky top-0 z-30 bg-demo-surface px-4 py-2 text-center text-sm leading-5 text-foreground">
       <p><strong className="font-semibold">Demo mode</strong> — SkillsGap.gy has not officially launched.</p>
     </aside>
   );

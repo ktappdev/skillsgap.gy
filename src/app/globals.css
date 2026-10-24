@@ -33,6 +33,8 @@
   --accent: #171717;
   --accent-strong: #000000;
   --danger: #b42318;
+  /* Deliberately vivid so the pre-launch notice stands apart from the app. */
+  --demo-surface: #d9f940;
 }
 
 @theme inline {
@@ -47,6 +49,7 @@
   /* Keep legacy teal utility classes neutral while areas migrate to tokens. */
   --color-teal-50: var(--surface-muted);
   --color-danger: var(--danger);
+  --color-demo-surface: var(--demo-surface);
   --font-sans: var(--font-inter);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
