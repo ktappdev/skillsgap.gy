@@ -4,7 +4,7 @@
 
 Run from the repository root unless noted:
 
-- `pnpm test` — passed: 16 files, 64 tests.
+- `pnpm test` — passed: 57 files, 392 tests.
 - `pnpm typecheck` — passed.
 - `pnpm lint` — passed.
 - `pnpm build` — passed; Next reported 33 application routes, with public static routes and dynamic server-rendered routes as listed in [the page index](./01-page-index.md).

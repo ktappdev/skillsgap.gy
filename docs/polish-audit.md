@@ -66,7 +66,7 @@ The repository checks completed successfully before and during this pass:
 
 - `pnpm typecheck`
 - `pnpm lint`
-- `pnpm test` — 16 files, 64 tests
+- `pnpm test` — 57 files, 392 tests
 - `pnpm build` — 33 application routes
 - `go test ./...`, `go vet ./...`, and `go build ./...` from `services/processor`
 - Python compilation and OCR validation tests

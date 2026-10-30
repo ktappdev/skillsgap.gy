@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web app checks
+    runs-on: ubuntu-latest
+    env:
+      # Non-secret placeholders. src/lib/env.ts throws at import time when these
+      # are unset, and CI has no .env.local. They are not real credentials.
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm version is read from the "packageManager" field in package.json.
+      - uses: pnpm/action-setup@v4
+
+      # Node range is read from "engines.node" in package.json.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      # pnpm build is not run here: it needs Supabase configuration and
+      # next/font/google fetches fonts at build time.
+      - run: pnpm test
+
+  processor:
+    name: Processor checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/processor
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/processor/go.mod
+          cache-dependency-path: services/processor/go.sum
+
+      # PDF validation and page rendering shell out to pdfinfo and pdftoppm,
+      # and the processor tests exercise both.
+      - name: Install Poppler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+
+      - run: go vet ./...
+      - run: go test ./...
+      - run: go build ./...
