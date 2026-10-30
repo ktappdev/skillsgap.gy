@@ -13,7 +13,7 @@ export default function GlobalError({ reset }: GlobalErrorProps) {
       <section className="w-full max-w-md rounded-lg border border-border bg-surface p-6 text-center sm:p-8">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-danger">Unexpected error</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-foreground">Let&apos;s try that again.</h1>
-        <p className="mt-3 text-sm leading-6 text-muted">The page hit a temporary problem while loading your pathway. Try again in a moment.</p>
+        <p className="mt-3 text-sm leading-6 text-muted">The page hit a temporary problem while loading this page. Try again in a moment.</p>
         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <button
             type="button"

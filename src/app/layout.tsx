@@ -7,6 +7,8 @@ import { ToastProvider } from "@/components/ui/toast";
 
 import "./globals.css";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://skillsgap.gy";
+
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -15,6 +17,15 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: { default: "SkillsGap.gy — Find your next move", template: "%s | SkillsGap.gy" },
   description: "SkillsGap.gy connects the skills people have in Guyana with local opportunities and training.",
+  metadataBase: new URL(siteUrl),
+  openGraph: {
+    title: "SkillsGap.gy — Find your next move",
+    description: "SkillsGap.gy connects the skills people have in Guyana with local opportunities and training.",
+    siteName: "SkillsGap.gy",
+    type: "website",
+    locale: "en_GY",
+  },
+  twitter: { card: "summary" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
