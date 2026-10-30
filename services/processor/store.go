@@ -285,7 +285,25 @@ func (store *supabaseStore) doJSON(request *http.Request, target any) error {
 	return json.NewDecoder(io.LimitReader(response.Body, 2*1024*1024)).Decode(target)
 }
 
+// responseError keeps the error log free of upstream bodies: only the PostgREST
+// code and message survive, and a non-JSON body falls back to the status alone.
 func responseError(response *http.Response) error {
-	body, _ := io.ReadAll(io.LimitReader(response.Body, 4*1024))
-	return fmt.Errorf("supabase returned %s: %s", response.Status, strings.TrimSpace(string(body)))
+	code, message := postgrestErrorFields(response.Body)
+	if code == "" && message == "" {
+		return fmt.Errorf("supabase returned %s", response.Status)
+	}
+	return fmt.Errorf("supabase returned %s: code=%s message=%s", response.Status, code, message)
+}
+
+// postgrestErrorFields reads the two fields PostgREST guarantees are safe to
+// log. Everything else in the body is discarded unread by the decoder.
+func postgrestErrorFields(reader io.Reader) (string, string) {
+	var payload struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(io.LimitReader(reader, 4*1024)).Decode(&payload); err != nil {
+		return "", ""
+	}
+	return strings.TrimSpace(payload.Code), strings.TrimSpace(payload.Message)
 }

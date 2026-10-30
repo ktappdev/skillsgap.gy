@@ -1,13 +1,112 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+// modelStatusServer answers every request with one status and a body that must
+// never reach the error or the log.
+func modelStatusServer(t *testing.T, status int, retryAfter string) *httptest.Server {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		if retryAfter != "" {
+			writer.Header().Set("Retry-After", retryAfter)
+		}
+		writer.WriteHeader(status)
+		_, _ = writer.Write([]byte(`{"error":{"message":"applicant jane@example.com leaked prompt"}}`))
+	}))
+	t.Cleanup(server.Close)
+	return server
+}
+
+// A provider status is an operator problem: the applicant must not be told their
+// CV is damaged, and the body must not be echoed into the log.
+func TestModelHTTPErrorCarriesStatusWithoutBody(t *testing.T) {
+	for _, status := range []int{
+		http.StatusBadRequest,
+		http.StatusUnauthorized,
+		http.StatusForbidden,
+		http.StatusNotFound,
+		http.StatusRequestEntityTooLarge,
+		http.StatusUnprocessableEntity,
+	} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			server := modelStatusServer(t, status, "")
+			client := newLLMClient(config{llmBaseURL: server.URL, llmModel: "test-model"})
+
+			_, err := client.extractWithText(context.Background(), "I repair diesel engines every day", testTaxonomy())
+			if err == nil {
+				t.Fatal("expected a model status failure")
+			}
+			if strings.Contains(err.Error(), "jane@example.com") {
+				t.Fatalf("error leaked the response body: %v", err)
+			}
+			var failure modelHTTPError
+			if !errors.As(err, &failure) || failure.status != status {
+				t.Fatalf("error = %v, want a modelHTTPError carrying %d", err, status)
+			}
+			message, terminal := processingFailureDetails(err, jobKindResume)
+			if !terminal || message != modelRejectedMessage {
+				t.Fatalf("message = %q terminal = %v", message, terminal)
+			}
+			if strings.Contains(message, "CV") || strings.Contains(message, "PDF") {
+				t.Fatalf("model failure must not blame the document: %q", message)
+			}
+		})
+	}
+}
+
+func TestModelHTTPErrorKeepsRateLimitsAndServerErrorsTransient(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		status     int
+		retryAfter string
+	}{
+		{name: "rate limited", status: http.StatusTooManyRequests, retryAfter: "9"},
+		{name: "server error", status: http.StatusInternalServerError},
+		{name: "unavailable", status: http.StatusServiceUnavailable},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			server := modelStatusServer(t, test.status, test.retryAfter)
+			client := newLLMClient(config{llmBaseURL: server.URL, llmModel: "test-model"})
+
+			var logged bytes.Buffer
+			previous := log.Writer()
+			log.SetOutput(&logged)
+			defer log.SetOutput(previous)
+
+			_, err := client.extractWithText(context.Background(), "I repair diesel engines every day", testTaxonomy())
+			if err == nil {
+				t.Fatal("expected a model status failure")
+			}
+			message, terminal := processingFailureDetails(err, jobKindResume)
+			if terminal || message != "We could not process this CV. Please try again." {
+				t.Fatalf("message = %q terminal = %v", message, terminal)
+			}
+			logOutput := logged.String()
+			if !strings.Contains(logOutput, fmt.Sprintf("status=%d", test.status)) {
+				t.Fatalf("log must record the model status: %s", logOutput)
+			}
+			if strings.Contains(logOutput, "jane@example.com") {
+				t.Fatalf("log leaked the response body: %s", logOutput)
+			}
+			if test.retryAfter != "" {
+				if !strings.Contains(logOutput, "retry_after="+test.retryAfter) || !strings.Contains(err.Error(), "retry after "+test.retryAfter) {
+					t.Fatalf("retry after missing from log %q or error %v", logOutput, err)
+				}
+			}
+		})
+	}
+}
 
 func TestDecodeExtractionRejectsUnknownQualificationSlug(t *testing.T) {
 	_, err := decodeExtraction(`{"findings":[{"original_term":"BOSIET","candidate_slugs":["not-in-taxonomy"],"years_experience":0,"evidence":"BOSIET certificate","evidence_page":1,"evidence_method":"vision","confidence":0.9}],"employment":[],"unmapped_terms":[]}`, testTaxonomy(), methodVision)

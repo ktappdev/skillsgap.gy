@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -14,6 +15,7 @@ func setRequiredConfig(t *testing.T) {
 	t.Setenv("LLM_MODEL", "local-model")
 	t.Setenv("LLM_API_KEY", "")
 	t.Setenv("LLM_MAX_TAXONOMY_ENTRIES", "")
+	t.Setenv("WORKER_CONCURRENCY", "")
 }
 
 func TestLoadConfigAllowsKeylessOpenAICompatibleEndpoint(t *testing.T) {
@@ -108,6 +110,96 @@ func TestLoadConfigTreatsSkillPreviewSecretAsOptional(t *testing.T) {
 	}
 	if value.skillPreviewSecret != "preview-secret" {
 		t.Fatalf("skill preview secret = %q, want the trimmed value", value.skillPreviewSecret)
+	}
+}
+
+func TestLoadConfigReadsWorkerConcurrency(t *testing.T) {
+	t.Run("default", func(t *testing.T) {
+		setRequiredConfig(t)
+
+		value, err := loadConfig()
+		if err != nil {
+			t.Fatalf("load config: %v", err)
+		}
+		if value.workerConcurrency != defaultWorkerConcurrency {
+			t.Fatalf("worker concurrency = %d, want %d", value.workerConcurrency, defaultWorkerConcurrency)
+		}
+	})
+
+	for _, test := range []struct {
+		name  string
+		value string
+		want  int
+	}{
+		{name: "minimum", value: "1", want: 1},
+		{name: "trimmed", value: " 3 ", want: 3},
+		{name: "maximum", value: "8", want: 8},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			setRequiredConfig(t)
+			t.Setenv("WORKER_CONCURRENCY", test.value)
+
+			value, err := loadConfig()
+			if err != nil {
+				t.Fatalf("load config: %v", err)
+			}
+			if value.workerConcurrency != test.want {
+				t.Fatalf("worker concurrency = %d, want %d", value.workerConcurrency, test.want)
+			}
+		})
+	}
+}
+
+func TestLoadConfigRejectsInvalidWorkerConcurrency(t *testing.T) {
+	for _, invalid := range []string{"0", "9", "-2", "two", "1.5"} {
+		t.Run(invalid, func(t *testing.T) {
+			setRequiredConfig(t)
+			t.Setenv("WORKER_CONCURRENCY", invalid)
+
+			_, err := loadConfig()
+			if err == nil || !strings.Contains(err.Error(), "WORKER_CONCURRENCY must be an integer between 1 and 8") {
+				t.Fatalf("load config error = %v", err)
+			}
+		})
+	}
+}
+
+// workerCount keeps the pool inside its bounds even for a config built without
+// loadConfig.
+func TestWorkerCountDefaultsAndClamps(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		value int
+		want  int
+	}{
+		{name: "unset", value: 0, want: defaultWorkerConcurrency},
+		{name: "negative", value: -3, want: defaultWorkerConcurrency},
+		{name: "single", value: 1, want: 1},
+		{name: "above maximum", value: 64, want: maxWorkerConcurrency},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := (config{workerConcurrency: test.value}).workerCount(); got != test.want {
+				t.Fatalf("worker count = %d, want %d", got, test.want)
+			}
+		})
+	}
+}
+
+func TestVerifyPDFToolsNamesTheMissingBinary(t *testing.T) {
+	missing := "pdftoppm"
+	err := verifyPDFTools(func(name string) (string, error) {
+		if name == missing {
+			return "", os.ErrNotExist
+		}
+		return "/usr/bin/" + name, nil
+	})
+	if err == nil || !strings.Contains(err.Error(), missing) {
+		t.Fatalf("verify PDF tools error = %v", err)
+	}
+
+	available := verifyPDFTools(func(name string) (string, error) { return "/usr/bin/" + name, nil })
+	if available != nil {
+		t.Fatalf("verify available PDF tools error = %v", available)
 	}
 }
 

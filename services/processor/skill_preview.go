@@ -185,7 +185,7 @@ func (service *service) requireSkillPreviewSecret(next http.Handler) http.Handle
 }
 
 func skillPreviewDebugLog(format string, args ...any) {
-	if os.Getenv("PICODE_DEBUG") == "1" {
-		log.Printf("[pdbg] "+format, args...)
+	if os.Getenv("SKILLSGAP_DEBUG") == "1" {
+		log.Printf("[debug] "+format, args...)
 	}
 }

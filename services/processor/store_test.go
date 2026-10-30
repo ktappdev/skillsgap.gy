@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -176,5 +177,34 @@ func TestPermanentFailureIsMarkedTerminalWithoutLeakingCause(t *testing.T) {
 	store := &supabaseStore{baseURL: server.URL, apiKey: "service-key", client: server.Client()}
 	if err := store.fail(context.Background(), processingJob{ID: "job-1"}, terminalProcessingError("Upload an unlocked PDF.")); err != nil {
 		t.Fatalf("fail: %v", err)
+	}
+}
+
+// Only the PostgREST code and message may reach the log: the rest of the body
+// can echo request data that must never be logged.
+func TestResponseErrorKeepsOnlyPostgRESTCodeAndMessage(t *testing.T) {
+	response := &http.Response{
+		Status: "400 Bad Request",
+		Body:   io.NopCloser(strings.NewReader(`{"code":"42501","message":"permission denied for table resumes","details":"applicant jane@example.com","hint":"contact the owner"}`)),
+	}
+
+	message := responseError(response).Error()
+	if !strings.Contains(message, "code=42501") || !strings.Contains(message, "message=permission denied for table resumes") {
+		t.Fatalf("error = %q", message)
+	}
+	if strings.Contains(message, "jane@example.com") || strings.Contains(message, "contact the owner") {
+		t.Fatalf("error leaked the response body: %q", message)
+	}
+}
+
+func TestResponseErrorFallsBackToStatusForNonJSONBody(t *testing.T) {
+	response := &http.Response{
+		Status: "502 Bad Gateway",
+		Body:   io.NopCloser(strings.NewReader("<html>applicant jane@example.com</html>")),
+	}
+
+	message := responseError(response).Error()
+	if message != "supabase returned 502 Bad Gateway" {
+		t.Fatalf("error = %q", message)
 	}
 }

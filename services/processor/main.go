@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -14,6 +15,9 @@ import (
 func main() {
 	config, err := loadConfig()
 	if err != nil {
+		log.Fatal(err)
+	}
+	if err := verifyPDFTools(exec.LookPath); err != nil {
 		log.Fatal(err)
 	}
 

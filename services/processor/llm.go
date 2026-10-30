@@ -33,6 +33,40 @@ type llmClient struct {
 	client             *http.Client
 }
 
+// modelHTTPError carries only the provider's status code and Retry-After. The
+// response body stays out of it: a model error can echo prompt content, and the
+// API key must never reach a log.
+type modelHTTPError struct {
+	status     int
+	retryAfter string
+}
+
+func (failure modelHTTPError) Error() string {
+	if failure.retryAfter == "" {
+		return fmt.Sprintf("LLM extraction service returned status %d", failure.status)
+	}
+	return fmt.Sprintf("LLM extraction service returned status %d (retry after %s)", failure.status, failure.retryAfter)
+}
+
+// permanentModelStatus lists provider answers that will not change on retry: a
+// rejected key, an unknown model, or a request the endpoint refuses outright.
+func permanentModelStatus(status int) bool {
+	switch status {
+	case http.StatusBadRequest,
+		http.StatusUnauthorized,
+		http.StatusForbidden,
+		http.StatusNotFound,
+		http.StatusRequestEntityTooLarge,
+		http.StatusUnprocessableEntity:
+		return true
+	}
+	return false
+}
+
+func newModelHTTPError(response *http.Response) modelHTTPError {
+	return modelHTTPError{status: response.StatusCode, retryAfter: strings.TrimSpace(response.Header.Get("Retry-After"))}
+}
+
 func newLLMClient(config config) *llmClient {
 	taxonomyEntryLimit := config.taxonomyEntryLimit
 	if taxonomyEntryLimit < 1 {
@@ -161,7 +195,9 @@ func (client *llmClient) postChat(ctx context.Context, messages []chatMessage, s
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return "", errors.New("LLM extraction service did not accept the document")
+		failure := newModelHTTPError(response)
+		logModelHTTPFailure(failure)
+		return "", failure
 	}
 	var result struct {
 		Choices []struct {
@@ -183,6 +219,15 @@ func setAPIKeyHeader(request *http.Request, apiKey string) {
 	if apiKey != "" {
 		request.Header.Set("Authorization", "Bearer "+apiKey)
 	}
+}
+
+// logModelHTTPFailure records the status an operator needs without the body.
+func logModelHTTPFailure(failure modelHTTPError) {
+	retryAfter := failure.retryAfter
+	if retryAfter == "" {
+		retryAfter = "-"
+	}
+	log.Printf("processing stage=model_http_failed status=%d retry_after=%s", failure.status, retryAfter)
 }
 
 func (client *llmClient) extractCSECResults(ctx context.Context, image []byte, mimeType string) ([]csecResult, error) {
@@ -216,7 +261,9 @@ func (client *llmClient) extractCSECResults(ctx context.Context, image []byte, m
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New("CSEC extraction service did not accept the image")
+		failure := newModelHTTPError(response)
+		logModelHTTPFailure(failure)
+		return nil, failure
 	}
 	var result struct {
 		Choices []struct {

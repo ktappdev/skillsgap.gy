@@ -15,6 +15,11 @@ type execPDFDocument struct {
 	scratchDirectory string
 }
 
+// maxRenderedLongEdge caps a rendered page's long edge in pixels. Without it a
+// PDF with a huge MediaBox is rendered at 144 DPI in full and can exhaust
+// memory before the rendered-byte limit is ever checked.
+const maxRenderedLongEdge = 1600
+
 func (document execPDFDocument) pageCount(ctx context.Context, contents []byte) (int, error) {
 	directory, pdfPath, err := document.privatePDF(contents)
 	if err != nil {
@@ -45,8 +50,11 @@ func (renderer execPDFPageRenderer) render(ctx context.Context, contents []byte,
 	totalBytes := 0
 	for _, page := range pageNumbers {
 		prefix := filepath.Join(directory, fmt.Sprintf("page-%d", page))
-		command := exec.CommandContext(ctx, "pdftoppm", "-f", strconv.Itoa(page), "-l", strconv.Itoa(page), "-singlefile", "-r", "144", "-jpeg", "-jpegopt", "quality=85", pdfPath, prefix)
+		command := exec.CommandContext(ctx, "pdftoppm", "-f", strconv.Itoa(page), "-l", strconv.Itoa(page), "-singlefile", "-r", "144", "-scale-to", strconv.Itoa(maxRenderedLongEdge), "-jpeg", "-jpegopt", "quality=85", pdfPath, prefix)
 		if err := command.Run(); err != nil {
+			if toolErr := pdfToolFailure(ctx, err, "pdftoppm"); toolErr != nil {
+				return nil, toolErr
+			}
 			return nil, errors.New("document page could not be rendered for visual verification")
 		}
 		data, err := os.ReadFile(prefix + ".jpg")
@@ -97,6 +105,9 @@ func (document execPDFDocument) privatePDF(contents []byte) (string, string, err
 func inspectPDF(ctx context.Context, path string) (int, error) {
 	output, err := exec.CommandContext(ctx, "pdfinfo", path).Output()
 	if err != nil {
+		if toolErr := pdfToolFailure(ctx, err, "pdfinfo"); toolErr != nil {
+			return 0, toolErr
+		}
 		return 0, terminalProcessingError("This PDF is locked or damaged. Upload an unlocked PDF or add your qualifications manually.")
 	}
 	for _, line := range strings.Split(string(output), "\n") {
@@ -114,4 +125,20 @@ func inspectPDF(ctx context.Context, path string) (int, error) {
 		return pageCount, nil
 	}
 	return 0, terminalProcessingError("This PDF is missing readable page information. Upload a new PDF copy.")
+}
+
+// pdfToolFailure separates an operator problem from a document problem. A
+// missing binary, a start failure, or an interrupted run is transient, so the
+// retry policy gets another chance once the host is fixed. A nil result means
+// the tool ran and rejected the document itself, which is terminal for that
+// file.
+func pdfToolFailure(ctx context.Context, err error, tool string) error {
+	var startError *exec.Error
+	if errors.Is(err, exec.ErrNotFound) || errors.As(err, &startError) {
+		return fmt.Errorf("%s could not be executed: %w", tool, err)
+	}
+	if ctx.Err() != nil {
+		return fmt.Errorf("%s was interrupted: %w", tool, err)
+	}
+	return nil
 }

@@ -55,8 +55,14 @@ func newService(config config, store jobStore, pipeline resumePipeline) *service
 func (service *service) start() {
 	context, cancel := context.WithCancel(context.Background())
 	service.stopPoll = cancel
-	service.workers.Add(2)
-	go service.worker(context)
+	// claim_processing_job is a single conditional UPDATE, so PostgreSQL serialises
+	// competing claims and exactly one worker receives the row. Every worker can
+	// therefore share the same queue without extra coordination.
+	workerCount := service.config.workerCount()
+	service.workers.Add(workerCount + 1)
+	for range workerCount {
+		go service.worker(context)
+	}
 	go service.poller(context)
 }
 
@@ -182,25 +188,45 @@ func (service *service) process(ctx context.Context, jobID string) {
 	}()
 	processingContext, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
-	if job.Kind == jobKindRecalculate {
+	switch job.Kind {
+	case jobKindRecalculate:
 		started = time.Now()
 		err = service.store.recalculate(processingContext, job)
 		logProcessingStage(job.ID, "recalculate_matches", started)
-	} else {
+	case jobKindResume, jobKindDescription:
 		var result extraction
 		result, err = service.pipeline.process(processingContext, job)
 		if err == nil {
 			started = time.Now()
-			err = service.store.complete(ctx, job, result)
+			persistContext, cancelPersist := terminalContext(ctx)
+			err = service.store.complete(persistContext, job, result)
+			cancelPersist()
 			logProcessingStage(job.ID, "persist_extraction", started)
 		}
+	default:
+		log.Printf("job %s has unsupported kind %q", job.ID, job.Kind)
+		err = terminalProcessingError("This request could not be processed. Please try again.")
 	}
 	if err != nil {
 		log.Printf("resume processing failed for job %s: %v", job.ID, err)
-		if failErr := service.store.fail(ctx, job, err); failErr != nil {
+		// The final state write must survive shutdown: a worker context cancelled by
+		// SIGTERM would otherwise strand the job in 'processing'.
+		persistContext, cancelPersist := terminalContext(ctx)
+		defer cancelPersist()
+		if failErr := service.store.fail(persistContext, job, err); failErr != nil {
 			log.Printf("could not mark job as failed: %v", failErr)
 		}
 	}
+}
+
+// terminalWriteTimeout bounds a final job state write so a stalled request
+// cannot keep a shutting-down worker alive past the supervisor's kill window.
+const terminalWriteTimeout = 5 * time.Second
+
+// terminalContext detaches a terminal write from worker cancellation while
+// keeping the values (job metadata) that context carries.
+func terminalContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), terminalWriteTimeout)
 }
 
 func logProcessingStage(jobID string, stage string, started time.Time) {

@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"image/jpeg"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -68,4 +72,83 @@ func TestRenderedPagesArePrivateAndCleanedUp(t *testing.T) {
 
 func fixturePath(name string) string {
 	return filepath.Join("testdata", "generated", name)
+}
+
+// A missing Poppler binary is an operator problem, not a damaged document, so
+// the applicant must not receive the terminal 'locked or damaged' failure.
+func TestMissingPDFBinaryIsTransient(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+
+	_, err := inspectPDF(context.Background(), fixturePath("clean-text.pdf"))
+	if err == nil {
+		t.Fatal("expected a missing pdfinfo failure")
+	}
+	var failure processingError
+	if errors.As(err, &failure) {
+		t.Fatalf("missing binary must not be a processing error: %v", err)
+	}
+	if !strings.Contains(err.Error(), "pdfinfo") {
+		t.Fatalf("error must name the missing binary: %v", err)
+	}
+	if _, terminal := processingFailureDetails(err, jobKindResume); terminal {
+		t.Fatalf("missing binary must stay retryable: %v", err)
+	}
+}
+
+func TestMissingRendererBinaryIsTransient(t *testing.T) {
+	contents, err := os.ReadFile(fixturePath("clean-text.pdf"))
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	t.Setenv("PATH", t.TempDir())
+
+	_, err = (execPDFPageRenderer{scratchDirectory: t.TempDir()}).render(context.Background(), contents, []int{1})
+	if err == nil {
+		t.Fatal("expected a missing pdftoppm failure")
+	}
+	if !strings.Contains(err.Error(), "pdftoppm") {
+		t.Fatalf("error must name the missing binary: %v", err)
+	}
+	if _, terminal := processingFailureDetails(err, jobKindResume); terminal {
+		t.Fatalf("missing binary must stay retryable: %v", err)
+	}
+}
+
+func TestPDFToolFailureLeavesDocumentErrorsToTheCaller(t *testing.T) {
+	missing := pdfToolFailure(context.Background(), &exec.Error{Name: "pdfinfo", Err: exec.ErrNotFound}, "pdfinfo")
+	if missing == nil {
+		t.Fatal("expected a transient error for a missing binary")
+	}
+
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	if interrupted := pdfToolFailure(cancelled, errors.New("signal: killed"), "pdfinfo"); interrupted == nil {
+		t.Fatal("expected a transient error for an interrupted run")
+	}
+
+	if documentFailure := pdfToolFailure(context.Background(), &exec.ExitError{}, "pdfinfo"); documentFailure != nil {
+		t.Fatalf("a rejected document must stay terminal, got %v", documentFailure)
+	}
+}
+
+// A huge MediaBox must not reach the renderer at full size: the long edge is
+// capped before memory use can grow with the declared page size.
+func TestRenderedPagesAreBoundedByLongEdge(t *testing.T) {
+	contents := []byte("%PDF-1.4\n" +
+		"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n" +
+		"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n" +
+		"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 1800 1800]>>endobj\n" +
+		"trailer<</Root 1 0 R>>\n")
+
+	images, err := (execPDFPageRenderer{scratchDirectory: t.TempDir()}).render(context.Background(), contents, []int{1})
+	if err != nil || len(images) != 1 {
+		t.Fatalf("render images=%d err=%v", len(images), err)
+	}
+	config, err := jpeg.DecodeConfig(bytes.NewReader(images[0].Data))
+	if err != nil {
+		t.Fatalf("decode rendered page: %v", err)
+	}
+	if config.Width != maxRenderedLongEdge || config.Height != maxRenderedLongEdge {
+		t.Fatalf("rendered page = %dx%d, want both edges at %d", config.Width, config.Height, maxRenderedLongEdge)
+	}
 }
