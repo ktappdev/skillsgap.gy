@@ -38,7 +38,6 @@ Before uploading the fixture, confirm:
 - Go `/healthz` returns `{"status":"ok"}`.
 - The model endpoint’s `/v1/models` reports the exact `LLM_MODEL` configured for the processor.
 - A synthetic page image is accepted with strict JSON output.
-- The active processor environment does not require `OCR_SERVICE_SECRET`.
 
 Run the automated private-stack gate (it never prints the API key):
 

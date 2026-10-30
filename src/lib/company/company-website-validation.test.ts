@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { isCompanyDescription, normalizeCompanyWebsite } from "@/lib/company/access-request";
+import { isCompanyDescription, normalizeCompanyWebsite } from "@/lib/company/company-profile";
 
-describe("company access requests", () => {
+describe("company website and description validation", () => {
   it("accepts HTTP company websites and normalizes them", () => {
     expect(normalizeCompanyWebsite(" https://example.com ")).toEqual({ ok: true, value: "https://example.com/" });
     expect(normalizeCompanyWebsite("")).toEqual({ ok: true, value: null });

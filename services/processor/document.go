@@ -9,21 +9,9 @@ const (
 type extractionMethod string
 
 const (
-	methodNative extractionMethod = "native"
-	methodOCR    extractionMethod = "ocr"
 	methodVision extractionMethod = "vision"
 	methodText   extractionMethod = "text"
 )
-
-type documentPage struct {
-	Number int
-	Text   string
-	Method extractionMethod
-}
-
-type parsedDocument struct {
-	Pages []documentPage
-}
 
 type pageImage struct {
 	Page      int

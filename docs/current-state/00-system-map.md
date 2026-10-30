@@ -17,7 +17,6 @@ There is a second, no-CV loop:
 - Supabase Postgres owns the product data, RLS policies, matching calculations, processing-job state, and most cross-record workflows through RPCs.
 - Supabase Storage owns private CV files in the `resumes` bucket. The browser uploads directly to Storage, then registers the upload through a server action.
 - `services/processor` is a separate Go worker. It polls or receives a webhook for queued jobs, downloads private PDFs from Supabase, renders pages, sends images to an OpenAI-compatible chat-completions endpoint, and writes validated results back through Supabase RPCs.
-- `services/ocr` is a dormant Python rollback service. The active processor is vision-only and does not call it.
 - The public CSEC/CXC result-slip reader is an optional Next.js-to-processor proxy. Manual entry remains available when the processor endpoint is not configured.
 
 ## Account spaces

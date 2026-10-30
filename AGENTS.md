@@ -23,23 +23,11 @@ go vet ./...
 go build ./...
 ```
 
-Python syntax check (run from the repository root):
-
-```bash
-python3 -c "from pathlib import Path; compile(Path('services/ocr/app.py').read_text(), 'services/ocr/app.py', 'exec')"
-```
-
-OCR validation tests (run from the repository root):
-
-```bash
-python3 -m unittest services/ocr/test_validation.py
-```
-
 Supabase verification without changing the linked project:
 
 ```bash
-supabase db push --dry-run --include-seed --project-ref uljznzafpiamxmervxjb
-supabase db lint --linked --project-ref uljznzafpiamxmervxjb --schema public --fail-on error
+supabase db push --dry-run --include-seed --project-ref uoaudfdaffnlrjwqnnnq
+supabase db lint --linked --project-ref uoaudfdaffnlrjwqnnnq --schema public --fail-on error
 ```
 
 Prepare and verify the non-sensitive fallback demo account:
@@ -88,7 +76,7 @@ For every new seeded pathway, make the data change in both places:
 - `supabase/seed.sql` for a clean local `supabase db reset`.
 - A timestamped migration created with a concrete name, for example `supabase migration new add_new_career_pathway`, for an already-linked database. Do not assume `seed.sql` changes are deployed by the application or by `git push`.
 
-Before declaring the pathway complete, run `supabase db push --dry-run --include-seed --project-ref uljznzafpiamxmervxjb`, `supabase db lint --linked --project-ref uljznzafpiamxmervxjb --schema public --fail-on error`, the fallback preparation/readiness commands above, and the normal web checks. Deploy with `supabase db push --include-seed --project-ref uljznzafpiamxmervxjb` only after the target environment and destructive impact are explicitly approved.
+Before declaring the pathway complete, run `supabase db push --dry-run --include-seed --project-ref uoaudfdaffnlrjwqnnnq`, `supabase db lint --linked --project-ref uoaudfdaffnlrjwqnnnq --schema public --fail-on error`, the fallback preparation/readiness commands above, and the normal web checks. Deploy with `supabase db push --include-seed --project-ref uoaudfdaffnlrjwqnnnq` only after the target environment and destructive impact are explicitly approved.
 
 ## Hackathon deployment
 

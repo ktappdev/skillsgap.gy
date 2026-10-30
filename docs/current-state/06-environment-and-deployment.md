@@ -31,7 +31,6 @@ Defined by `services/processor/config.go` and its README:
 | `LLM_API_KEY` | Optional model endpoint bearer key; required when the selected provider requires it |
 | `LLM_MODEL` | Exact model identifier served by the selected endpoint |
 | `PROCESSOR_SCRATCH_DIR` | Temporary PDF/render directory; default `/ephemeral/skillsgap-processor` |
-| `OCR_URL`, `OCR_SERVICE_SECRET` | Dormant rollback path settings |
 | `CSEC_SLIP_PROCESSOR_SECRET` | Optional public slip endpoint secret |
 | `SKILL_PREVIEW_SECRET` | Optional public skill-preview endpoint secret; falls back to the CSEC processor secret |
 

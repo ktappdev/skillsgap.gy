@@ -183,11 +183,10 @@ Next.js on Vercel
             └─ Supabase service APIs
 ```
 
-The current private-host deployment exposes only the Go processor port `8080` using its configured HTTPS URL. The model endpoint remains private, and the dormant OCR port stays unforwarded. Services run under systemd, matching the current private-host runbooks:
+The current private-host deployment exposes only the Go processor port `8080` using its configured HTTPS URL. The model endpoint remains private. Services run under systemd, matching the current private-host runbooks:
 
 - [Go API runbook](thundercompute/01-go-backend.md)
 - [vLLM runbook](thundercompute/02-qwen3.6-35b-vllm.md)
-- [OCR rollback runbook](thundercompute/03-pp-structure-v3-ocr.md)
 
 ### External Go API
 
@@ -204,7 +203,7 @@ The webhook never contains CV bytes. The Go worker retrieves the job and CV from
 | --- | --- | --- |
 | Configured vision model | `{LLM_BASE_URL}/chat/completions` | OpenAI-compatible request using the extraction prompt and ordered base64 page images. |
 
-Run one resume at a time until Qwen latency and GPU memory use are measured. Keep Qwen resident on the RTX 6000-class GPU. No OCR process is required for the active MVP deployment.
+Run one resume at a time until Qwen latency and GPU memory use are measured. Keep Qwen resident on the RTX 6000-class GPU.
 
 The private worker/database boundary is intentionally narrow:
 
@@ -344,7 +343,7 @@ The executable rehearsal, fallback setup, and recovery steps are in [`docs/demo-
 
 ### Health checklist before presentation
 
-- The configured OpenAI-compatible vision endpoint and the Go systemd service are active; OCR remains stopped unless rollback is intentionally enabled.
+- The configured OpenAI-compatible vision endpoint and the Go systemd service are active.
 - `GET /healthz`, model discovery, the production-style vision prompt, and synthetic image smoke tests succeed locally.
 - The public service URL reaches only the Go health endpoint.
 - Supabase Realtime is enabled for processing jobs and match/invitation updates.
